@@ -500,7 +500,10 @@ function visibleRecords() {
   if (f.assignee) list = list.filter(r => (r.assignees || []).includes(f.assignee));
   if (f.q) {
     const q = f.q.toLowerCase();
-    list = list.filter(r => (r.body + r.aiSummary + r.id + r.redmine).toLowerCase().includes(q));
+    list = list.filter(r => {
+      const names = (r.assignees || []).map(id => { const m = member(id); return m ? (m.en + (m.ko || '') + (m.role || '')) : ''; }).join(' ');
+      return (r.body + r.aiSummary + r.id + r.redmine + ' ' + names).toLowerCase().includes(q);
+    });
   }
   return list;
 }
@@ -700,7 +703,7 @@ function renderBoard() {
     <div class="spacer"></div>
     <div class="search">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-      <input type="text" id="f-q" placeholder="본문·접수번호 검색" value="${esc(f.q)}">
+      <input type="text" id="f-q" placeholder="본문·접수번호·담당자 검색" value="${esc(f.q)}">
     </div>
   </div>`;
 
@@ -950,9 +953,10 @@ function detailSections(r) {
     </div>`,
     orig: `
     <div class="sec grow">
-      <div class="sec-h">원문 ${redmineLink}</div>
+      <div class="sec-h">원문</div>
       <div class="model-row"><span class="lab">모델</span><select id="m-model" class="model-sel">${modelOpts}</select></div>
       <textarea id="m-body" class="box orig edit grow-fill" style="min-height:160px">${esc(r.body)}</textarea>
+      ${r.redmine ? `<div class="hint" style="margin-top:8px">${redmineLink}</div>` : ''}
     </div>`,
     classify: `
     <div class="sec">
@@ -966,9 +970,11 @@ function detailSections(r) {
     </div>`,
     pm: `
     <div class="sec pm-block">
-      <label class="field"><span class="lab">개발 전달 메모</span><textarea id="m-memo" style="min-height:90px" placeholder="개발팀에 전달할 내용을 적으세요.">${esc(r.pmMemo)}</textarea></label>
-      <label class="field" style="margin:0 0 12px"><span class="lab">상태</span><select id="m-status" style="max-width:200px">${statusSel}</select></label>
-      <div class="lab" style="margin-bottom:7px">담당자 <span class="muted-s">복수 선택 가능</span></div>
+      <div class="sec-h">개발 전달 메모</div>
+      <textarea id="m-memo" class="box" style="min-height:90px;width:100%;margin-bottom:14px" placeholder="개발팀에 전달할 내용을 적으세요.">${esc(r.pmMemo)}</textarea>
+      <div class="sec-h" style="margin-bottom:6px">상태</div>
+      <select id="m-status" style="max-width:200px;margin-bottom:14px">${statusSel}</select>
+      <div class="sec-h" style="margin-bottom:6px">담당자 <span class="muted-s">복수 선택 가능</span></div>
       <div class="assignee-pick" id="m-assignee">${team().map(m => `<button type="button" class="asg-chip ${(r.assignees || []).includes(m.id) ? 'on' : ''}" data-asg="${esc(m.id)}">${avatarHTML(m.id, 20)} ${esc(m.en)}</button>`).join('')}</div>
     </div>`,
     comments: `
