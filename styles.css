@@ -637,11 +637,11 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .detail-2col .dcol { display: flex; flex-direction: column; gap: 20px; }
 .detail-2col .dcol .sec.grow { flex: 1 1 auto; display: flex; flex-direction: column; }
 .detail-2col .dcol .sec.grow .grow-fill { flex: 1 1 auto; }
-.detail-sep { border: 0; border-top: 1px solid var(--line); margin: 0; }
+.detail-sep { border: 0; border-top: 1px solid var(--line); margin: 10px 0; }
 .detail-savebar { display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin-top: 16px; padding: 0; border: 0; position: static; background: transparent; backdrop-filter: none; }
 .detail-savebar .saved-msg { margin-right: auto; }
 .detail-savebar #m-delete { margin-left: 0; }
-.model-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0 0 12px; }
+.model-row { display: flex; align-items: center; justify-content: flex-start; gap: 10px; margin: 0 0 12px; }
 .model-row .lab { margin: 0; font-size: 13px; font-weight: 700; color: var(--ink-soft); white-space: nowrap; }
 .model-row select.model-sel { width: auto; min-width: 150px; max-width: 240px; }
 #m-cmt-send, .detail-savebar #m-save, .detail-savebar #m-delete { flex: 0 0 auto; min-width: 80px; padding: 9px 16px; font-size: 13px; font-weight: 600; }

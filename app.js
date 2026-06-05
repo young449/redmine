@@ -995,13 +995,15 @@ function renderDetailPage() {
       <div class="dcol">${s.summary}${s.orig}</div>
       <div class="dcol">${s.classify}${s.pm}</div>
     </div>
-    <hr class="detail-sep">
-    ${s.comments}
   </div>
   <div class="save-bar detail-savebar">
     <span class="saved-msg" id="saved-msg" style="display:none">✓ 저장됨</span>
     <button class="btn primary" id="m-save" disabled>저장</button>
     <button class="btn danger" id="m-delete">삭제</button>
+  </div>
+  <hr class="detail-sep">
+  <div class="detail-form">
+    ${s.comments}
   </div>`;
 }
 
