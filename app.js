@@ -19,6 +19,17 @@ const TYPES = [
 const IMPACTS = ['SW 전용', 'HW 전용', 'SW+HW 복합'];
 const EMOTIONS = ['정보 제공', '제안', '불만', '강한 불만'];
 const SOURCES = ['국내', '해외'];
+// VOC 유형 → 성격 기준 묶음
+const TYPE_GROUPS = [
+  { key: '기능·확장', cls: 'g-feat', types: ['기능 요청', '앱 생태계', '성능·기술 요청'] },
+  { key: '사용성',   cls: 'g-ux',   types: ['UX 불만', '디자인 (HW/UXUI)'] },
+  { key: '결함',     cls: 'g-bug',  types: ['버그·오작동'] },
+  { key: '글로벌',   cls: 'g-i18n', types: ['로컬라이제이션'] },
+  { key: '비즈니스', cls: 'g-biz',  types: ['가격·가치 인식'] }
+];
+const groupOfType = t => (TYPE_GROUPS.find(g => g.types.includes(t)) || {}).key || '기타';
+const clsOfGroup = k => (TYPE_GROUPS.find(g => g.key === k) || {}).cls || 'g-etc';
+const groupsOfRecord = r => [...new Set(effTypes(r).map(groupOfType))];
 // 워크스페이스(브랜드)별 모델 라인업
 //  - AK    : https://www.astellnkern.com/product/dap.php
 //  - Activo: https://www.activostyle.com/ko/product  (AK가 튜닝한 자매 브랜드)
@@ -144,28 +155,6 @@ function heuristicSummary(body) {
   return summary;
 }
 
-/* ---------- 반복 이슈 감지 (PRD 4-3) ---------- */
-const STOPWORDS = new Set(['그리고', '하지만', '그래서', '너무', '정말', '진짜', '그냥', '계속', '제품', '사용', '있습니다', '합니다', '같아요', '같습니다', '해주세요', '있어요', '있음']);
-function keywords(body) {
-  return (body.match(/[가-힣A-Za-z]{2,}/g) || [])
-    .map(w => w.toLowerCase())
-    .filter(w => w.length >= 2 && !STOPWORDS.has(w));
-}
-function computeRepeats(records) {
-  const freq = {};
-  records.forEach(r => {
-    const seen = new Set(keywords(r.body));
-    seen.forEach(w => { freq[w] = (freq[w] || 0) + 1; });
-  });
-  // 각 레코드에 대해 2건 이상 공유되는 키워드가 있으면 배지
-  records.forEach(r => {
-    const seen = new Set(keywords(r.body));
-    const shared = [...seen].filter(w => freq[w] >= 2 && w.length >= 2);
-    // 의미 있는 키워드만(빈도순 상위)
-    shared.sort((a, b) => freq[b] - freq[a]);
-    r._repeatKeys = shared.slice(0, 3);
-  });
-}
 
 /* ---------- 저장소 ---------- */
 function load() {
@@ -260,8 +249,8 @@ function makeRecord(brand, body, model, source, redmine, ts, seq, opts) {
     seq, brand: brand || 'AK', createdAt,
     body, model: model || '공통', source: source || '국내',
     redmine: redmine || '',
-    aiSummary: heuristicSummary(body),
-    aiTypes: ai.types, aiImpact: ai.impact, aiEmotion: ai.emotion,
+    aiSummary: opts.aiSummary || heuristicSummary(body),
+    aiTypes: opts.aiTypes || ai.types, aiImpact: opts.aiImpact || ai.impact, aiEmotion: ai.emotion,
     // 사람 보정 값 (없으면 AI값 사용)
     types: null, impact: null, emotion: null,
     reviewed: !!opts.reviewed, reviewedAt: opts.reviewed ? createdAt + 3e6 : null,
@@ -288,7 +277,7 @@ const state = {
   view: 'dashboard',          // 'dashboard' | 'board' | 'calendar' | 'settings' | 'cs'
   calTab: 'intake',           // 'intake' | 'gantt'
   dashYear: null,             // 월별 차트 연도 필터
-  filters: { type: '', impact: '', source: '', emotion: '', model: '', assignee: '', q: '', repeat: false },
+  filters: { group: '', impact: '', source: '', model: '', assignee: '', q: '' },
   detailId: null,
   submitted: null,
 };
@@ -313,14 +302,12 @@ function readURL() {
   const v = h.get('view');
   state.view = VIEWS.includes(v) ? v : 'dashboard';
   state.calTab = h.get('tab') === 'gantt' ? 'gantt' : 'intake';
-  state.filters.type    = h.get('type') || '';
+  state.filters.group   = h.get('group') || '';
   state.filters.impact  = h.get('impact') || '';
   state.filters.source  = h.get('source') || '';
-  state.filters.emotion = h.get('emotion') || '';
   state.filters.model   = h.get('model') || '';
   state.filters.assignee = h.get('assignee') || '';
   state.filters.q       = h.get('q') || '';
-  state.filters.repeat  = h.get('repeat') === '1';
   if (state.view === 'detail') {
     state.detailId = h.get('id') || null;
     if (!state.detailId) state.view = 'dashboard';
@@ -333,14 +320,12 @@ function writeURL() {
   if (state.view === 'calendar') h.set('tab', state.calTab);
   if (state.view === 'detail' && state.detailId) h.set('id', state.detailId);
   const f = state.filters;
-  if (f.type) h.set('type', f.type);
+  if (f.group) h.set('group', f.group);
   if (f.impact) h.set('impact', f.impact);
   if (f.source) h.set('source', f.source);
-  if (f.emotion) h.set('emotion', f.emotion);
   if (f.model) h.set('model', f.model);
   if (f.assignee) h.set('assignee', f.assignee);
   if (f.q) h.set('q', f.q);
-  if (f.repeat) h.set('repeat', '1');
   localStorage.setItem(WS_KEY, state.workspace);
   history.replaceState(null, '', '#' + h.toString());
 }
@@ -489,16 +474,13 @@ function renderConfirm() {
 /* ===== 대시보드 (UX + PM 공용) ===== */
 function visibleRecords() {
   const scoped = wsRecords();
-  computeRepeats(scoped);
   const f = state.filters;
   let list = scoped.slice().sort((a, b) => b.createdAt - a.createdAt);
-  if (f.type)    list = list.filter(r => effTypes(r).includes(f.type));
+  if (f.group)   list = list.filter(r => groupsOfRecord(r).includes(f.group));
   if (f.impact)  list = list.filter(r => effImpact(r) === f.impact);
   if (f.source)  list = list.filter(r => r.source === f.source);
-  if (f.emotion) list = list.filter(r => effEmotion(r) === f.emotion);
   if (f.model)   list = list.filter(r => r.model === f.model);
   if (f.assignee) list = list.filter(r => (r.assignees || []).includes(f.assignee));
-  if (f.repeat)  list = list.filter(r => r._repeatKeys && r._repeatKeys.length);
   if (f.q) {
     const q = f.q.toLowerCase();
     list = list.filter(r => (r.body + r.aiSummary + r.id + r.redmine).toLowerCase().includes(q));
@@ -689,11 +671,11 @@ function monthlyLine(recs, year) {
 function renderBoard() {
   const list = visibleRecords();
   const f = state.filters;
-  const anyFilter = !!(f.type || f.impact || f.source || f.emotion || f.model || f.assignee || f.q || f.repeat);
+  const anyFilter = !!(f.group || f.impact || f.source || f.model || f.assignee || f.q);
 
   const toolbar = `
   <div class="card toolbar">
-    <div class="grp">${selectFilter('type', f.type, TYPES, '유형')}</div>
+    <div class="grp">${selectFilter('group', f.group, TYPE_GROUPS.map(g => g.key), '묶음')}</div>
     <div class="grp">${selectFilter('impact', f.impact, IMPACTS, '영향범위')}</div>
     <div class="grp">${selectFilter('model', f.model, modelsFor(state.workspace), '모델')}</div>
     <div class="grp"><span class="lab">담당자</span><select data-filter="assignee"><option value="">전체</option>${team().map(m => `<option value="${esc(m.id)}" ${f.assignee === m.id ? 'selected' : ''}>${esc(m.en)}${m.ko ? ' ' + esc(m.ko) : ''}</option>`).join('')}</select></div>
@@ -864,6 +846,16 @@ function renderSettings() {
     </div>
 
     <div class="card panel">
+      <div class="panel-h">분석 데이터 가져오기</div>
+      <p style="margin:0 0 10px;color:var(--muted);font-size:13px">ChatGPT·Claude로 분류·요약한 VOC 엑셀(.xlsx)을 불러옵니다. <b>요약·유형·영향범위·출처</b>를 그대로 AI 결과로 사용하고, 레드마인 번호가 같은 건은 건너뜁니다.<br>필요 열: No. / 날짜 / Model / VoC유형 / 영향 범위 / 고객 출처 / 요약 / 내용</p>
+      <div class="rm-row">
+        <input type="file" id="imp-file" accept=".xlsx,.xls">
+        <button class="btn primary" id="imp-run">가져오기</button>
+      </div>
+      <div class="hint" id="imp-msg">프롬프트 A(배치 분류) 결과 시트를 그대로 올리면 됩니다.</div>
+    </div>
+
+    <div class="card panel">
       <div class="panel-h">레드마인 연동</div>
       <div class="rm-row">
         <input type="text" id="rm-base" value="${esc(redmineBase())}" placeholder="https://redmine.example.com/issues/">
@@ -885,12 +877,11 @@ function renderSettings() {
 
 function renderVOCCard(r) {
   const types = effTypes(r);
+  const groupChips = groupsOfRecord(r).map(g => `<span class="chip grp ${clsOfGroup(g)}">${esc(g)}</span>`).join('');
   const typeChips = types.map(t => `<span class="chip type">${esc(t)}</span>`).join('');
   const reviewChip = r.reviewed
     ? `<span class="chip human">✓ 검토 완료</span>`
     : `<span class="chip ai-cls">AI 분류</span>`;
-  const repeatChip = (r._repeatKeys && r._repeatKeys.length)
-    ? `<span class="chip repeat">↻ 반복 · ${esc(r._repeatKeys[0])}</span>` : '';
   const pri = r.priority
     ? `<span class="pri ${r.priority}">${r.priority}</span>`
     : `<span class="pri none">우선순위 −</span>`;
@@ -910,7 +901,7 @@ function renderVOCCard(r) {
         ${esc(r.aiSummary)}
       </div>
       <div class="chips">
-        ${typeChips}${reviewChip}${repeatChip}
+        ${groupChips}${typeChips}${reviewChip}
       </div>
     </div>
     <div class="col-meta">
@@ -933,10 +924,7 @@ function detailFormHTML(r) {
     ? `<a href="${redmineBase()}${encodeURIComponent(r.redmine)}" target="_blank" rel="noopener">레드마인 #${esc(r.redmine)} 원문 ↗</a>`
     : '<span style="color:var(--faint)">레드마인 번호 미입력</span>';
   const reviewBadge = r.reviewed ? '<span class="human-badge">✓ 검토 완료 (사람)</span>' : '<span class="ai-badge">AI 분류</span>';
-  const repeatInfo = (r._repeatKeys && r._repeatKeys.length)
-    ? `<div class="disclaimer" style="background:var(--alert-bg);border-color:#f5cccc;color:#a3261f">↻ 반복 이슈 감지 — 공통 키워드: <b>${r._repeatKeys.map(esc).join(', ')}</b></div>` : '';
   return `
-    ${repeatInfo}
     <div class="sec">
       <div class="sec-h">${warnIcon()} AI 요약 <span class="ai-badge">AI</span></div>
       <div class="box ai">${esc(r.aiSummary)}</div>
@@ -974,7 +962,6 @@ function detailFormHTML(r) {
 function renderDetailPage() {
   const r = DB.records.find(x => x.id === state.detailId);
   if (!r) { state.view = 'board'; state.detailId = null; return renderBoard(); }
-  computeRepeats(wsRecords());
   return `
   <button class="backlink" id="d-back">← VOC 보드</button>
   <div class="detail-head">
@@ -1095,27 +1082,38 @@ function bindSettings() {
     DB.redmineBase = $('#rm-base').value.trim() || REDMINE_BASE;
     save(); const n = $('#rm-note'); if (n) n.textContent = '저장됨';
   };
+
+  const impRun = $('#imp-run');
+  if (impRun) impRun.onclick = () => {
+    const fEl = $('#imp-file'); const msg = $('#imp-msg');
+    const file = fEl && fEl.files && fEl.files[0];
+    if (!file) { if (msg) msg.textContent = '먼저 .xlsx 파일을 선택하세요.'; return; }
+    if (msg) msg.textContent = '가져오는 중...';
+    importAnalyzedXlsx(file, res => {
+      if (res.error) { if (msg) msg.textContent = '오류: ' + res.error; return; }
+      if (msg) msg.textContent = `완료 — ${res.added}건 추가${res.skipped ? `, ${res.skipped}건 중복 건너뜀` : ''}.`;
+      render();
+    });
+  };
 }
 
 /* 엑셀(.xlsx) raw data 내보내기 — 현재 워크스페이스 전체 */
 function exportXlsx() {
   const recs = wsRecords().slice().sort((a, b) => a.seq - b.seq);
-  computeRepeats(recs);
   if (!recs.length) { alert('내보낼 VOC가 없습니다.'); return; }
 
   const header = ['접수번호', '등록일시', '브랜드', '모델', '출처', '레드마인',
-    '유형', '영향범위', '감정', '검토여부', '우선순위', 'PM상태', 'PM메모',
-    'AI유형', 'AI영향범위', 'AI감정', '반복키워드', 'VOC본문'];
+    '묶음', '유형', '영향범위', '검토여부', '우선순위', 'PM상태', 'PM메모',
+    'AI유형', 'AI영향범위', 'VOC본문'];
   const rows = recs.map(r => [
     r.id,
     new Date(r.createdAt).toLocaleString('ko-KR'),
     WORKSPACE_LABEL[r.brand] || r.brand || 'AK',
     r.model, r.source, r.redmine || '',
-    effTypes(r).join(', '), effImpact(r), effEmotion(r),
+    groupsOfRecord(r).join(', '), effTypes(r).join(', '), effImpact(r),
     r.reviewed ? '분류 검토 완료' : 'AI 분류',
     r.priority || '', r.pmStatus, r.pmMemo || '',
-    (r.aiTypes || []).join(', '), r.aiImpact, r.aiEmotion,
-    (r._repeatKeys || []).join(', '), r.body
+    (r.aiTypes || []).join(', '), r.aiImpact, r.body
   ]);
   const fname = `VOC_raw_${state.workspace}_${fmtDate(Date.now()).replace(/\./g, '')}`;
 
@@ -1136,6 +1134,55 @@ function exportXlsx() {
     a.click();
     URL.revokeObjectURL(a.href);
   }
+}
+
+/* 모델명 → 워크스페이스 추정 */
+function wsOfModel(model) {
+  const m = String(model || '').trim();
+  for (const ws of WORKSPACES) {
+    if (modelGroups(ws).some(g => g.models.includes(m))) return ws;
+  }
+  if (/activo/i.test(m)) return 'Activo';
+  return 'AK';
+}
+
+/* (B) 반자동: LLM이 분류·요약한 분석 엑셀을 레코드로 가져오기 */
+function importAnalyzedXlsx(file, cb) {
+  if (!window.XLSX) { cb({ error: 'SheetJS 로드 실패' }); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    let added = 0, skipped = 0;
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: true });
+      wb.SheetNames.forEach(sn => {
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], { defval: '' });
+        rows.forEach(row => {
+          const noRaw = String(row['No.'] ?? row['No'] ?? '').trim();
+          const body = String(row['내용'] ?? '').trim();
+          const summary = String(row['요약'] ?? '').trim();
+          if (!noRaw && !body && !summary) return; // 빈 행
+          const redmine = noRaw.replace(/^#/, '');
+          if (redmine && DB.records.some(r => (r.redmine || '') === redmine)) { skipped++; return; }
+          const model = (String(row['Model'] ?? row['모델'] ?? '').trim()) || '공통';
+          const source = (String(row['고객 출처'] ?? '').trim()) || '국내';
+          const typesRaw = String(row['VoC유형'] ?? row['VOC유형'] ?? '').trim();
+          const normType = t => TYPES.find(T => T === t || T.startsWith(t) || t.startsWith(T)) || t;
+          const types = typesRaw ? typesRaw.split(/\s*[\/,]\s*/).map(s => normType(s.trim())).filter(Boolean) : null;
+          const impact = (String(row['영향 범위'] ?? row['영향범위'] ?? '').trim()) || null;
+          const dt = row['날짜'];
+          const ts = (dt instanceof Date ? dt.getTime() : (dt ? Date.parse(dt) : NaN)) || Date.now();
+          DB.seq += 1;
+          DB.records.push(makeRecord(wsOfModel(model), body || summary, model, source, redmine, ts, DB.seq, {
+            aiSummary: summary || null, aiTypes: types, aiImpact: impact
+          }));
+          added++;
+        });
+      });
+      save();
+      cb({ added, skipped });
+    } catch (err) { console.error(err); cb({ error: String(err.message || err) }); }
+  };
+  reader.readAsArrayBuffer(file);
 }
 
 function bindCS() {
@@ -1194,8 +1241,6 @@ function bindDashboard() {
 function bindBoard() {
   document.querySelectorAll('[data-filter]').forEach(sel =>
     sel.onchange = () => { state.filters[sel.dataset.filter] = sel.value; render(); });
-  const fr = $('#f-repeat');
-  if (fr) fr.onclick = () => { state.filters.repeat = !state.filters.repeat; render(); };
   const q = $('#f-q');
   if (q) {
     let t;
@@ -1354,7 +1399,7 @@ function toggleWsMenu() {
     const w = b.dataset.wsx; menu.remove();
     if (w !== state.workspace) {
       state.workspace = w; state.detailId = null; state.submitted = null;
-      state.filters = { type: '', impact: '', source: '', emotion: '', model: '', assignee: '', q: '', repeat: false };
+      state.filters = { group: '', impact: '', source: '', model: '', assignee: '', q: '' };
       render();
     }
   });

@@ -633,6 +633,15 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .box.orig.clamp { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
 .drawer.light { width: min(460px, 100%); }
 
+/* 묶음(그룹) 칩 */
+.chip.grp { font-weight: 800; border: 1px solid transparent; }
+.chip.grp.g-feat { background: #e8f0fe; color: #2f6ad0; border-color: #cfe0fb; }
+.chip.grp.g-ux   { background: #fbeaf0; color: #993556; border-color: #f3d2de; }
+.chip.grp.g-bug  { background: var(--alert-bg); color: var(--alert); border-color: #f3cccc; }
+.chip.grp.g-i18n { background: #e3f5ee; color: #0f6e56; border-color: #c6e8da; }
+.chip.grp.g-biz  { background: #fdeede; color: #b9701b; border-color: #f6dcb8; }
+.chip.grp.g-etc  { background: var(--line-2); color: var(--muted); }
+
 /* ---------- 반응형 ---------- */
 @media (max-width: 980px) {
   .app { flex-direction: column; }
