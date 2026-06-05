@@ -77,20 +77,37 @@ a:hover { text-decoration: underline; }
 }
 .sidebar .brand-name { font-weight: 800; font-size: 15px; color: #fff; letter-spacing: -0.02em; }
 
-.ws { background: rgba(255,255,255,.04); border: 1px solid #2a2e37; border-radius: 12px; padding: 10px; }
-.ws-label { font-size: 10.5px; font-family: var(--mono); color: #7e8593; text-transform: uppercase; letter-spacing: .06em; margin: 0 2px 7px; }
-.ws-switch { display: flex; flex-direction: column; gap: 4px; }
-.ws-switch button {
-  display: flex; align-items: center; gap: 9px;
-  background: transparent; border: 1px solid transparent; color: #b8bdc7;
-  padding: 8px 10px; border-radius: 9px; cursor: pointer;
-  font-size: 13px; font-weight: 700; text-align: left; transition: .15s;
+/* 스페이스(워크스페이스) 셀렉터 */
+.ws-select {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,.05); border: 1px solid #2a2e37; border-radius: 12px;
+  padding: 9px 11px; cursor: pointer; transition: .15s; text-align: left; width: 100%;
 }
-.ws-switch button:hover { background: rgba(255,255,255,.06); color: #fff; }
-.ws-switch button.on { background: #23272f; color: #fff; border-color: #343a45; }
-.ws-dot { width: 9px; height: 9px; border-radius: 3px; flex: 0 0 9px; }
-.ws-dot.ak { background: #6aa9ff; }
-.ws-dot.activo { background: #f0a23b; }
+.ws-select:hover { background: rgba(255,255,255,.09); border-color: #3a404b; }
+.ws-ava {
+  width: 30px; height: 30px; flex: 0 0 30px; border-radius: 9px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; color: #fff; font-family: var(--mono); letter-spacing: -0.02em;
+}
+.ws-ava.AK { background: #2f6ad0; }
+.ws-ava.Activo { background: #c47f0a; }
+.ws-meta { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.ws-name { font-size: 13.5px; font-weight: 800; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ws-sub { font-size: 10.5px; color: #7e8593; font-family: var(--mono); }
+
+.ws-menu {
+  position: fixed; z-index: 200; background: #23272f; border: 1px solid #343a45;
+  border-radius: 12px; padding: 6px; box-shadow: 0 12px 32px rgba(0,0,0,.4);
+}
+.ws-menu button {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: transparent; border: 0; color: #c2c7d0; cursor: pointer;
+  padding: 8px 9px; border-radius: 9px; font-size: 13px; font-weight: 700; text-align: left;
+}
+.ws-menu button:hover { background: rgba(255,255,255,.08); color: #fff; }
+.ws-menu button.on { color: #fff; }
+.ws-menu .wm-name { flex: 1; }
+.ws-menu .wm-ck { color: #8fb8ff; font-weight: 800; }
 
 .add-voc {
   display: flex; align-items: center; justify-content: center; gap: 6px;
@@ -490,8 +507,9 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
 .add-member select { width: auto; flex: 0 0 110px; }
 .add-member .btn { flex: 0 0 auto; }
 
-/* ---------- 대시보드 3열 그리드 ---------- */
-.monthly-card { margin-bottom: 20px; }
+/* ---------- 대시보드 그리드 ---------- */
+.monthly-card { margin-bottom: 0; }
+.dash-grid-main { display: grid; grid-template-columns: 2.5fr 1.5fr; gap: 16px; margin-bottom: 16px; align-items: start; }
 .dash-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; align-items: start; }
 
 /* 유형 분포 — 도넛 */
@@ -501,7 +519,7 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
 .donut-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .donut-center .dc-n { font-size: 26px; font-weight: 800; font-family: var(--mono); letter-spacing: -1px; }
 .donut-center .dc-l { font-size: 10.5px; color: var(--faint); font-family: var(--mono); }
-.donut-legend { width: 100%; display: flex; flex-direction: column; gap: 7px; }
+.donut-legend { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
 .lg-row { display: grid; grid-template-columns: 12px 1fr auto; align-items: center; gap: 8px; }
 .lg-dot { width: 9px; height: 9px; border-radius: 3px; }
 .lg-name { font-size: 12px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -531,8 +549,7 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
     flex-direction: row; flex-wrap: wrap; align-items: center; gap: 10px;
   }
   .sidebar .brand { padding: 4px; }
-  .ws { padding: 6px 8px; }
-  .ws-switch { flex-direction: row; }
+  .ws-select { width: auto; flex: 0 0 auto; }
   .sidebar .nav { flex-direction: row; flex-wrap: wrap; flex: 1 1 100%; gap: 4px; }
   .nav-sec { display: none; }
   .badge-soon { display: none; }
@@ -544,6 +561,7 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
   .cs-side { position: static; }
   .dash-stats { grid-template-columns: repeat(2,1fr); }
   .dash-grid { grid-template-columns: 1fr; }
+  .dash-grid-main { grid-template-columns: 1fr; }
   .dash-grid-3 { grid-template-columns: 1fr; }
   .mc-grid { gap: 8px; }
 }

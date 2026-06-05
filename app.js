@@ -340,15 +340,22 @@ function render() {
   else if (state.view === 'settings') root.innerHTML = renderSettings();
   else root.innerHTML = renderDashboard();
   bind();
+  updateWS();
   updateBell();
   if (state.detailId) renderDrawer();
+}
+
+const wsCode = w => (w === 'Activo' ? 'Av' : 'AK');
+function updateWS() {
+  const ava = document.getElementById('ws-ava');
+  const name = document.getElementById('ws-name');
+  if (ava) { ava.textContent = wsCode(state.workspace); ava.className = 'ws-ava ' + state.workspace; }
+  if (name) name.textContent = WORKSPACE_LABEL[state.workspace];
 }
 
 function setNav() {
   document.querySelectorAll('.nav button[data-view]').forEach(b =>
     b.classList.toggle('active', b.dataset.view === state.view));
-  document.querySelectorAll('#ws-switch button').forEach(b =>
-    b.classList.toggle('on', b.dataset.ws === state.workspace));
 }
 
 /* ---------- 상단바: 알림 종 + 현재 사용자 ---------- */
@@ -552,18 +559,20 @@ function renderDashboard() {
     </div>
   </div>
   ${statsCards(recs)}
-  <div class="card panel monthly-card">
-    <div class="panel-h">월별 VOC <span class="muted-s">최근 6개월 · 접수량</span></div>
-    ${monthlyLine(recs)}
-  </div>
-  <div class="dash-grid-3">
-    <div class="card panel">
-      <div class="panel-h">상태 분포</div>
-      ${statusRows}
+  <div class="dash-grid-main">
+    <div class="card panel monthly-card">
+      <div class="panel-h">월별 VOC <span class="muted-s">최근 6개월 · 접수량</span></div>
+      ${monthlyLine(recs)}
     </div>
     <div class="card panel">
       <div class="panel-h">유형 분포 <span class="ai-badge">AI 분류 포함</span></div>
       ${typeDonut(recs)}
+    </div>
+  </div>
+  <div class="dash-grid">
+    <div class="card panel">
+      <div class="panel-h">상태 분포</div>
+      ${statusRows}
     </div>
     <div class="card panel">
       <div class="panel-h">자주 배정된 담당자 <span class="muted-s">클릭 시 보드 필터</span></div>
@@ -995,15 +1004,6 @@ function renderDrawer() {
 
 /* ---------- 이벤트 바인딩 ---------- */
 function bind() {
-  // 워크스페이스 전환
-  document.querySelectorAll('#ws-switch button').forEach(b =>
-    b.onclick = () => {
-      if (state.workspace !== b.dataset.ws) {
-        state.workspace = b.dataset.ws;
-        state.detailId = null; state.submitted = null;
-        render();
-      }
-    });
   // 뷰 이동 (사이드바 + 헤더 버튼 공통)
   document.querySelectorAll('[data-view]').forEach(b =>
     b.onclick = () => { state.view = b.dataset.view; state.submitted = null; render(); });
@@ -1241,6 +1241,38 @@ function bindDrawer(r) {
 function bindTopbar() {
   const bell = document.getElementById('bell');
   if (bell) bell.onclick = e => { e.stopPropagation(); toggleNotifPanel(); };
+  const wsSel = document.getElementById('ws-select');
+  if (wsSel) wsSel.onclick = e => { e.stopPropagation(); toggleWsMenu(); };
+}
+
+function toggleWsMenu() {
+  const ex = document.getElementById('ws-menu');
+  if (ex) { ex.remove(); return; }
+  const sel = document.getElementById('ws-select');
+  const menu = document.createElement('div');
+  menu.id = 'ws-menu'; menu.className = 'ws-menu';
+  menu.innerHTML = WORKSPACES.map(w =>
+    `<button type="button" data-wsx="${w}" class="${w === state.workspace ? 'on' : ''}">
+       <span class="ws-ava ${w}">${wsCode(w)}</span>
+       <span class="wm-name">${esc(WORKSPACE_LABEL[w])}</span>
+       ${w === state.workspace ? '<span class="wm-ck">✓</span>' : ''}
+     </button>`).join('');
+  document.body.appendChild(menu);
+  const r = sel.getBoundingClientRect();
+  menu.style.left = r.left + 'px';
+  menu.style.top = (r.bottom + 6) + 'px';
+  menu.style.width = r.width + 'px';
+  menu.querySelectorAll('[data-wsx]').forEach(b => b.onclick = () => {
+    const w = b.dataset.wsx; menu.remove();
+    if (w !== state.workspace) {
+      state.workspace = w; state.detailId = null; state.submitted = null;
+      state.filters = { type: '', impact: '', source: '', emotion: '', model: '', assignee: '', q: '', repeat: false };
+      render();
+    }
+  });
+  setTimeout(() => document.addEventListener('click', function od(ev) {
+    if (!menu.contains(ev.target) && ev.target !== sel) { menu.remove(); document.removeEventListener('click', od); }
+  }), 0);
 }
 function toggleNotifPanel() {
   const existing = document.getElementById('notif-panel');
