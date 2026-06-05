@@ -370,8 +370,21 @@ function updateWS() {
   if (ava) { ava.textContent = wsCode(state.workspace); ava.className = 'ws-ava ' + state.workspace; }
   const name = document.getElementById('ws-name');
   if (name) name.textContent = WORKSPACE_LABEL[state.workspace];
-  const abLogo = document.getElementById('appbar-logo'); // 앱바: 이미지 로고
-  if (abLogo) abLogo.src = isAK ? 'logo-ak.png' : 'logo-activo-dark.png';
+  const brand = document.querySelector('.appbar-brand');
+  if (!brand) return;
+  if (state.view === 'detail') {
+    const r = DB.records.find(x => x.id === state.detailId);
+    brand.innerHTML = `<button type="button" class="appbar-back" id="appbar-back">← VOC 보드</button>${r ? `<span class="appbar-voc">${esc(r.id)}</span>` : ''}`;
+    const back = document.getElementById('appbar-back');
+    if (back) back.onclick = () => { state.view = 'board'; state.detailId = null; render(); };
+  } else {
+    brand.innerHTML = `<img id="appbar-logo" class="appbar-logo" alt="대시보드로 이동" title="대시보드">`;
+    const abLogo = document.getElementById('appbar-logo');
+    if (abLogo) {
+      abLogo.src = isAK ? 'logo-ak.png' : 'logo-activo-dark.png';
+      abLogo.onclick = () => { state.view = 'dashboard'; state.detailId = null; render(); };
+    }
+  }
 }
 
 function setNav() {
@@ -934,7 +947,7 @@ function detailSections(r) {
     orig: `
     <div class="sec grow">
       <div class="sec-h">원문 ${redmineLink}</div>
-      <label class="field" style="margin:0 0 10px;max-width:280px"><span class="lab">모델</span><select id="m-model">${modelOpts}</select></label>
+      <div class="model-row"><span class="lab">모델</span><select id="m-model" class="model-sel">${modelOpts}</select></div>
       <textarea id="m-body" class="box orig edit grow-fill" style="min-height:160px">${esc(r.body)}</textarea>
     </div>`,
     classify: `
@@ -1433,7 +1446,7 @@ function toggleNotifPanel() {
   const panel = document.createElement('div');
   panel.id = 'notif-panel'; panel.className = 'notif-panel';
   panel.innerHTML = `
-    <div class="notif-head"><b>알림</b><button class="btn ghost sm" id="notif-readall">모두 읽음</button></div>
+    <div class="notif-head"><b>알림</b><div class="notif-actions"><button class="btn ghost sm" id="notif-readall">모두 읽음</button><button class="btn ghost sm" id="notif-clear">모두 삭제</button></div></div>
     <div class="notif-list">${list}</div>`;
   document.body.appendChild(panel);
   const bell = document.getElementById('bell');
@@ -1443,6 +1456,9 @@ function toggleNotifPanel() {
 
   panel.querySelector('#notif-readall').onclick = () => {
     (DB.notifs || []).forEach(n => n.read = true); save(); updateBell(); panel.remove();
+  };
+  panel.querySelector('#notif-clear').onclick = () => {
+    DB.notifs = []; save(); updateBell(); panel.remove();
   };
   panel.querySelectorAll('[data-nopen]').forEach((el, i) => {
     el.onclick = () => {
