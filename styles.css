@@ -399,7 +399,9 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
 .card.mini.warn .mini-n { color: var(--ai); }
 .card.mini.alert .mini-n { color: var(--alert); }
 
-.dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; align-items: stretch; }
+.dash-grid > .panel { display: flex; flex-direction: column; }
+.panel-h .year-sel { margin-left: auto; width: auto; padding: 5px 9px; font-size: 12px; font-weight: 700; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); }
 .panel { padding: 16px 18px; }
 .panel-h { font-size: 13px; font-weight: 800; color: var(--ink); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; letter-spacing: -0.01em; }
 
@@ -415,14 +417,16 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
 .track .fill.완료 { background: var(--human); }
 .empty-mini { font-size: 12.5px; color: var(--faint); padding: 6px 2px; }
 
-.recent { display: flex; flex-direction: column; }
-.recent-item { padding: 11px 4px; border-top: 1px solid var(--line-2); cursor: pointer; transition: .12s; border-radius: 6px; }
+.recent, .recent-list { display: flex; flex-direction: column; }
+.recent-item { display: flex; align-items: center; gap: 11px; padding: 10px 4px; border-top: 1px solid var(--line-2); cursor: pointer; transition: .12s; border-radius: 6px; }
 .recent-item:first-child { border-top: 0; }
 .recent-item:hover { background: var(--surface-2); }
-.ri-main { display: flex; align-items: center; gap: 9px; margin-bottom: 3px; }
+.ri-text { flex: 1; min-width: 0; }
+.ri-main { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
 .ri-main .recv-no { font-family: var(--mono); font-weight: 600; font-size: 13px; }
-.ri-model { font-size: 11.5px; font-weight: 700; color: var(--ink-soft); }
-.ri-sum { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+.ri-model { font-size: 11.5px; font-weight: 700; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ri-sum { font-size: 12px; color: var(--muted); line-height: 1.45; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recent-item .status-tag { flex: 0 0 auto; }
 
 /* ---------- 아바타 (담당자) ---------- */
 .avatar {
@@ -440,9 +444,14 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
 .delta { font-size: 11.5px; color: var(--muted); font-family: var(--mono); display: flex; align-items: baseline; gap: 5px; }
 .delta .ar { color: var(--ink-soft); }
 .delta .dl { color: var(--faint); font-family: var(--sans); }
+.delta.up, .delta.up .ar { color: var(--human); }
+.delta.down, .delta.down .ar { color: #2670c4; }
+.delta.flat, .delta.flat .ar { color: var(--faint); }
+.delta.up .dl, .delta.down .dl, .delta.flat .dl { color: var(--faint); }
 
 /* ---------- 상단 앱바 (알림 + 사용자) ---------- */
 .appbar { display: flex; align-items: center; gap: 12px; padding: 14px 0 16px; margin-bottom: 20px; border-bottom: 1px solid var(--line-2); }
+.appbar-brand { font-size: 15px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; }
 .appbar-spacer { flex: 1; }
 .bell { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; color: var(--ink-soft); cursor: pointer; transition: .15s; }
 .bell:hover { background: var(--surface-2); border-color: var(--faint); }
@@ -498,14 +507,21 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
 .gmark { position: absolute; top: 50%; width: 9px; height: 9px; background: var(--ai); transform: translate(-50%, -50%) rotate(45deg); border: 1.5px solid var(--surface); }
 
 /* ---------- 셋팅 ---------- */
-.roster { width: 100%; border-collapse: collapse; }
-.roster td { padding: 9px 8px; border-bottom: 1px solid var(--line-2); font-size: 13px; vertical-align: middle; }
-.roster td:first-child { width: 38px; }
-.me-tag { font-size: 10.5px; font-weight: 800; color: var(--human); background: var(--human-bg); padding: 2px 8px; border-radius: 99px; }
-.add-member { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
-.add-member input { width: auto; flex: 1; min-width: 120px; }
-.add-member select { width: auto; flex: 0 0 110px; }
-.add-member .btn { flex: 0 0 auto; }
+.roster { display: flex; flex-direction: column; }
+.roster-row { display: grid; grid-template-columns: 1fr 6fr 1fr; align-items: center; gap: 12px; padding: 9px 4px; border-bottom: 1px solid var(--line-2); }
+.roster-row:last-child { border-bottom: 0; }
+.rr-main { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.rr-name { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rr-del { text-align: right; }
+.role-chip { display: inline-block; font-size: 11px; font-weight: 800; padding: 3px 11px; border-radius: 99px; background: var(--line-2); color: var(--ink-soft); }
+.role-chip.UX  { background: #e8f0fe; color: #2f6ad0; }
+.role-chip.PM  { background: #fdeede; color: #b9701b; }
+.role-chip.Dev { background: #e7f5ec; color: #1f8a52; }
+.role-chip.CS  { background: #efeafc; color: #6b4bd6; }
+.add-member { display: flex; gap: 8px; margin-top: 14px; align-items: center; }
+.add-member select { flex: 0 0 120px; width: 120px; }
+.add-member input { flex: 1 1 0; min-width: 0; width: auto; }
+.add-member .btn { flex: 0 0 120px; }
 
 /* ---------- 대시보드 그리드 ---------- */
 .monthly-card { margin-bottom: 0; }
@@ -543,7 +559,6 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
 /* 셋팅 */
 .set-stack { display: flex; flex-direction: column; gap: 20px; }
 .roster-wrap { height: 240px; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
-.roster-wrap .roster td { position: relative; }
 
 /* 월별 VOC — 라인 차트 */
 .ml-svg { width: 100%; height: auto; display: block; overflow: visible; }

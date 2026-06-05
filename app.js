@@ -265,6 +265,7 @@ const state = {
   workspace: 'AK',            // 'AK' | 'Activo'
   view: 'dashboard',          // 'dashboard' | 'board' | 'calendar' | 'settings' | 'cs'
   calTab: 'intake',           // 'intake' | 'gantt'
+  dashYear: null,             // 월별 차트 연도 필터
   filters: { type: '', impact: '', source: '', emotion: '', model: '', assignee: '', q: '', repeat: false },
   detailId: null,
   submitted: null,
@@ -352,6 +353,8 @@ function updateWS() {
   const name = document.getElementById('ws-name');
   if (ava) { ava.textContent = wsCode(state.workspace); ava.className = 'ws-ava ' + state.workspace; }
   if (name) name.textContent = WORKSPACE_LABEL[state.workspace];
+  const ab = document.getElementById('appbar-brand');
+  if (ab) ab.textContent = WORKSPACE_LABEL[state.workspace];
 }
 
 function setNav() {
@@ -384,7 +387,7 @@ function renderCS() {
     .join('');
   return `
   <div class="page-head">
-    <h1>VOC 입력 <span class="ws-pill ${state.workspace}">${esc(WORKSPACE_LABEL[state.workspace])}</span></h1>
+    <h1>VOC 입력</h1>
     <p>레드마인 VOC 내용을 붙여넣거나 직접 작성해 전달하세요. 제출 시 <b>${esc(WORKSPACE_LABEL[state.workspace])}</b> 워크스페이스 보드에 자동 반영됩니다.</p>
   </div>
   <div class="cs-grid">
@@ -503,9 +506,10 @@ function statsCards(recs) {
     dev: deltaBy(r => lastEntered(r, '개발 요청')),
   };
   const delta = v => {
+    const cls = v > 0 ? 'up' : v < 0 ? 'down' : 'flat';
     const arrow = v > 0 ? '▲' : v < 0 ? '▼' : '·';
     const sign = v > 0 ? '+' : '';
-    return `<div class="delta"><span class="ar">${arrow}</span> ${sign}${v} <span class="dl">지난 30일</span></div>`;
+    return `<div class="delta ${cls}"><span class="ar">${arrow}</span> ${sign}${v} <span class="dl">지난 30일</span></div>`;
   };
   return `
   <div class="dash-stats">
@@ -520,6 +524,13 @@ function statsCards(recs) {
 function renderDashboard() {
   const recs = wsRecords();
 
+  // 연도 옵션 + 선택
+  const years = [...new Set(recs.map(r => new Date(r.createdAt).getFullYear()))].sort((a, b) => b - a);
+  const curYear = new Date().getFullYear();
+  if (!years.includes(curYear)) years.unshift(curYear);
+  if (state.dashYear == null || !years.includes(state.dashYear)) state.dashYear = years.includes(curYear) ? curYear : years[0];
+  const yearSel = `<select class="year-sel" id="dash-year">${years.map(y => `<option value="${y}" ${y === state.dashYear ? 'selected' : ''}>${y}년</option>`).join('')}</select>`;
+
   // 상태 분포
   const statuses = ['검토중', '개발 요청', '완료'];
   const statusTotal = Math.max(1, recs.length);
@@ -532,25 +543,22 @@ function renderDashboard() {
       <b>${n}</b></div>`;
   }).join('');
 
-  // 자주 배정된 담당자 (전체, 배정 횟수순 — 카드 내 스크롤)
-  const aCount = {};
-  recs.forEach(r => { if (r.assignee) aCount[r.assignee] = (aCount[r.assignee] || 0) + 1; });
-  const ranked = Object.keys(aCount).map(id => ({ id, n: aCount[id] })).sort((a, b) => b.n - a.n);
-  const unassigned = recs.filter(r => !r.assignee).length;
-  const rankItems = ranked.map(({ id, n }) => {
-    const m = member(id);
-    return `<div class="rank-item" data-asg="${esc(id)}">
-      ${avatarHTML(id, 30)}
-      <div class="rk-text"><div class="rk-name">${m ? esc(m.en) : '미등록'}</div>${m && m.role ? `<div class="rk-sub">${esc(m.role)}</div>` : ''}</div>
-      <div class="rk-val">${n}<span>건</span></div>
-    </div>`;
-  }).join('') + (unassigned ? `<div class="rank-item muted"><span class="avatar none" style="width:30px;height:30px;font-size:13px">–</span><div class="rk-text"><div class="rk-name muted-s">미배정</div></div><div class="rk-val">${unassigned}<span>건</span></div></div>` : '');
-  const assigneeBody = ranked.length ? `<div class="rank-list">${rankItems}</div>` : '<div class="empty-mini">배정된 담당자가 없습니다.</div>';
+  // 최근 추가된 VOC (프로필 아바타 포함)
+  const recent = recs.slice().sort((a, b) => b.createdAt - a.createdAt).slice(0, 5);
+  const recentBody = recent.length ? `<div class="recent-list">${recent.map(r => `
+    <div class="recent-item" data-open="${r.id}">
+      ${avatarHTML(r.assignee, 32)}
+      <div class="ri-text">
+        <div class="ri-main"><span class="recv-no">${esc(r.id)}</span><span class="ri-model">${esc(r.model)}</span></div>
+        <div class="ri-sum">${esc(r.aiSummary)}</div>
+      </div>
+      <span class="status-tag ${r.pmStatus.replace(/\s/g, '')}">${esc(r.pmStatus)}</span>
+    </div>`).join('')}</div>` : '<div class="empty-mini">아직 등록된 VOC가 없습니다.</div>';
 
   return `
   <div class="page-head row">
     <div>
-      <h1>대시보드 <span class="ws-pill ${state.workspace}">${esc(WORKSPACE_LABEL[state.workspace])}</span></h1>
+      <h1>대시보드</h1>
       <p>${esc(WORKSPACE_LABEL[state.workspace])} VOC를 유형·상태·우선순위 기준으로 한눈에 파악합니다.</p>
     </div>
     <div class="head-actions">
@@ -561,8 +569,8 @@ function renderDashboard() {
   ${statsCards(recs)}
   <div class="dash-grid-main">
     <div class="card panel monthly-card">
-      <div class="panel-h">월별 VOC <span class="muted-s">최근 6개월 · 접수량</span></div>
-      ${monthlyLine(recs)}
+      <div class="panel-h">월별 VOC <span class="muted-s">접수량</span>${yearSel}</div>
+      ${monthlyLine(recs, state.dashYear)}
     </div>
     <div class="card panel">
       <div class="panel-h">유형 분포 <span class="ai-badge">AI 분류 포함</span></div>
@@ -575,8 +583,8 @@ function renderDashboard() {
       ${statusRows}
     </div>
     <div class="card panel">
-      <div class="panel-h">자주 배정된 담당자 <span class="muted-s">이름 클릭 시 보드로</span></div>
-      ${assigneeBody}
+      <div class="panel-h">최근 추가된 VOC <span class="muted-s">클릭 시 상세</span></div>
+      ${recentBody}
     </div>
   </div>`;
 }
@@ -615,20 +623,16 @@ function smoothPath(pts) {
   }
   return d;
 }
-function monthlyLine(recs) {
-  const now = new Date();
+function monthlyLine(recs, year) {
+  year = year || new Date().getFullYear();
   const months = [];
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    months.push({ y: d.getFullYear(), m: d.getMonth(), label: (d.getMonth() + 1) + '월', n: 0 });
-  }
+  for (let m = 0; m < 12; m++) months.push({ m, label: (m + 1), n: 0 });
   recs.forEach(r => {
     const d = new Date(r.createdAt);
-    const b = months.find(x => x.y === d.getFullYear() && x.m === d.getMonth());
-    if (b) b.n += 1;
+    if (d.getFullYear() === year) months[d.getMonth()].n += 1;
   });
   const max = Math.max(1, ...months.map(x => x.n));
-  const W = 680, H = 190, padX = 26, padTop = 26, padBot = 30;
+  const W = 760, H = 200, padX = 24, padTop = 28, padBot = 30;
   const innerW = W - padX * 2, innerH = H - padTop - padBot;
   const base = padTop + innerH;
   const pts = months.map((mo, i) => ({
@@ -684,7 +688,7 @@ function renderBoard() {
   return `
   <div class="page-head row">
     <div>
-      <h1>VOC 보드 <span class="ws-pill ${state.workspace}">${esc(WORKSPACE_LABEL[state.workspace])}</span></h1>
+      <h1>VOC 보드</h1>
       <p>티켓처럼 VOC를 상태(검토중 · 개발 요청 · 완료)와 우선순위로 관리합니다. 카드를 열어 분류를 보정하고 PM 상태를 변경하세요.</p>
     </div>
     <div class="head-actions">
@@ -704,7 +708,7 @@ function renderCalendar() {
   const head = `
   <div class="page-head row">
     <div>
-      <h1>캘린더 <span class="ws-pill ${state.workspace}">${esc(WORKSPACE_LABEL[state.workspace])}</span></h1>
+      <h1>캘린더</h1>
       <p>VOC 접수 시점과 작업 기간을 시간축으로 봅니다.</p>
     </div>
     <div class="head-actions">
@@ -803,35 +807,26 @@ function calGantt(recs) {
 /* ===== 셋팅 ===== */
 function renderSettings() {
   const rows = team().map(m => `
-    <tr>
-      <td>${avatarHTML(m.id, 26)}</td>
-      <td><b>${esc(m.en)}</b>${m.ko ? ' ' + esc(m.ko) : ''}</td>
-      <td>${esc(m.role)}</td>
-      <td>${DB.me === m.id ? '<span class="me-tag">나</span>' : ''}</td>
-      <td><button class="btn ghost sm" data-rm="${esc(m.id)}">삭제</button></td>
-    </tr>`).join('');
-  const meOpts = team().map(m => `<option value="${esc(m.id)}" ${DB.me === m.id ? 'selected' : ''}>${esc(m.en)}${m.ko ? ' ' + esc(m.ko) : ''}</option>`).join('');
+    <div class="roster-row">
+      <div class="rr-role"><span class="role-chip ${esc(m.role)}">${esc(m.role)}</span></div>
+      <div class="rr-main">${avatarHTML(m.id, 28)}<span class="rr-name"><b>${esc(m.en)}</b>${m.ko ? ' ' + esc(m.ko) : ''}</span></div>
+      <div class="rr-del"><button class="btn ghost sm" data-rm="${esc(m.id)}">삭제</button></div>
+    </div>`).join('');
 
   return `
-  <div class="page-head"><h1>Setting</h1><p>담당자 명단·현재 사용자·연동을 관리합니다.</p></div>
+  <div class="page-head"><h1>Setting</h1><p>담당자 명단·연동을 관리합니다.</p></div>
 
   <div class="set-stack">
     <div class="card panel">
       <div class="panel-h">담당자 명단</div>
-      <div class="roster-wrap"><table class="roster"><tbody>${rows}</tbody></table></div>
+      <div class="roster-wrap"><div class="roster">${rows}</div></div>
       <div class="add-member">
-        <input type="text" id="nm-en" placeholder="영문 (예: Ellie)">
-        <input type="text" id="nm-ko" placeholder="한글 (예: 김유나)">
         <select id="nm-role"><option>UX</option><option>PM</option><option>Dev</option><option>CS</option></select>
-        <button class="btn primary sm" id="nm-add">＋ 추가</button>
+        <input type="text" id="nm-en" placeholder="영문 (Ellie)">
+        <input type="text" id="nm-ko" placeholder="한글 (김유나)">
+        <button class="btn primary sm" id="nm-add">추가</button>
       </div>
       <div class="hint">아바타는 영문 첫 글자로 자동 생성됩니다.</div>
-    </div>
-
-    <div class="card panel">
-      <div class="panel-h">현재 사용자 (나)</div>
-      <label class="field" style="margin:0;max-width:320px"><span class="lab">나로 지정할 멤버</span><select id="me-sel">${meOpts}</select></label>
-      <div class="hint">여기서 고른 사람이 ‘나’가 됩니다. 그 사람에게 VOC가 배정되면 ‘나에게 배정됨’ 알림이 뜨고, 우측 상단 프로필에도 표시됩니다.</div>
     </div>
 
     <div class="card panel">
@@ -1145,12 +1140,8 @@ function bindConfirm() {
 function bindDashboard() {
   document.querySelectorAll('[data-open]').forEach(c =>
     c.onclick = () => { state.detailId = c.dataset.open; renderDrawer(); });
-  document.querySelectorAll('[data-asg]').forEach(c =>
-    c.onclick = () => {
-      state.filters = { type: '', impact: '', source: '', emotion: '', model: '', assignee: c.dataset.asg, q: '', repeat: false };
-      state.view = 'board';
-      render();
-    });
+  const ys = document.getElementById('dash-year');
+  if (ys) ys.onchange = () => { state.dashYear = +ys.value; render(); };
 }
 
 function bindBoard() {
