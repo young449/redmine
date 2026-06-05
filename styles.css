@@ -110,7 +110,7 @@ a:hover { text-decoration: underline; }
 }
 .sidebar .nav button .ic { width: 16px; text-align: center; opacity: .7; font-size: 13px; }
 .sidebar .nav button:hover { background: rgba(255,255,255,.06); color: #fff; }
-.sidebar .nav button.active { background: rgba(255,255,255,.12); color: #fff; box-shadow: inset 3px 0 0 #fff; }
+.sidebar .nav button.active { background: rgba(255,255,255,.12); color: #fff; }
 .sidebar .nav button.active .ic { opacity: 1; }
 .sidebar .nav button.soon { color: #6c7280; cursor: default; }
 .sidebar .nav button.soon:hover { background: transparent; color: #6c7280; }
@@ -425,7 +425,7 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
 .delta .dl { color: var(--faint); font-family: var(--sans); }
 
 /* ---------- 상단 앱바 (알림 + 사용자) ---------- */
-.appbar { display: flex; align-items: center; gap: 12px; padding: 14px 0 0; }
+.appbar { display: flex; align-items: center; gap: 12px; padding: 14px 0 16px; margin-bottom: 20px; border-bottom: 1px solid var(--line-2); }
 .appbar-spacer { flex: 1; }
 .bell { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; color: var(--ink-soft); cursor: pointer; transition: .15s; }
 .bell:hover { background: var(--surface-2); border-color: var(--faint); }
@@ -491,32 +491,37 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
 .add-member .btn { flex: 0 0 auto; }
 
 /* ---------- 대시보드 3열 그리드 ---------- */
+.monthly-card { margin-bottom: 20px; }
 .dash-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; align-items: start; }
 
-/* 자주 배정된 담당자 */
-.arow { display: grid; grid-template-columns: 28px 1fr 70px 24px; align-items: center; gap: 10px; margin-bottom: 10px; cursor: pointer; border-radius: 8px; padding: 2px; }
-.arow:hover { background: var(--surface-2); }
-.arow.muted, .arow.muted:hover { cursor: default; background: transparent; }
-.arow .aname { font-size: 12.5px; font-weight: 700; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.arow b { font-family: var(--mono); font-size: 13px; text-align: right; }
+/* 유형 분포 — 도넛 */
+.donut-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; padding-top: 4px; }
+.donut { position: relative; width: 150px; height: 150px; }
+.donut svg { width: 150px; height: 150px; display: block; }
+.donut-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.donut-center .dc-n { font-size: 26px; font-weight: 800; font-family: var(--mono); letter-spacing: -1px; }
+.donut-center .dc-l { font-size: 10.5px; color: var(--faint); font-family: var(--mono); }
+.donut-legend { width: 100%; display: flex; flex-direction: column; gap: 7px; }
+.lg-row { display: grid; grid-template-columns: 12px 1fr auto; align-items: center; gap: 8px; }
+.lg-dot { width: 9px; height: 9px; border-radius: 3px; }
+.lg-name { font-size: 12px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lg-row b { font-family: var(--mono); font-size: 12.5px; }
 
-/* 월별 VOC 누적 막대 */
-.monthly { padding-top: 6px; }
-.mc-grid { display: flex; align-items: flex-end; gap: 18px; padding: 4px 4px 0; }
-.mc-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
-.mc-total { font-size: 12px; font-weight: 800; font-family: var(--mono); color: var(--ink-soft); height: 16px; }
-.mc-stack { width: 100%; max-width: 56px; display: flex; flex-direction: column; justify-content: flex-end; background: var(--line-2); border-radius: 6px; overflow: hidden; }
-.mc-seg { width: 100%; }
-.mc-seg.검토중 { background: #9aa1ad; }
-.mc-seg.개발요청 { background: var(--ai); }
-.mc-seg.완료 { background: var(--human); }
-.mc-x { font-size: 11.5px; color: var(--muted); font-family: var(--mono); }
-.mc-legend { display: flex; gap: 18px; justify-content: center; margin-top: 16px; font-size: 12px; color: var(--muted); }
-.mc-legend span { display: inline-flex; align-items: center; gap: 6px; }
-.mc-legend .dot { width: 9px; height: 9px; border-radius: 3px; }
-.mc-legend .dot.검토중 { background: #9aa1ad; }
-.mc-legend .dot.개발요청 { background: var(--ai); }
-.mc-legend .dot.완료 { background: var(--human); }
+/* 자주 배정된 담당자 — 리스트 (카드 내 스크롤) */
+.rank-list { display: flex; flex-direction: column; max-height: 232px; overflow-y: auto; margin: -4px -6px 0; padding: 0 6px; }
+.rank-item { display: flex; align-items: center; gap: 11px; padding: 9px 4px; border-top: 1px solid var(--line-2); cursor: pointer; border-radius: 8px; }
+.rank-item:first-child { border-top: 0; }
+.rank-item:hover { background: var(--surface-2); }
+.rank-item.muted, .rank-item.muted:hover { cursor: default; background: transparent; }
+.rk-text { flex: 1; min-width: 0; }
+.rk-name { font-size: 13px; font-weight: 700; color: var(--ink); }
+.rk-sub { font-size: 11px; color: var(--faint); margin-top: 1px; }
+.rk-val { font-size: 12.5px; font-weight: 700; font-family: var(--mono); color: var(--ink-soft); }
+
+/* 월별 VOC — 라인 차트 */
+.ml-svg { width: 100%; height: auto; display: block; overflow: visible; }
+.ml-val { font-size: 11px; font-weight: 700; fill: var(--ink-soft); font-family: var(--mono); }
+.ml-x { font-size: 11px; fill: var(--muted); font-family: var(--mono); }
 
 /* ---------- 반응형 ---------- */
 @media (max-width: 980px) {

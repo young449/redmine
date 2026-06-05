@@ -524,30 +524,21 @@ function renderDashboard() {
       <b>${n}</b></div>`;
   }).join('');
 
-  // 유형 분포 (AI 분류 포함 = 사람 보정 없으면 AI값 사용)
-  const typeCounts = TYPES.map(t => ({ t, n: recs.filter(r => effTypes(r).includes(t)).length }))
-    .filter(x => x.n > 0).sort((a, b) => b.n - a.n);
-  const maxType = Math.max(1, ...typeCounts.map(x => x.n));
-  const typeRows = typeCounts.length ? typeCounts.map(({ t, n }) =>
-    `<div class="trow"><span class="tname">${esc(t)}</span>
-      <div class="track"><div class="fill brand" style="width:${Math.round((n / maxType) * 100)}%"></div></div>
-      <b>${n}</b></div>`).join('') : '<div class="empty-mini">데이터 없음</div>';
-
-  // 자주 배정된 담당자
+  // 자주 배정된 담당자 (전체, 배정 횟수순 — 카드 내 스크롤)
   const aCount = {};
   recs.forEach(r => { if (r.assignee) aCount[r.assignee] = (aCount[r.assignee] || 0) + 1; });
-  const ranked = Object.keys(aCount).map(id => ({ id, n: aCount[id] })).sort((a, b) => b.n - a.n).slice(0, 6);
-  const maxA = Math.max(1, ...ranked.map(x => x.n));
+  const ranked = Object.keys(aCount).map(id => ({ id, n: aCount[id] })).sort((a, b) => b.n - a.n);
   const unassigned = recs.filter(r => !r.assignee).length;
-  const assigneeRows = ranked.length ? ranked.map(({ id, n }) => {
+  const rankItems = ranked.map(({ id, n }) => {
     const m = member(id);
-    return `<div class="arow" data-asg="${esc(id)}">
-      ${avatarHTML(id, 28)}
-      <span class="aname">${m ? esc(m.en) : '?'}${m && m.ko ? ' <span class="muted-s">' + esc(m.ko) + '</span>' : ''}</span>
-      <div class="track"><div class="fill brand" style="width:${Math.round((n / maxA) * 100)}%"></div></div>
-      <b>${n}</b></div>`;
-  }).join('') + (unassigned ? `<div class="arow muted"><span class="avatar none" style="width:28px;height:28px;font-size:12px">–</span><span class="aname muted-s">미배정</span><div class="track"></div><b>${unassigned}</b></div>` : '')
-    : '<div class="empty-mini">배정된 담당자가 없습니다.</div>';
+    const sub = m ? [m.role, m.ko].filter(Boolean).join(' · ') : '';
+    return `<div class="rank-item" data-asg="${esc(id)}">
+      ${avatarHTML(id, 30)}
+      <div class="rk-text"><div class="rk-name">${m ? esc(m.en) : '?'}</div>${sub ? `<div class="rk-sub">${esc(sub)}</div>` : ''}</div>
+      <div class="rk-val">${n}건</div>
+    </div>`;
+  }).join('') + (unassigned ? `<div class="rank-item muted"><span class="avatar none" style="width:30px;height:30px;font-size:13px">–</span><div class="rk-text"><div class="rk-name muted-s">미배정</div></div><div class="rk-val">${unassigned}건</div></div>` : '');
+  const assigneeBody = ranked.length ? `<div class="rank-list">${rankItems}</div>` : '<div class="empty-mini">배정된 담당자가 없습니다.</div>';
 
   return `
   <div class="page-head row">
@@ -561,9 +552,9 @@ function renderDashboard() {
     </div>
   </div>
   ${statsCards(recs)}
-  <div class="card panel">
-    <div class="panel-h">월별 VOC <span class="muted-s">최근 6개월 · 상태별 누적</span></div>
-    ${monthlyChart(recs)}
+  <div class="card panel monthly-card">
+    <div class="panel-h">월별 VOC <span class="muted-s">최근 6개월 · 접수량</span></div>
+    ${monthlyLine(recs)}
   </div>
   <div class="dash-grid-3">
     <div class="card panel">
@@ -572,48 +563,81 @@ function renderDashboard() {
     </div>
     <div class="card panel">
       <div class="panel-h">유형 분포 <span class="ai-badge">AI 분류 포함</span></div>
-      ${typeRows}
+      ${typeDonut(recs)}
     </div>
     <div class="card panel">
       <div class="panel-h">자주 배정된 담당자 <span class="muted-s">클릭 시 보드 필터</span></div>
-      ${assigneeRows}
+      ${assigneeBody}
     </div>
   </div>`;
 }
 
-/* 월별 VOC — 상태별 누적 막대 (최근 6개월) */
-function monthlyChart(recs) {
+/* 유형 분포 — 도넛 (무채색 그라데이션) */
+function typeDonut(recs) {
+  const data = TYPES.map(t => ({ t, n: recs.filter(r => effTypes(r).includes(t)).length }))
+    .filter(x => x.n > 0).sort((a, b) => b.n - a.n);
+  const total = data.reduce((s, x) => s + x.n, 0);
+  if (!total) return '<div class="empty-mini">데이터 없음</div>';
+  const GRAY = ['#1d2129', '#3c4250', '#5b6470', '#7e8593', '#9aa1ad', '#b8bdc7', '#cfd3d8', '#dedcd5'];
+  const r = 42, C = 2 * Math.PI * r;
+  let off = 0;
+  const segs = data.map((x, i) => {
+    const len = (x.n / total) * C;
+    const s = `<circle cx="60" cy="60" r="${r}" fill="none" stroke="${GRAY[i % GRAY.length]}" stroke-width="15" stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 60 60)"></circle>`;
+    off += len; return s;
+  }).join('');
+  const legend = data.map((x, i) =>
+    `<div class="lg-row"><i class="lg-dot" style="background:${GRAY[i % GRAY.length]}"></i><span class="lg-name">${esc(x.t)}</span><b>${x.n}</b></div>`).join('');
+  return `<div class="donut-wrap">
+    <div class="donut"><svg viewBox="0 0 120 120">${segs}</svg><div class="donut-center"><div class="dc-n">${recs.length}</div><div class="dc-l">VOC</div></div></div>
+    <div class="donut-legend">${legend}</div>
+  </div>`;
+}
+
+/* 월별 VOC — 부드러운 영역 라인 차트 (최근 6개월 접수량) */
+function smoothPath(pts) {
+  if (pts.length < 2) return pts.length ? `M${pts[0].x} ${pts[0].y}` : '';
+  let d = `M${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+    const c1x = p1.x + (p2.x - p0.x) / 6, c1y = p1.y + (p2.y - p0.y) / 6;
+    const c2x = p2.x - (p3.x - p1.x) / 6, c2y = p2.y - (p3.y - p1.y) / 6;
+    d += ` C${c1x.toFixed(1)} ${c1y.toFixed(1)} ${c2x.toFixed(1)} ${c2y.toFixed(1)} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+  }
+  return d;
+}
+function monthlyLine(recs) {
   const now = new Date();
   const months = [];
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    months.push({ y: d.getFullYear(), m: d.getMonth(), label: (d.getMonth() + 1) + '월', '검토중': 0, '개발 요청': 0, '완료': 0, total: 0 });
+    months.push({ y: d.getFullYear(), m: d.getMonth(), label: (d.getMonth() + 1) + '월', n: 0 });
   }
   recs.forEach(r => {
     const d = new Date(r.createdAt);
     const b = months.find(x => x.y === d.getFullYear() && x.m === d.getMonth());
-    if (b) { b[r.pmStatus] = (b[r.pmStatus] || 0) + 1; b.total += 1; }
+    if (b) b.n += 1;
   });
-  const max = Math.max(1, ...months.map(x => x.total));
-  const H = 150;
-  const cols = months.map(mo => {
-    const seg = ['검토중', '개발 요청', '완료'].map(s =>
-      mo[s] ? `<div class="mc-seg ${s.replace(/\s/g, '')}" style="height:${(mo[s] / max) * H}px" title="${s} ${mo[s]}건"></div>` : '').join('');
-    return `<div class="mc-col">
-      <div class="mc-total">${mo.total || ''}</div>
-      <div class="mc-stack" style="height:${H}px">${seg}</div>
-      <div class="mc-x">${mo.label}</div>
-    </div>`;
-  }).join('');
-  return `
-  <div class="monthly">
-    <div class="mc-grid">${cols}</div>
-    <div class="mc-legend">
-      <span><i class="dot 검토중"></i>검토중</span>
-      <span><i class="dot 개발요청"></i>개발 요청</span>
-      <span><i class="dot 완료"></i>완료</span>
-    </div>
-  </div>`;
+  const max = Math.max(1, ...months.map(x => x.n));
+  const W = 680, H = 190, padX = 26, padTop = 26, padBot = 30;
+  const innerW = W - padX * 2, innerH = H - padTop - padBot;
+  const base = padTop + innerH;
+  const pts = months.map((mo, i) => ({
+    x: padX + (months.length === 1 ? innerW / 2 : innerW * (i / (months.length - 1))),
+    y: padTop + innerH * (1 - mo.n / max), mo
+  }));
+  const line = smoothPath(pts);
+  const area = `${line} L${pts[pts.length - 1].x.toFixed(1)} ${base} L${pts[0].x.toFixed(1)} ${base} Z`;
+  const dots = pts.map(p =>
+    `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3.5" fill="var(--ink)"></circle>` +
+    `<text x="${p.x.toFixed(1)}" y="${(p.y - 10).toFixed(1)}" text-anchor="middle" class="ml-val">${p.mo.n || ''}</text>`).join('');
+  const xlabels = pts.map(p => `<text x="${p.x.toFixed(1)}" y="${H - 8}" text-anchor="middle" class="ml-x">${p.mo.label}</text>`).join('');
+  return `<div class="monthly"><svg class="ml-svg" viewBox="0 0 ${W} ${H}">
+    <defs><linearGradient id="mlgrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#9aa1ad" stop-opacity="0.32"/><stop offset="100%" stop-color="#9aa1ad" stop-opacity="0"/></linearGradient></defs>
+    <path d="${area}" fill="url(#mlgrad)"></path>
+    <path d="${line}" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"></path>
+    ${dots}${xlabels}
+  </svg></div>`;
 }
 
 /* ===== VOC 보드 (지라형 — 티켓 워크플로우) ===== */
