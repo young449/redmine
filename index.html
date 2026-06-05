@@ -9,23 +9,43 @@
 </head>
 <body>
   <div class="app">
-    <header class="topbar">
-      <div class="topbar-inner">
-        <div class="wordmark">
-          <span class="dot"></span>
-          <span class="name">VOC 콘솔</span>
-          <span class="sub">voice-of-customer</span>
-        </div>
-        <nav class="nav">
-          <button data-view="cs">CS 입력</button>
-          <button data-view="dashboard">대시보드</button>
-        </nav>
-        <div class="spacer"></div>
-        <div class="role-hint"><span class="pulse"></span> UX · PM 공용 뷰</div>
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <span class="dot"></span>
+        <span class="brand-name">VOC 콘솔</span>
       </div>
-    </header>
+
+      <div class="ws">
+        <div class="ws-label">워크스페이스</div>
+        <div class="ws-switch" id="ws-switch">
+          <button type="button" data-ws="AK"><span class="ws-dot ak"></span>Astell&amp;Kern</button>
+          <button type="button" data-ws="Activo"><span class="ws-dot activo"></span>Activo</button>
+        </div>
+      </div>
+
+      <button class="add-voc" type="button" data-view="cs">＋ Add VOC</button>
+
+      <nav class="nav">
+        <div class="nav-sec">메인</div>
+        <button type="button" data-view="dashboard"><span class="ic">▦</span> 대시보드</button>
+        <button type="button" data-view="board"><span class="ic">▤</span> VOC 보드</button>
+
+        <div class="nav-sec">도구</div>
+        <button type="button" data-act="export"><span class="ic">⤓</span> 내보내기 (Excel)</button>
+        <button type="button" class="soon" disabled><span class="ic">◷</span> 분석 <span class="badge-soon">준비중</span></button>
+        <button type="button" class="soon" disabled><span class="ic">⚙</span> 연동 (레드마인) <span class="badge-soon">준비중</span></button>
+      </nav>
+
+      <div class="side-foot">
+        <span class="pulse"></span> UX · PM 공용 콘솔
+      </div>
+    </aside>
+
     <main class="main" id="root"></main>
   </div>
+
+  <!-- 엑셀 내보내기용 (브라우저에서 .xlsx 생성) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

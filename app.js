@@ -19,15 +19,27 @@ const TYPES = [
 const IMPACTS = ['SW 전용', 'HW 전용', 'SW+HW 복합'];
 const EMOTIONS = ['정보 제공', '제안', '불만', '강한 불만'];
 const SOURCES = ['국내', '해외'];
-// Astell&Kern DAP 라인업 — 제품 페이지 기준 4개 시리즈
-// 참고: https://www.astellnkern.com/product/dap.php
-const MODEL_GROUPS = [
-  { label: 'A&ultima', models: ['SP4000T', 'SP4000', 'SP3000M', 'SP3000T', 'SP3000', 'SP2000T', 'SP2000', 'SP1000', 'SP1000M', 'SP1000M GOLD'] },
-  { label: 'PD series', models: ['PD20', 'PD10', 'PD10 & Cradle'] },
-  { label: 'Heritage', models: ['SR35', 'SR25 MKII', 'SE300', 'SE200', 'SE180'] },
-  { label: 'Classic', models: ['KANN ULTRA', 'KANN MAX', 'KANN ALPHA'] }
-];
-const MODELS = ['공통 / 브랜드 이슈', ...MODEL_GROUPS.flatMap(g => g.models), '기타'];
+// 워크스페이스(브랜드)별 모델 라인업
+//  - AK    : https://www.astellnkern.com/product/dap.php
+//  - Activo: https://www.activostyle.com/ko/product  (AK가 튜닝한 자매 브랜드)
+const WORKSPACES = ['AK', 'Activo'];
+const WORKSPACE_LABEL = { AK: 'Astell&Kern', Activo: 'Activo' };
+
+const MODEL_GROUPS_BY_WS = {
+  AK: [
+    { label: 'A&ultima', models: ['SP4000T', 'SP4000', 'SP3000M', 'SP3000T', 'SP3000', 'SP2000T', 'SP2000', 'SP1000', 'SP1000M', 'SP1000M GOLD'] },
+    { label: 'PD series', models: ['PD20', 'PD10', 'PD10 & Cradle'] },
+    { label: 'Heritage', models: ['SR35', 'SR25 MKII', 'SE300', 'SE200', 'SE180'] },
+    { label: 'Classic', models: ['KANN ULTRA', 'KANN MAX', 'KANN ALPHA'] }
+  ],
+  Activo: [
+    { label: 'DAP', models: ['P1', 'CT10'] },
+    { label: 'Earphone', models: ['Q1', 'VOLCANO', 'SCOOP'] },
+    { label: 'Accessories', models: ['P1 CASE'] }
+  ]
+};
+const modelGroups = ws => MODEL_GROUPS_BY_WS[ws] || [];
+const modelsFor   = ws => ['공통 / 브랜드 이슈', ...modelGroups(ws).flatMap(g => g.models), '기타'];
 // 레드마인 티켓 원본 URL 패턴 (운영 시 실제 레드마인 주소로 교체)
 const REDMINE_BASE = 'https://redmine.example.com/issues/';
 
@@ -124,27 +136,56 @@ function load() {
 }
 function save() { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); }
 
-let DB = load() || seed();
+let DB;
 
-function seed() {
-  const now = Date.now();
-  const samples = [
+// 워크스페이스별 샘플 (데모/초기 데이터)
+const SAMPLES = {
+  AK: [
     { body: 'SP3000에서 EQ 설정 화면을 찾기가 너무 어려워요. 메뉴가 너무 깊게 들어가 있어서 매번 헤맵니다. 자주 쓰는 기능은 첫 화면에 두면 좋겠어요.', model: 'SP3000', source: '국내', redmine: '10421' },
     { body: '블루투스로 이어폰 연결하면 자꾸 한쪽만 소리가 안 나옵니다. 재연결해도 똑같고 펌웨어 업데이트 후로 더 심해졌어요. 환불하고 싶을 정도로 짜증납니다.', model: 'PD10', source: '국내', redmine: '10455' },
     { body: '해외에서 쓰는데 날짜 표기가 한국식으로만 나와서 불편합니다. 현지 언어와 시간대 설정을 지원해주세요.', model: '공통 / 브랜드 이슈', source: '해외', redmine: '' },
     { body: 'The price is too high compared to competitors. 가격 대비 기능이 아쉽고 스트리밍 구독료까지 따로 내야 해서 가성비가 별로입니다.', model: 'SP4000', source: '해외', redmine: '10470' },
     { body: '재생 중 배터리가 너무 빨리 닳고 충전 단자 접촉이 안 좋은지 충전이 안 될 때가 있어요. 발열도 좀 있는 것 같습니다.', model: 'KANN MAX', source: '국내', redmine: '10488' },
     { body: '재생 목록을 넘기다 보면 가끔 멈추고 앱이 튕깁니다. 업데이트 후 오류가 더 자주 발생해요.', model: 'SR35', source: '국내', redmine: '10492' },
-  ];
-  const records = samples.map((s, i) => makeRecord(s.body, s.model, s.source, s.redmine, now - (samples.length - i) * 8.6e7, i + 1));
-  return { seq: samples.length, records };
+  ],
+  Activo: [
+    { body: 'P1 화면이 작아서 재생 목록 글씨가 잘 안 보입니다. 글씨 크기를 키우는 옵션이 있으면 좋겠어요.', model: 'P1', source: '국내', redmine: '10510' },
+    { body: 'CT10에서 와이파이가 자꾸 끊기고 스트리밍 재생이 멈춥니다. 재연결해도 같은 증상이 반복돼요.', model: 'CT10', source: '해외', redmine: '10515' },
+    { body: 'Q1 이어폰 한쪽 소리가 작게 나오고 케이블 마감이 좀 아쉽습니다. 디자인은 마음에 들어요.', model: 'Q1', source: '국내', redmine: '' },
+  ]
+};
+
+function seed() {
+  const now = Date.now();
+  const order = [...SAMPLES.AK.map(s => ['AK', s]), ...SAMPLES.Activo.map(s => ['Activo', s])];
+  let seq = 0;
+  const records = order.map(([brand, s]) => {
+    seq += 1;
+    return makeRecord(brand, s.body, s.model, s.source, s.redmine, now - (order.length - seq) * 8.6e7, seq);
+  });
+  return { seq, records, _seededActivo: true };
 }
 
-function makeRecord(body, model, source, redmine, ts, seq) {
+// 기존 저장 데이터 마이그레이션: brand 누락분은 AK로, Activo 샘플이 없으면 1회 주입
+function ensureData() {
+  let changed = false;
+  DB.records.forEach(r => { if (!r.brand) { r.brand = 'AK'; changed = true; } });
+  if (!DB._seededActivo && !DB.records.some(r => r.brand === 'Activo')) {
+    const now = Date.now();
+    SAMPLES.Activo.forEach((s, i) => {
+      DB.seq += 1;
+      DB.records.push(makeRecord('Activo', s.body, s.model, s.source, s.redmine, now - (SAMPLES.Activo.length - i) * 6e6, DB.seq));
+    });
+    DB._seededActivo = true; changed = true;
+  }
+  if (changed) save();
+}
+
+function makeRecord(brand, body, model, source, redmine, ts, seq) {
   const ai = heuristicClassify(body);
   return {
     id: 'V' + String(seq).padStart(4, '0'),
-    seq, createdAt: ts || Date.now(),
+    seq, brand: brand || 'AK', createdAt: ts || Date.now(),
     body, model: model || '공통 / 브랜드 이슈', source: source || '국내',
     redmine: redmine || '',
     aiSummary: heuristicSummary(body),
@@ -157,6 +198,9 @@ function makeRecord(body, model, source, redmine, ts, seq) {
   };
 }
 
+DB = load() || seed();
+ensureData();
+
 // 화면 표시에 쓰일 실효값(보정 > AI)
 const effTypes   = r => r.types   || r.aiTypes;
 const effImpact  = r => r.impact  || r.aiImpact;
@@ -164,15 +208,23 @@ const effEmotion = r => r.emotion || r.aiEmotion;
 
 /* ---------- 라우팅 (해시 + 필터 URL 동기화, PRD 8-2) ---------- */
 const state = {
-  view: 'dashboard',          // 'cs' | 'dashboard'
+  workspace: 'AK',            // 'AK' | 'Activo'
+  view: 'dashboard',          // 'dashboard' | 'board' | 'cs'
   filters: { type: '', impact: '', source: '', emotion: '', model: '', q: '', repeat: false },
   detailId: null,
   submitted: null,
 };
+const WS_KEY = 'voc_console_ws';
+
+// 현재 워크스페이스(브랜드)에 속한 레코드만
+const wsRecords = () => DB.records.filter(r => (r.brand || 'AK') === state.workspace);
 
 function readURL() {
   const h = new URLSearchParams(location.hash.slice(1));
-  state.view = h.get('view') === 'cs' ? 'cs' : 'dashboard';
+  const ws = h.get('ws') || localStorage.getItem(WS_KEY) || 'AK';
+  state.workspace = WORKSPACES.includes(ws) ? ws : 'AK';
+  const v = h.get('view');
+  state.view = ['dashboard', 'board', 'cs'].includes(v) ? v : 'dashboard';
   state.filters.type    = h.get('type') || '';
   state.filters.impact  = h.get('impact') || '';
   state.filters.source  = h.get('source') || '';
@@ -183,6 +235,7 @@ function readURL() {
 }
 function writeURL() {
   const h = new URLSearchParams();
+  h.set('ws', state.workspace);
   h.set('view', state.view);
   const f = state.filters;
   if (f.type) h.set('type', f.type);
@@ -192,6 +245,7 @@ function writeURL() {
   if (f.model) h.set('model', f.model);
   if (f.q) h.set('q', f.q);
   if (f.repeat) h.set('repeat', '1');
+  localStorage.setItem(WS_KEY, state.workspace);
   history.replaceState(null, '', '#' + h.toString());
 }
 
@@ -214,14 +268,17 @@ function render() {
   writeURL();
   setNav();
   if (state.view === 'cs') root.innerHTML = state.submitted ? renderConfirm() : renderCS();
+  else if (state.view === 'board') root.innerHTML = renderBoard();
   else root.innerHTML = renderDashboard();
   bind();
   if (state.detailId) renderDrawer();
 }
 
 function setNav() {
-  document.querySelectorAll('.nav button').forEach(b =>
+  document.querySelectorAll('.nav button[data-view]').forEach(b =>
     b.classList.toggle('active', b.dataset.view === state.view));
+  document.querySelectorAll('#ws-switch button').forEach(b =>
+    b.classList.toggle('on', b.dataset.ws === state.workspace));
 }
 
 /* ===== CS 입력 ===== */
@@ -229,13 +286,13 @@ function renderCS() {
   const d = loadDraft();
   const opt = m => `<option value="${esc(m)}" ${d.model === m ? 'selected' : ''}>${esc(m)}</option>`;
   const modelOpts = [opt('공통 / 브랜드 이슈')]
-    .concat(MODEL_GROUPS.map(g => `<optgroup label="${esc(g.label)}">${g.models.map(opt).join('')}</optgroup>`))
+    .concat(modelGroups(state.workspace).map(g => `<optgroup label="${esc(g.label)}">${g.models.map(opt).join('')}</optgroup>`))
     .concat(opt('기타'))
     .join('');
   return `
   <div class="page-head">
-    <h1>VOC 입력</h1>
-    <p>레드마인 VOC 내용을 붙여넣거나 직접 작성해 전달하세요. 제출 시 대시보드에 자동 반영됩니다.</p>
+    <h1>VOC 입력 <span class="ws-pill ${state.workspace}">${esc(WORKSPACE_LABEL[state.workspace])}</span></h1>
+    <p>레드마인 VOC 내용을 붙여넣거나 직접 작성해 전달하세요. 제출 시 <b>${esc(WORKSPACE_LABEL[state.workspace])}</b> 워크스페이스 보드에 자동 반영됩니다.</p>
   </div>
   <div class="cs-grid">
     <div class="card cs-form">
@@ -300,16 +357,17 @@ function renderConfirm() {
     </div>
     <div class="actions">
       <button class="btn" id="btn-again">새 VOC 입력</button>
-      <button class="btn primary" id="btn-godash">대시보드 보기</button>
+      <button class="btn primary" id="btn-godash">보드에서 보기</button>
     </div>
   </div>`;
 }
 
 /* ===== 대시보드 (UX + PM 공용) ===== */
 function visibleRecords() {
-  computeRepeats(DB.records);
+  const scoped = wsRecords();
+  computeRepeats(scoped);
   const f = state.filters;
-  let list = DB.records.slice().sort((a, b) => b.createdAt - a.createdAt);
+  let list = scoped.slice().sort((a, b) => b.createdAt - a.createdAt);
   if (f.type)    list = list.filter(r => effTypes(r).includes(f.type));
   if (f.impact)  list = list.filter(r => effImpact(r) === f.impact);
   if (f.source)  list = list.filter(r => r.source === f.source);
@@ -330,27 +388,102 @@ function selectFilter(id, value, options, label) {
   return `<span class="lab">${label}</span><select data-filter="${id}">${opts}</select>`;
 }
 
-function renderDashboard() {
-  const list = visibleRecords();
-  const f = state.filters;
-  const total = DB.records.length;
-  const reviewed = DB.records.filter(r => r.reviewed).length;
-  const done = DB.records.filter(r => r.pmStatus === '완료').length;
-  const devReq = DB.records.filter(r => r.pmStatus === '개발 요청').length;
-
-  const stats = `
+/* ----- KPI 카드 (대시보드/보드 공용) ----- */
+function statsCards(recs) {
+  const total = recs.length;
+  const reviewed = recs.filter(r => r.reviewed).length;
+  const done = recs.filter(r => r.pmStatus === '완료').length;
+  const devReq = recs.filter(r => r.pmStatus === '개발 요청').length;
+  return `
   <div class="dash-stats">
     <div class="card stat"><div class="n">${total}</div><div class="l">전체 VOC</div></div>
     <div class="card stat acc"><div class="n">${reviewed}</div><div class="l">사람 검토 완료</div></div>
     <div class="card stat done"><div class="n">${done}</div><div class="l">완료된 VOC</div></div>
     <div class="card stat dev"><div class="n">${devReq}</div><div class="l">개발 요청 VOC</div></div>
   </div>`;
+}
+
+/* ===== 대시보드 (읽기 전용 파악용) ===== */
+function renderDashboard() {
+  const recs = wsRecords();
+  computeRepeats(recs);
+
+  const statuses = ['검토중', '개발 요청', '완료'];
+  const statusTotal = Math.max(1, recs.length);
+  const statusRows = statuses.map(s => {
+    const n = recs.filter(r => r.pmStatus === s).length;
+    const pct = Math.round((n / statusTotal) * 100);
+    return `<div class="srow">
+      <span class="status-tag ${s.replace(/\s/g, '')}">${esc(s)}</span>
+      <div class="track"><div class="fill ${s.replace(/\s/g, '')}" style="width:${pct}%"></div></div>
+      <b>${n}</b></div>`;
+  }).join('');
+
+  const typeCounts = TYPES.map(t => ({ t, n: recs.filter(r => effTypes(r).includes(t)).length }))
+    .filter(x => x.n > 0).sort((a, b) => b.n - a.n);
+  const maxType = Math.max(1, ...typeCounts.map(x => x.n));
+  const typeRows = typeCounts.length ? typeCounts.map(({ t, n }) =>
+    `<div class="trow"><span class="tname">${esc(t)}</span>
+      <div class="track"><div class="fill brand" style="width:${Math.round((n / maxType) * 100)}%"></div></div>
+      <b>${n}</b></div>`).join('') : '<div class="empty-mini">데이터 없음</div>';
+
+  const repeats = recs.filter(r => r._repeatKeys && r._repeatKeys.length).length;
+  const strong = recs.filter(r => effEmotion(r) === '강한 불만').length;
+
+  const recent = recs.slice().sort((a, b) => b.createdAt - a.createdAt).slice(0, 5);
+  const recentRows = recent.length ? recent.map(r => `
+    <div class="recent-item" data-open="${r.id}">
+      <div class="ri-main">
+        <span class="recv-no">${esc(r.id)}</span>
+        <span class="ri-model">${esc(r.model)}</span>
+        <span class="status-tag ${r.pmStatus.replace(/\s/g, '')}">${esc(r.pmStatus)}</span>
+      </div>
+      <div class="ri-sum">${esc(r.aiSummary)}</div>
+    </div>`).join('') : '<div class="empty-mini">아직 등록된 VOC가 없습니다.</div>';
+
+  return `
+  <div class="page-head row">
+    <div>
+      <h1>대시보드 <span class="ws-pill ${state.workspace}">${esc(WORKSPACE_LABEL[state.workspace])}</span></h1>
+      <p>${esc(WORKSPACE_LABEL[state.workspace])} VOC를 유형·상태·우선순위 기준으로 한눈에 파악합니다.</p>
+    </div>
+    <div class="head-actions">
+      <button class="btn" type="button" data-act="export">⤓ Export</button>
+      <button class="btn primary" type="button" data-view="cs">＋ Add VOC</button>
+    </div>
+  </div>
+  ${statsCards(recs)}
+  <div class="alert-cards">
+    <div class="card mini ${repeats ? 'warn' : ''}"><div class="mini-n">${repeats}</div><div class="mini-l">반복 이슈 감지</div></div>
+    <div class="card mini ${strong ? 'alert' : ''}"><div class="mini-n">${strong}</div><div class="mini-l">강한 불만</div></div>
+  </div>
+  <div class="dash-grid">
+    <div class="card panel">
+      <div class="panel-h">상태 분포</div>
+      ${statusRows}
+    </div>
+    <div class="card panel">
+      <div class="panel-h">유형 분포 <span class="ai-badge">AI 분류 포함</span></div>
+      ${typeRows}
+    </div>
+  </div>
+  <div class="card panel">
+    <div class="panel-h">최근 접수 <span class="muted-s">최신 5건 · 클릭 시 상세</span></div>
+    <div class="recent">${recentRows}</div>
+  </div>`;
+}
+
+/* ===== VOC 보드 (지라형 — 티켓 워크플로우) ===== */
+function renderBoard() {
+  const list = visibleRecords();
+  const f = state.filters;
+  const anyFilter = !!(f.type || f.impact || f.source || f.emotion || f.model || f.q || f.repeat);
 
   const toolbar = `
   <div class="card toolbar">
     <div class="grp">${selectFilter('type', f.type, TYPES, '유형')}</div>
     <div class="grp">${selectFilter('impact', f.impact, IMPACTS, '영향범위')}</div>
-    <div class="grp">${selectFilter('model', f.model, MODELS, '모델')}</div>
+    <div class="grp">${selectFilter('model', f.model, modelsFor(state.workspace), '모델')}</div>
     <div class="grp">${selectFilter('source', f.source, SOURCES, '출처')}</div>
     <div class="grp">${selectFilter('emotion', f.emotion, EMOTIONS, '감정')}</div>
     <button class="btn sm ${f.repeat ? 'primary' : ''}" id="f-repeat">반복 이슈만</button>
@@ -362,21 +495,28 @@ function renderDashboard() {
   </div>`;
 
   const disclaimer = `
-  <div class="disclaimer" style="margin-bottom:16px">
+  <div class="disclaimer" style="margin-bottom:14px">
     ${warnIcon()}
     <div><b>AI 요약·분류 안내.</b> 목록의 요약과 분류는 AI가 1차 생성한 결과입니다. ${esc(AI_NOTE)} UX가 보정한 항목은 <b>검토 완료</b>로 표시됩니다.</div>
   </div>`;
 
   const items = list.length
     ? list.map(renderVOCCard).join('')
-    : `<div class="card empty"><div class="big">조건에 맞는 VOC가 없습니다</div><div>필터를 변경하거나 CS 입력에서 VOC를 등록하세요.</div></div>`;
+    : `<div class="card empty"><div class="big">조건에 맞는 VOC가 없습니다</div><div>필터를 변경하거나 ＋ Add VOC로 새 VOC를 등록하세요.</div></div>`;
 
   return `
-  <div class="page-head">
-    <h1>VOC 대시보드</h1>
-    <p>UX·PM 공용 화면 — 접수된 VOC를 유형·영향범위·우선순위 기준으로 한눈에 파악합니다.</p>
+  <div class="page-head row">
+    <div>
+      <h1>VOC 보드 <span class="ws-pill ${state.workspace}">${esc(WORKSPACE_LABEL[state.workspace])}</span></h1>
+      <p>티켓처럼 VOC를 상태(검토중 · 개발 요청 · 완료)와 우선순위로 관리합니다. 카드를 열어 분류를 보정하고 PM 상태를 변경하세요.</p>
+    </div>
+    <div class="head-actions">
+      <button class="btn" type="button" data-act="export">⤓ Export</button>
+      <button class="btn primary" type="button" data-view="cs">＋ Add VOC</button>
+    </div>
   </div>
-  ${stats}${toolbar}${disclaimer}
+  <div class="result-count">${esc(WORKSPACE_LABEL[state.workspace])} · <b>${list.length}</b>건 표시${anyFilter ? ' <span class="muted-s">(필터 적용됨)</span>' : ''}</div>
+  ${toolbar}${disclaimer}
   <div class="voc-list">${items}</div>`;
 }
 
@@ -523,13 +663,66 @@ function renderDrawer() {
 
 /* ---------- 이벤트 바인딩 ---------- */
 function bind() {
-  // 네비
-  document.querySelectorAll('.nav button').forEach(b =>
+  // 워크스페이스 전환
+  document.querySelectorAll('#ws-switch button').forEach(b =>
+    b.onclick = () => {
+      if (state.workspace !== b.dataset.ws) {
+        state.workspace = b.dataset.ws;
+        state.detailId = null; state.submitted = null;
+        render();
+      }
+    });
+  // 뷰 이동 (사이드바 + 헤더 버튼 공통)
+  document.querySelectorAll('[data-view]').forEach(b =>
     b.onclick = () => { state.view = b.dataset.view; state.submitted = null; render(); });
+  // 내보내기
+  document.querySelectorAll('[data-act="export"]').forEach(b => b.onclick = exportXlsx);
 
   if (state.view === 'cs' && !state.submitted) bindCS();
-  if (state.view === 'cs' && state.submitted) bindConfirm();
-  if (state.view === 'dashboard') bindDashboard();
+  else if (state.view === 'cs' && state.submitted) bindConfirm();
+  else if (state.view === 'board') bindBoard();
+  else bindDashboard();
+}
+
+/* 엑셀(.xlsx) raw data 내보내기 — 현재 워크스페이스 전체 */
+function exportXlsx() {
+  const recs = wsRecords().slice().sort((a, b) => a.seq - b.seq);
+  computeRepeats(recs);
+  if (!recs.length) { alert('내보낼 VOC가 없습니다.'); return; }
+
+  const header = ['접수번호', '등록일시', '브랜드', '모델', '출처', '레드마인',
+    '유형', '영향범위', '감정', '검토여부', '우선순위', 'PM상태', 'PM메모',
+    'AI유형', 'AI영향범위', 'AI감정', '반복키워드', 'VOC본문'];
+  const rows = recs.map(r => [
+    r.id,
+    new Date(r.createdAt).toLocaleString('ko-KR'),
+    WORKSPACE_LABEL[r.brand] || r.brand || 'AK',
+    r.model, r.source, r.redmine || '',
+    effTypes(r).join(', '), effImpact(r), effEmotion(r),
+    r.reviewed ? '사람 검토 완료' : 'AI 분류',
+    r.priority || '', r.pmStatus, r.pmMemo || '',
+    (r.aiTypes || []).join(', '), r.aiImpact, r.aiEmotion,
+    (r._repeatKeys || []).join(', '), r.body
+  ]);
+  const fname = `VOC_raw_${state.workspace}_${fmtDate(Date.now()).replace(/\./g, '')}`;
+
+  if (window.XLSX) {
+    const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
+    ws['!cols'] = header.map(h => ({ wch: h === 'VOC본문' ? 60 : h === '등록일시' ? 19 : h === 'PM메모' ? 24 : 14 }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'VOC raw');
+    XLSX.writeFile(wb, fname + '.xlsx');
+  } else {
+    // SheetJS 로드 실패 시 CSV(엑셀에서 열림) 폴백
+    const csv = [header, ...rows]
+      .map(row => row.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = fname + '.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
 }
 
 function bindCS() {
@@ -559,7 +752,7 @@ function bindCS() {
     if (!text) { body.focus(); body.style.borderColor = 'var(--alert)'; return; }
     const src = (document.querySelector('#f-source button.on') || {}).dataset?.src || '국내';
     DB.seq += 1;
-    const rec = makeRecord(text, model.value, src, redmine.value.trim(), Date.now(), DB.seq);
+    const rec = makeRecord(state.workspace, text, model.value, src, redmine.value.trim(), Date.now(), DB.seq);
     DB.records.push(rec); save(); clearDraft();
     state.submitted = rec; render();
   };
@@ -574,10 +767,15 @@ function bindCS() {
 
 function bindConfirm() {
   $('#btn-again').onclick = () => { state.submitted = null; render(); };
-  $('#btn-godash').onclick = () => { state.submitted = null; state.view = 'dashboard'; render(); };
+  $('#btn-godash').onclick = () => { state.submitted = null; state.view = 'board'; render(); };
 }
 
 function bindDashboard() {
+  document.querySelectorAll('[data-open]').forEach(c =>
+    c.onclick = () => { state.detailId = c.dataset.open; renderDrawer(); });
+}
+
+function bindBoard() {
   document.querySelectorAll('[data-filter]').forEach(sel =>
     sel.onchange = () => { state.filters[sel.dataset.filter] = sel.value; render(); });
   const fr = $('#f-repeat');
