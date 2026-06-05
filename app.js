@@ -45,8 +45,8 @@ const modelsFor   = ws => ['공통 / 브랜드 이슈', ...modelGroups(ws).flatM
 const DEFAULT_TEAM = [
   { id: 'ellie',  en: 'Ellie',  ko: '',     role: 'UX' },
   { id: 'marlon', en: 'Marlon', ko: '박준영', role: 'PM' },
-  { id: 'ben',    en: 'Ben',    ko: '황동오', role: '개발' },
-  { id: 'luke',   en: 'Luke',   ko: '윤태준', role: '개발' },
+  { id: 'ben',    en: 'Ben',    ko: '황동오', role: 'Dev' },
+  { id: 'luke',   en: 'Luke',   ko: '윤태준', role: 'Dev' },
   { id: 'etna',   en: 'Etna',   ko: '윤수정', role: 'UX' },
 ];
 // 컬러 아바타 팔레트 (무채색 UI 위 유일한 컬러 포인트)
@@ -203,6 +203,7 @@ function ensureData() {
     changed = true;
   }
   if (!DB.me) { DB.me = DB.team[0] ? DB.team[0].id : 'ellie'; changed = true; }
+  DB.team.forEach(m => { if (m.role === '개발') { m.role = 'Dev'; changed = true; } });
   if (!DB.notifs) { DB.notifs = []; changed = true; }
   if (!DB.redmineBase) { DB.redmineBase = REDMINE_BASE; changed = true; }
   DB.records.forEach(r => {
@@ -538,13 +539,12 @@ function renderDashboard() {
   const unassigned = recs.filter(r => !r.assignee).length;
   const rankItems = ranked.map(({ id, n }) => {
     const m = member(id);
-    const sub = m ? [m.role, m.ko].filter(Boolean).join(' · ') : '';
     return `<div class="rank-item" data-asg="${esc(id)}">
       ${avatarHTML(id, 30)}
-      <div class="rk-text"><div class="rk-name">${m ? esc(m.en) : '?'}</div>${sub ? `<div class="rk-sub">${esc(sub)}</div>` : ''}</div>
-      <div class="rk-val">${n}건</div>
+      <div class="rk-text"><div class="rk-name">${m ? esc(m.en) : '미등록'}</div>${m && m.role ? `<div class="rk-sub">${esc(m.role)}</div>` : ''}</div>
+      <div class="rk-val">${n}<span>건</span></div>
     </div>`;
-  }).join('') + (unassigned ? `<div class="rank-item muted"><span class="avatar none" style="width:30px;height:30px;font-size:13px">–</span><div class="rk-text"><div class="rk-name muted-s">미배정</div></div><div class="rk-val">${unassigned}건</div></div>` : '');
+  }).join('') + (unassigned ? `<div class="rank-item muted"><span class="avatar none" style="width:30px;height:30px;font-size:13px">–</span><div class="rk-text"><div class="rk-name muted-s">미배정</div></div><div class="rk-val">${unassigned}<span>건</span></div></div>` : '');
   const assigneeBody = ranked.length ? `<div class="rank-list">${rankItems}</div>` : '<div class="empty-mini">배정된 담당자가 없습니다.</div>';
 
   return `
@@ -575,7 +575,7 @@ function renderDashboard() {
       ${statusRows}
     </div>
     <div class="card panel">
-      <div class="panel-h">자주 배정된 담당자 <span class="muted-s">클릭 시 보드 필터</span></div>
+      <div class="panel-h">자주 배정된 담당자 <span class="muted-s">이름 클릭 시 보드로</span></div>
       ${assigneeBody}
     </div>
   </div>`;
@@ -813,42 +813,44 @@ function renderSettings() {
   const meOpts = team().map(m => `<option value="${esc(m.id)}" ${DB.me === m.id ? 'selected' : ''}>${esc(m.en)}${m.ko ? ' ' + esc(m.ko) : ''}</option>`).join('');
 
   return `
-  <div class="page-head"><h1>셋팅</h1><p>담당자 명단·현재 사용자·연동을 관리합니다.</p></div>
+  <div class="page-head"><h1>Setting</h1><p>담당자 명단·현재 사용자·연동을 관리합니다.</p></div>
 
-  <div class="card panel">
-    <div class="panel-h">담당자 명단</div>
-    <table class="roster"><tbody>${rows}</tbody></table>
-    <div class="add-member">
-      <input type="text" id="nm-en" placeholder="영문 (예: Ellie)">
-      <input type="text" id="nm-ko" placeholder="한글 (예: 김유나)">
-      <select id="nm-role"><option>UX</option><option>PM</option><option>개발</option><option>CS</option></select>
-      <button class="btn primary sm" id="nm-add">＋ 추가</button>
+  <div class="set-stack">
+    <div class="card panel">
+      <div class="panel-h">담당자 명단</div>
+      <div class="roster-wrap"><table class="roster"><tbody>${rows}</tbody></table></div>
+      <div class="add-member">
+        <input type="text" id="nm-en" placeholder="영문 (예: Ellie)">
+        <input type="text" id="nm-ko" placeholder="한글 (예: 김유나)">
+        <select id="nm-role"><option>UX</option><option>PM</option><option>Dev</option><option>CS</option></select>
+        <button class="btn primary sm" id="nm-add">＋ 추가</button>
+      </div>
+      <div class="hint">아바타는 영문 첫 글자로 자동 생성됩니다.</div>
     </div>
-    <div class="hint">아바타는 영문 첫 글자로 자동 생성됩니다.</div>
-  </div>
 
-  <div class="card panel">
-    <div class="panel-h">현재 사용자 (나)</div>
-    <label class="field" style="margin:0;max-width:320px"><span class="lab">알림 대상</span><select id="me-sel">${meOpts}</select></label>
-    <div class="hint">‘나에게 배정됨’ 알림과 상단 프로필에 사용됩니다.</div>
-  </div>
+    <div class="card panel">
+      <div class="panel-h">현재 사용자 (나)</div>
+      <label class="field" style="margin:0;max-width:320px"><span class="lab">나로 지정할 멤버</span><select id="me-sel">${meOpts}</select></label>
+      <div class="hint">여기서 고른 사람이 ‘나’가 됩니다. 그 사람에게 VOC가 배정되면 ‘나에게 배정됨’ 알림이 뜨고, 우측 상단 프로필에도 표시됩니다.</div>
+    </div>
 
-  <div class="card panel">
-    <div class="panel-h">레드마인 연동</div>
-    <label class="field" style="max-width:520px;margin:0">
-      <span class="lab">티켓 원본 URL 베이스</span>
-      <input type="text" id="rm-base" value="${esc(redmineBase())}">
-    </label>
-    <div class="cs-actions" style="margin-top:12px"><button class="btn primary sm" id="rm-save">저장</button><span class="draft-note" id="rm-note"></span></div>
-  </div>
+    <div class="card panel">
+      <div class="panel-h">레드마인 연동</div>
+      <label class="field" style="max-width:520px;margin:0">
+        <span class="lab">티켓 원본 URL 베이스</span>
+        <input type="text" id="rm-base" value="${esc(redmineBase())}">
+      </label>
+      <div class="cs-actions" style="margin-top:12px"><button class="btn primary sm" id="rm-save">저장</button><span class="draft-note" id="rm-note"></span></div>
+    </div>
 
-  <div class="card panel">
-    <div class="panel-h">구글 계정 연동 <span class="badge-soon" style="background:var(--line-2);color:var(--muted)">준비중</span></div>
-    <p style="margin:0 0 8px;color:var(--muted);font-size:13px">현재는 백엔드 없는 정적 사이트라 데이터가 브라우저에만 저장됩니다. 여러 명이 같은 VOC를 보고 서로에게 알림이 가려면 공용 백엔드(예: Firebase Auth + Firestore)가 필요합니다.</p>
-    <ul style="margin:0;padding-left:18px;color:var(--ink-soft);font-size:13px;line-height:1.7">
-      <li>구글 로그인(GIS): 신원·프로필 사진만 — 정적 사이트에서도 가능 (OAuth 클라이언트 ID 필요)</li>
-      <li>공용 데이터 + 실시간 알림: Firebase 권장 (회사 Workspace 도메인 제한 가능)</li>
-    </ul>
+    <div class="card panel">
+      <div class="panel-h">구글 계정 연동 <span class="badge-soon" style="background:var(--line-2);color:var(--muted)">준비중</span></div>
+      <p style="margin:0 0 8px;color:var(--muted);font-size:13px">현재는 백엔드 없는 정적 사이트라 데이터가 브라우저에만 저장됩니다. 여러 명이 같은 VOC를 보고 서로에게 알림이 가려면 공용 백엔드(예: Firebase Auth + Firestore)가 필요합니다.</p>
+      <ul style="margin:0;padding-left:18px;color:var(--ink-soft);font-size:13px;line-height:1.7">
+        <li>구글 로그인(GIS): 신원·프로필 사진만 — 정적 사이트에서도 가능 (OAuth 클라이언트 ID 필요)</li>
+        <li>공용 데이터 + 실시간 알림: Firebase 권장 (회사 Workspace 도메인 제한 가능)</li>
+      </ul>
+    </div>
   </div>`;
 }
 
