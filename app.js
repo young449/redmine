@@ -62,6 +62,14 @@ function avatarHTML(id, size) {
   const c = AVATAR_COLORS[hashIdx(m.id, AVATAR_COLORS.length)];
   return `<span class="avatar" style="${style};background:${c}" title="${esc((m.en + ' ' + (m.ko || '')).trim())}">${esc(m.en[0])}</span>`;
 }
+// 담당자 여러 명 → 아바타 겹쳐 표시 (최대 3 + 나머지 수)
+function avatarStack(ids, size) {
+  const list = (ids || []).filter(Boolean);
+  if (!list.length) return avatarHTML(null, size);
+  const shown = list.slice(0, 3).map(id => avatarHTML(id, size)).join('');
+  const extra = list.length > 3 ? `<span class="ava-more" style="width:${size}px;height:${size}px;font-size:${Math.round(size * 0.36)}px">+${list.length - 3}</span>` : '';
+  return `<span class="ava-stack">${shown}${extra}</span>`;
+}
 // 레드마인 티켓 원본 URL 패턴 (운영 시 실제 레드마인 주소로 교체)
 const REDMINE_BASE = 'https://redmine.example.com/issues/';
 const redmineBase = () => (DB && DB.redmineBase) || REDMINE_BASE;
@@ -211,6 +219,8 @@ function ensureData() {
   DB.records.forEach(r => {
     if (!r.brand) { r.brand = 'AK'; changed = true; }
     if (!('assignee' in r)) { r.assignee = null; changed = true; }
+    if (!Array.isArray(r.assignees)) { r.assignees = r.assignee ? [r.assignee] : []; changed = true; }
+    if (!Array.isArray(r.comments)) { r.comments = []; changed = true; }
     if (!('reviewedAt' in r)) { r.reviewedAt = r.reviewed ? r.createdAt : null; changed = true; }
     if (!Array.isArray(r.statusHistory)) {
       r.statusHistory = [{ status: '검토중', at: r.createdAt }];
@@ -249,6 +259,8 @@ function makeRecord(brand, body, model, source, redmine, ts, seq, opts) {
     reviewed: !!opts.reviewed, reviewedAt: opts.reviewed ? createdAt + 3e6 : null,
     priority: opts.priority || null,
     assignee: opts.assignee || null,
+    assignees: opts.assignee ? [opts.assignee] : [],
+    comments: [],
     pmStatus: status, pmMemo: opts.memo || '',
     statusHistory: history
   };
@@ -354,9 +366,9 @@ function updateWS() {
   const isAK = state.workspace === 'AK';
   const ava = document.getElementById('ws-ava');
   if (ava) { ava.textContent = wsCode(state.workspace); ava.className = 'ws-ava ' + state.workspace; }
-  const wsLogo = document.getElementById('ws-logo');     // 어두운 사이드바: AK 빨강 / Activo 흰색
-  if (wsLogo) wsLogo.src = isAK ? 'logo-ak.png' : 'logo-activo-light.png';
-  const abLogo = document.getElementById('appbar-logo'); // 밝은 앱바: AK 빨강 / Activo 어둠
+  const name = document.getElementById('ws-name');
+  if (name) name.textContent = WORKSPACE_LABEL[state.workspace];
+  const abLogo = document.getElementById('appbar-logo'); // 앱바: 이미지 로고
   if (abLogo) abLogo.src = isAK ? 'logo-ak.png' : 'logo-activo-dark.png';
 }
 
@@ -472,7 +484,7 @@ function visibleRecords() {
   if (f.source)  list = list.filter(r => r.source === f.source);
   if (f.emotion) list = list.filter(r => effEmotion(r) === f.emotion);
   if (f.model)   list = list.filter(r => r.model === f.model);
-  if (f.assignee) list = list.filter(r => r.assignee === f.assignee);
+  if (f.assignee) list = list.filter(r => (r.assignees || []).includes(f.assignee));
   if (f.repeat)  list = list.filter(r => r._repeatKeys && r._repeatKeys.length);
   if (f.q) {
     const q = f.q.toLowerCase();
@@ -553,7 +565,7 @@ function renderDashboard() {
   const recent = recs.slice().sort((a, b) => b.createdAt - a.createdAt).slice(0, 5);
   const recentBody = recent.length ? `<div class="recent-list">${recent.map(r => `
     <div class="recent-item" data-open="${r.id}">
-      ${avatarHTML(r.assignee, 32)}
+      ${avatarStack(r.assignees, 32)}
       <div class="ri-text">
         <div class="ri-main"><span class="recv-no">${esc(r.id)}</span><span class="ri-model">${esc(r.model)}</span></div>
         <div class="ri-sum">${esc(r.aiSummary)}</div>
@@ -828,7 +840,12 @@ function renderSettings() {
       <div class="panel-h">담당자 명단</div>
       <div class="roster-wrap"><div class="roster">${rows}</div></div>
       <div class="add-member">
-        <select id="nm-role"><option>UX</option><option>PM</option><option>Dev</option><option>CS</option></select>
+        <div class="role-dd" id="nm-role-dd" data-role="UX">
+          <button type="button" class="role-dd-btn" id="nm-role-btn"><span class="role-chip UX">UX</span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+          <div class="role-dd-menu" id="nm-role-menu" hidden>
+            ${['UX', 'PM', 'Dev', 'CS'].map(rr => `<button type="button" data-r="${rr}"><span class="role-chip ${rr}">${rr}</span></button>`).join('')}
+          </div>
+        </div>
         <input type="text" id="nm-en" placeholder="영문 (Hong)">
         <input type="text" id="nm-ko" placeholder="한글 (홍길동)">
         <button class="btn primary" id="nm-add">추가</button>
@@ -889,7 +906,7 @@ function renderVOCCard(r) {
     </div>
     <div class="col-meta">
       ${pri}${status}
-      <div class="assignee">${avatarHTML(r.assignee, 24)}</div>
+      <div class="assignee">${avatarStack(r.assignees, 24)}</div>
     </div>
   </div>`;
 }
@@ -987,20 +1004,31 @@ function renderDrawer() {
             <span class="lab">개발 전달 메모</span>
             <textarea id="m-memo" style="min-height:90px" placeholder="개발팀에 전달할 내용을 적으세요.">${esc(r.pmMemo)}</textarea>
           </label>
-          <div class="row-2" style="max-width:420px">
-            <label class="field" style="margin:0">
-              <span class="lab">상태</span>
-              <select id="m-status">${statusSel}</select>
-            </label>
-            <label class="field" style="margin:0">
-              <span class="lab">담당자</span>
-              <select id="m-assignee">${assigneeSel}</select>
-            </label>
+          <label class="field" style="margin:0 0 12px">
+            <span class="lab">상태</span>
+            <select id="m-status" style="max-width:200px">${statusSel}</select>
+          </label>
+          <div class="lab" style="margin-bottom:7px">담당자 <span class="muted-s">복수 선택 가능</span></div>
+          <div class="assignee-pick" id="m-assignee">
+            ${team().map(m => `<button type="button" class="asg-chip ${(r.assignees || []).includes(m.id) ? 'on' : ''}" data-asg="${esc(m.id)}">${avatarHTML(m.id, 20)} ${esc(m.en)}</button>`).join('')}
+          </div>
+        </div>
+
+        <div class="sec">
+          <div class="sec-h">댓글 <span class="muted-s">${r.comments.length}</span></div>
+          <div class="comments" id="m-comments">
+            ${r.comments.length ? r.comments.map(c => `<div class="cmt">
+              <div class="cmt-h">${avatarHTML(c.author, 22)}<b>${(member(c.author) || {}).en || '알수없음'}</b><span class="cmt-at">${fmtDate(c.at)}</span></div>
+              <div class="cmt-body">${esc(c.text)}</div></div>`).join('') : '<div class="empty-mini">아직 댓글이 없습니다.</div>'}
+          </div>
+          <div class="cmt-add">
+            <textarea id="m-cmt-input" placeholder="댓글을 입력하세요..."></textarea>
+            <button class="btn sm" id="m-cmt-send">등록</button>
           </div>
         </div>
       </div>
       <div class="save-bar">
-        <button class="btn primary" id="m-save">저장</button>
+        <button class="btn primary" id="m-save" disabled>저장</button>
         <button class="btn ghost" id="m-cancel">닫기</button>
         <span class="saved-msg" id="saved-msg" style="display:none">✓ 저장됨</span>
         <button class="btn danger" id="m-delete">삭제</button>
@@ -1010,6 +1038,7 @@ function renderDrawer() {
 
   const wrap = document.createElement('div');
   wrap.innerHTML = html;
+  document.getElementById('overlay')?.remove();
   document.body.appendChild(wrap.firstElementChild);
   bindDrawer(r);
 }
@@ -1042,13 +1071,34 @@ function bindSettings() {
     b.onclick = () => {
       const id = b.dataset.rm;
       DB.team = team().filter(m => m.id !== id);
-      DB.records.forEach(r => { if (r.assignee === id) r.assignee = null; });
+      DB.records.forEach(r => {
+        r.assignees = (r.assignees || []).filter(x => x !== id);
+        if (r.assignee === id) r.assignee = r.assignees[0] || null;
+      });
       if (DB.me === id) DB.me = DB.team[0] ? DB.team[0].id : null;
       save(); render();
     });
+
+  // 역할 커스텀 드롭다운
+  const dd = $('#nm-role-dd');
+  if (dd) {
+    const btn = $('#nm-role-btn'), menu = $('#nm-role-menu');
+    btn.onclick = e => { e.stopPropagation(); menu.hidden = !menu.hidden; };
+    menu.querySelectorAll('[data-r]').forEach(b => b.onclick = () => {
+      const rr = b.dataset.r;
+      dd.dataset.role = rr;
+      btn.querySelector('.role-chip').className = 'role-chip ' + rr;
+      btn.querySelector('.role-chip').textContent = rr;
+      menu.hidden = true;
+    });
+    document.addEventListener('click', function od(ev) {
+      if (!dd.contains(ev.target)) menu.hidden = true;
+    });
+  }
+
   const add = $('#nm-add');
   if (add) add.onclick = () => {
-    const en = $('#nm-en').value.trim(), ko = $('#nm-ko').value.trim(), role = $('#nm-role').value;
+    const en = $('#nm-en').value.trim(), ko = $('#nm-ko').value.trim(), role = (dd && dd.dataset.role) || 'UX';
     if (!en) { $('#nm-en').focus(); return; }
     const base = en.toLowerCase().replace(/[^a-z0-9]/g, '') || 'user';
     let id = base, i = 1;
@@ -1182,7 +1232,9 @@ function bindDrawer(r) {
   // 임시 보정값 (저장 전까지 로컬)
   let editTypes = effTypes(r).slice();
   let editImpact = effImpact(r);
+  let editAssignees = (r.assignees || []).slice();
   let touched = false;
+  const markDirty = () => { const b = $('#m-save'); if (b) b.disabled = false; };
 
   document.querySelectorAll('#m-types .opt-chip').forEach(b =>
     b.onclick = () => {
@@ -1191,22 +1243,48 @@ function bindDrawer(r) {
       else editTypes.push(t);
       if (editTypes.length === 0) editTypes = [t]; // 최소 1개
       b.classList.toggle('on', editTypes.includes(t));
-      touched = true;
+      touched = true; markDirty();
     });
   document.querySelectorAll('#m-impact .opt-chip').forEach(b =>
     b.onclick = () => {
       editImpact = b.dataset.impact;
       document.querySelectorAll('#m-impact .opt-chip').forEach(x => x.classList.remove('on'));
-      b.classList.add('on'); touched = true;
+      b.classList.add('on'); touched = true; markDirty();
     });
-  $('#m-emotion').onchange = () => { touched = true; };
+  $('#m-emotion').onchange = () => { touched = true; markDirty(); };
   document.querySelectorAll('#m-pri button').forEach(b =>
     b.onclick = () => {
       const p = b.dataset.pri;
       r._pendingPri = (r._pendingPri === p || (!r._pendingPri && r.priority === p)) ? null : p;
       document.querySelectorAll('#m-pri button').forEach(x => x.className = '');
       if (r._pendingPri) b.className = 'on ' + r._pendingPri;
+      markDirty();
     });
+  // 담당자 복수 선택
+  document.querySelectorAll('#m-assignee .asg-chip').forEach(b =>
+    b.onclick = () => {
+      const id = b.dataset.asg;
+      if (editAssignees.includes(id)) editAssignees = editAssignees.filter(x => x !== id);
+      else editAssignees.push(id);
+      b.classList.toggle('on', editAssignees.includes(id));
+      markDirty();
+    });
+  $('#m-memo').oninput = markDirty;
+  $('#m-status').onchange = markDirty;
+  const _b = $('#m-body'); if (_b) _b.oninput = markDirty;
+  const _m = $('#m-model'); if (_m) _m.onchange = markDirty;
+
+  // 댓글 등록 (즉시 저장)
+  $('#m-cmt-send').onclick = () => {
+    const ta = $('#m-cmt-input');
+    const text = (ta.value || '').trim();
+    if (!text) return;
+    r.comments = r.comments || [];
+    r.comments.push({ author: DB.me, text, at: Date.now() });
+    save();
+    document.getElementById('overlay')?.remove();
+    renderDrawer();
+  };
 
   $('#m-save').onclick = () => {
     const emo = $('#m-emotion').value;
@@ -1233,12 +1311,11 @@ function bindDrawer(r) {
       r.pmStatus = newStatus;
       pushNotif('status', `${r.id} 상태 변경 → ${newStatus}`, r.id);
     }
-    // 담당자 변경 → 알림(나에게 배정 시)
-    const newAssignee = $('#m-assignee').value || null;
-    if (newAssignee !== r.assignee) {
-      r.assignee = newAssignee;
-      if (newAssignee && newAssignee === DB.me) pushNotif('assign', `${r.id}가 나에게 배정되었습니다`, r.id);
-    }
+    // 담당자(복수) 변경 → 나에게 배정 시 알림
+    const added = editAssignees.filter(id => !(r.assignees || []).includes(id));
+    r.assignees = editAssignees.slice();
+    r.assignee = editAssignees[0] || null; // 기존 코드 호환(대표 담당자)
+    if (added.includes(DB.me)) pushNotif('assign', `${r.id}가 나에게 배정되었습니다`, r.id);
     save();
     // 기존 오버레이 제거 후 단일 렌더 (render 말미에서 detailId가 있으면 드로어 1회 재생성)
     document.getElementById('overlay')?.remove();

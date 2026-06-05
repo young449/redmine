@@ -9,7 +9,7 @@
 
 :root {
   /* 중립 */
-  --paper:      #f7f7f5;
+  --paper:      #f2f2f2;
   --surface:    #ffffff;
   --surface-2:  #fafafa;
   --ink:        #1a1d23;
@@ -92,6 +92,7 @@ a:hover { text-decoration: underline; }
 .ws-ava.AK { background: #d23b34; }
 .ws-ava.Activo { background: #2050d8; }
 .ws-logo { flex: 1; min-width: 0; height: 16px; width: auto; max-width: 100%; object-fit: contain; object-position: left center; }
+.ws-name { flex: 1; font-size: 13.5px; font-weight: 800; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ws-caret { color: #aab0bc; flex: 0 0 auto; display: inline-flex; align-items: center; }
 .appbar-logo { height: 20px; width: auto; display: block; }
 
@@ -583,6 +584,40 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .ml-svg { width: 100%; height: auto; display: block; overflow: visible; }
 .ml-val { font-size: 11px; font-weight: 700; fill: var(--ink-soft); font-family: var(--mono); }
 .ml-x { font-size: 11px; fill: var(--muted); font-family: var(--mono); }
+
+/* 아바타 스택 */
+.ava-stack { display: inline-flex; align-items: center; }
+.ava-stack .avatar, .ava-stack .avatar.none { margin-left: -8px; box-shadow: 0 0 0 2px var(--surface); }
+.ava-stack > :first-child { margin-left: 0; }
+.ava-more { display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--line); color: var(--ink-soft); font-weight: 800; margin-left: -8px; box-shadow: 0 0 0 2px var(--surface); }
+
+/* 담당자 복수 선택 */
+.assignee-pick { display: flex; flex-wrap: wrap; gap: 8px; }
+.asg-chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px 5px 5px; border: 1px solid var(--line); border-radius: 99px; background: var(--surface); cursor: pointer; font-size: 12.5px; font-weight: 700; color: var(--ink-soft); }
+.asg-chip:hover { border-color: var(--ink-soft); }
+.asg-chip.on { background: var(--brand); color: #fff; border-color: var(--brand); }
+.asg-chip .avatar { box-shadow: none; }
+
+/* 댓글 */
+.comments { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
+.cmt-h { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.cmt-h b { font-size: 12.5px; }
+.cmt-at { font-size: 11px; color: var(--faint); font-family: var(--mono); }
+.cmt-body { font-size: 13px; color: var(--ink-soft); line-height: 1.5; padding-left: 30px; white-space: pre-wrap; }
+.cmt-add { display: flex; gap: 8px; align-items: flex-start; }
+.cmt-add textarea { flex: 1; min-height: 42px; }
+.cmt-add .btn { flex: 0 0 auto; }
+
+/* 역할 커스텀 드롭다운 */
+.role-dd { flex: 0 0 120px; position: relative; }
+.role-dd-btn { display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%; height: 100%; min-height: 42px; padding: 0 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; cursor: pointer; color: var(--muted); }
+.role-dd-btn:hover { border-color: var(--ink-soft); }
+.role-dd-menu { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 24px rgba(0,0,0,.1); padding: 5px; z-index: 30; display: flex; flex-direction: column; gap: 3px; }
+.role-dd-menu button { display: flex; padding: 6px; border: 0; background: transparent; border-radius: 7px; cursor: pointer; }
+.role-dd-menu button:hover { background: var(--surface-2); }
+
+/* 저장 비활성 */
+.btn.primary:disabled { opacity: .45; cursor: not-allowed; }
 
 /* ---------- 반응형 ---------- */
 @media (max-width: 980px) {
