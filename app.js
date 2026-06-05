@@ -293,7 +293,7 @@ const state = {
   submitted: null,
 };
 const WS_KEY = 'voc_console_ws';
-const VIEWS = ['dashboard', 'board', 'calendar', 'settings', 'cs'];
+const VIEWS = ['dashboard', 'board', 'calendar', 'settings', 'cs', 'detail'];
 
 // 현재 워크스페이스(브랜드)에 속한 레코드만
 const wsRecords = () => DB.records.filter(r => (r.brand || 'AK') === state.workspace);
@@ -321,12 +321,17 @@ function readURL() {
   state.filters.assignee = h.get('assignee') || '';
   state.filters.q       = h.get('q') || '';
   state.filters.repeat  = h.get('repeat') === '1';
+  if (state.view === 'detail') {
+    state.detailId = h.get('id') || null;
+    if (!state.detailId) state.view = 'dashboard';
+  }
 }
 function writeURL() {
   const h = new URLSearchParams();
   h.set('ws', state.workspace);
   h.set('view', state.view);
   if (state.view === 'calendar') h.set('tab', state.calTab);
+  if (state.view === 'detail' && state.detailId) h.set('id', state.detailId);
   const f = state.filters;
   if (f.type) h.set('type', f.type);
   if (f.impact) h.set('impact', f.impact);
@@ -358,7 +363,8 @@ const root = $('#root');
 function render() {
   writeURL();
   setNav();
-  if (state.view === 'cs') root.innerHTML = state.submitted ? renderConfirm() : renderCS();
+  if (state.view === 'detail') root.innerHTML = renderDetailPage();
+  else if (state.view === 'cs') root.innerHTML = state.submitted ? renderConfirm() : renderCS();
   else if (state.view === 'board') root.innerHTML = renderBoard();
   else if (state.view === 'calendar') root.innerHTML = renderCalendar();
   else if (state.view === 'settings') root.innerHTML = renderSettings();
@@ -366,7 +372,10 @@ function render() {
   bind();
   updateWS();
   updateBell();
-  if (state.detailId) renderDrawer();
+  if (state.view === 'detail') {
+    const r = DB.records.find(x => x.id === state.detailId);
+    if (r) bindDetailPage(r);
+  } else if (state.detailId) renderDrawer();
 }
 
 const wsCode = w => (w === 'Activo' ? 'Av' : 'AK');
@@ -902,7 +911,6 @@ function renderVOCCard(r) {
       </div>
       <div class="chips">
         ${typeChips}${reviewChip}${repeatChip}
-        <span class="emo">감정: ${esc(effEmotion(r))}</span>
       </div>
     </div>
     <div class="col-meta">
@@ -913,128 +921,103 @@ function renderVOCCard(r) {
 }
 
 /* ===== 상세 드로어 ===== */
-function renderDrawer() {
-  const r = DB.records.find(x => x.id === state.detailId);
-  if (!r) { state.detailId = null; return; }
+/* 상세 폼 — 전용 페이지에서 사용 (동일 ID 재사용) */
+function detailFormHTML(r) {
   const types = effTypes(r);
-
-  const typeChips = TYPES.map(t =>
-    `<button class="opt-chip ${types.includes(t) ? 'on' : ''}" data-type="${esc(t)}">${esc(t)}</button>`).join('');
-  const impactChips = IMPACTS.map(i =>
-    `<button class="opt-chip ${effImpact(r) === i ? 'on' : ''}" data-impact="${esc(i)}">${esc(i)}</button>`).join('');
-  const emoSel = EMOTIONS.map(e =>
-    `<option value="${esc(e)}" ${effEmotion(r) === e ? 'selected' : ''}>${esc(e)}</option>`).join('');
-  const priBtns = ['High', 'Mid', 'Low'].map(p =>
-    `<button class="${r.priority === p ? 'on ' + p : ''}" data-pri="${p}">${p}</button>`).join('');
-  const statusSel = ['검토중', '개발 요청', '완료'].map(s =>
-    `<option value="${esc(s)}" ${r.pmStatus === s ? 'selected' : ''}>${esc(s)}</option>`).join('');
-  const assigneeSel = `<option value="">미배정</option>` + team().map(m =>
-    `<option value="${esc(m.id)}" ${r.assignee === m.id ? 'selected' : ''}>${esc(m.en)}${m.ko ? ' ' + esc(m.ko) : ''} · ${esc(m.role)}</option>`).join('');
+  const typeChips = TYPES.map(t => `<button class="opt-chip ${types.includes(t) ? 'on' : ''}" data-type="${esc(t)}">${esc(t)}</button>`).join('');
+  const impactChips = IMPACTS.map(i => `<button class="opt-chip ${effImpact(r) === i ? 'on' : ''}" data-impact="${esc(i)}">${esc(i)}</button>`).join('');
+  const priBtns = ['High', 'Mid', 'Low'].map(p => `<button class="${r.priority === p ? 'on ' + p : ''}" data-pri="${p}">${p}</button>`).join('');
+  const statusSel = ['검토중', '개발 요청', '완료'].map(s => `<option value="${esc(s)}" ${r.pmStatus === s ? 'selected' : ''}>${esc(s)}</option>`).join('');
   const modelOpts = modelOptionsHTML(state.workspace, r.model);
-
   const redmineLink = r.redmine
     ? `<a href="${redmineBase()}${encodeURIComponent(r.redmine)}" target="_blank" rel="noopener">레드마인 #${esc(r.redmine)} 원문 ↗</a>`
     : '<span style="color:var(--faint)">레드마인 번호 미입력</span>';
-
-  const reviewBadge = r.reviewed
-    ? '<span class="human-badge">✓ 검토 완료 (사람)</span>'
-    : '<span class="ai-badge">AI 분류</span>';
-
+  const reviewBadge = r.reviewed ? '<span class="human-badge">✓ 검토 완료 (사람)</span>' : '<span class="ai-badge">AI 분류</span>';
   const repeatInfo = (r._repeatKeys && r._repeatKeys.length)
-    ? `<div class="disclaimer" style="background:var(--alert-bg);border-color:#f5cccc;color:#a3261f">
-         ↻ 반복 이슈 감지 — 다른 VOC와 공통 키워드: <b>${r._repeatKeys.map(esc).join(', ')}</b></div>` : '';
+    ? `<div class="disclaimer" style="background:var(--alert-bg);border-color:#f5cccc;color:#a3261f">↻ 반복 이슈 감지 — 공통 키워드: <b>${r._repeatKeys.map(esc).join(', ')}</b></div>` : '';
+  return `
+    ${repeatInfo}
+    <div class="sec">
+      <div class="sec-h">${warnIcon()} AI 요약 <span class="ai-badge">AI</span></div>
+      <div class="box ai">${esc(r.aiSummary)}</div>
+      <div class="hint" style="color:var(--ai)">${esc(AI_NOTE)}</div>
+    </div>
+    <div class="sec">
+      <div class="sec-h">원문 ${redmineLink}</div>
+      <textarea id="m-body" class="box orig edit" style="min-height:96px">${esc(r.body)}</textarea>
+      <label class="field" style="margin:10px 0 0;max-width:280px"><span class="lab">모델</span><select id="m-model">${modelOpts}</select></label>
+    </div>
+    <div class="sec">
+      <div class="sec-h">분류 보정 ${reviewBadge}</div>
+      <div class="disclaimer" style="margin-bottom:12px">${warnIcon()}<div>아래는 AI 1차 분류입니다. 수정하면 <b>검토 완료(사람)</b>로 전환됩니다.</div></div>
+      <div class="edit-grid">
+        <div><div class="sec-h" style="margin-bottom:6px">유형 (복수 선택)</div><div class="multi" id="m-types">${typeChips}</div></div>
+        <div><div class="sec-h" style="margin-bottom:6px">영향 범위</div><div class="multi impact" id="m-impact">${impactChips}</div></div>
+        <div><div class="lab" style="margin-bottom:7px">우선순위 태깅</div><div class="pri-pick" id="m-pri">${priBtns}</div></div>
+      </div>
+    </div>
+    <div class="sec pm-block">
+      <div class="pm-title">개발 전달 &amp; 상태</div>
+      <label class="field"><span class="lab">개발 전달 메모</span><textarea id="m-memo" style="min-height:90px" placeholder="개발팀에 전달할 내용을 적으세요.">${esc(r.pmMemo)}</textarea></label>
+      <label class="field" style="margin:0 0 12px"><span class="lab">상태</span><select id="m-status" style="max-width:200px">${statusSel}</select></label>
+      <div class="lab" style="margin-bottom:7px">담당자 <span class="muted-s">복수 선택 가능</span></div>
+      <div class="assignee-pick" id="m-assignee">${team().map(m => `<button type="button" class="asg-chip ${(r.assignees || []).includes(m.id) ? 'on' : ''}" data-asg="${esc(m.id)}">${avatarHTML(m.id, 20)} ${esc(m.en)}</button>`).join('')}</div>
+    </div>
+    <div class="sec">
+      <div class="sec-h">댓글 <span class="muted-s">${r.comments.length}</span></div>
+      <div class="comments" id="m-comments">${r.comments.length ? r.comments.map(c => `<div class="cmt"><div class="cmt-h">${avatarHTML(c.author, 22)}<b>${(member(c.author) || {}).en || '알수없음'}</b><span class="cmt-at">${fmtDate(c.at)}</span></div><div class="cmt-body">${esc(c.text)}</div></div>`).join('') : '<div class="empty-mini">아직 댓글이 없습니다.</div>'}</div>
+      <div class="cmt-add"><textarea id="m-cmt-input" placeholder="댓글을 입력하세요..."></textarea><button class="btn sm" id="m-cmt-send">등록</button></div>
+    </div>`;
+}
 
+/* 전용 상세 페이지 (딥링크 가능) */
+function renderDetailPage() {
+  const r = DB.records.find(x => x.id === state.detailId);
+  if (!r) { state.view = 'board'; state.detailId = null; return renderBoard(); }
+  computeRepeats(wsRecords());
+  return `
+  <button class="backlink" id="d-back">← VOC 보드</button>
+  <div class="detail-head">
+    <span class="recv-no big">${esc(r.id)}</span>
+    <span class="status-tag ${r.pmStatus.replace(/\s/g, '')}">${esc(r.pmStatus)}</span>
+    ${r.reviewed ? '<span class="human-badge">✓ 검토 완료</span>' : ''}
+    <span class="muted-s">${fmtDate(r.createdAt)} · ${esc(r.model)} · ${esc(r.source)}</span>
+  </div>
+  <div class="detail-form">${detailFormHTML(r)}</div>
+  <div class="save-bar detail-savebar">
+    <button class="btn primary" id="m-save" disabled>저장</button>
+    <span class="saved-msg" id="saved-msg" style="display:none">✓ 저장됨</span>
+    <button class="btn danger" id="m-delete">삭제</button>
+  </div>`;
+}
+
+/* 보드용 가벼운 드로어 (빠른 보기 + 전체 보기 이동) */
+function renderDrawer() {
+  const r = DB.records.find(x => x.id === state.detailId);
+  if (!r) { state.detailId = null; return; }
+  const statusSel = ['검토중', '개발 요청', '완료'].map(s => `<option value="${esc(s)}" ${r.pmStatus === s ? 'selected' : ''}>${esc(s)}</option>`).join('');
   const html = `
   <div class="overlay" id="overlay">
-    <div class="drawer" id="drawer">
+    <div class="drawer light" id="drawer">
       <div class="drawer-head">
-        <div>
-          <div class="recv-no">${esc(r.id)}</div>
-          <div class="date">${fmtDate(r.createdAt)} · ${esc(r.model)} · ${esc(r.source)}</div>
-        </div>
+        <div><div class="recv-no">${esc(r.id)}</div><div class="date">${fmtDate(r.createdAt)} · ${esc(r.model)} · ${esc(r.source)}</div></div>
         <button class="x-btn" id="x-close">×</button>
       </div>
       <div class="drawer-body">
-        ${repeatInfo}
-
+        <div class="sec"><div class="sec-h">${warnIcon()} AI 요약 <span class="ai-badge">AI</span></div><div class="box ai">${esc(r.aiSummary)}</div></div>
+        <div class="sec"><div class="sec-h">원문</div><div class="box orig clamp">${esc(r.body)}</div></div>
         <div class="sec">
-          <div class="sec-h">${warnIcon()} AI 요약 <span class="ai-badge">AI</span></div>
-          <div class="box ai">${esc(r.aiSummary)}</div>
-          <div class="hint" style="color:var(--ai)">${esc(AI_NOTE)}</div>
-        </div>
-
-        <div class="sec">
-          <div class="sec-h">원문 ${redmineLink}</div>
-          <textarea id="m-body" class="box orig edit" style="min-height:96px">${esc(r.body)}</textarea>
-          <label class="field" style="margin:10px 0 0;max-width:280px">
-            <span class="lab">모델</span>
-            <select id="m-model">${modelOpts}</select>
-          </label>
-        </div>
-
-        <div class="sec">
-          <div class="sec-h">분류 보정 ${reviewBadge}</div>
-          <div class="disclaimer" style="margin-bottom:12px">${warnIcon()}<div>아래는 AI 1차 분류입니다. 수정하면 <b>검토 완료(사람)</b>로 전환됩니다.</div></div>
-          <div class="edit-grid">
-            <div>
-              <div class="sec-h" style="margin-bottom:6px">유형 (복수 선택)</div>
-              <div class="multi" id="m-types">${typeChips}</div>
-            </div>
-            <div>
-              <div class="sec-h" style="margin-bottom:6px">영향 범위</div>
-              <div class="multi impact" id="m-impact">${impactChips}</div>
-            </div>
-            <div class="row-2">
-              <label class="field" style="margin:0">
-                <span class="lab">감정 강도</span>
-                <select id="m-emotion">${emoSel}</select>
-              </label>
-              <div>
-                <div class="lab" style="margin-bottom:7px">우선순위 태깅</div>
-                <div class="pri-pick" id="m-pri">${priBtns}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="sec pm-block">
-          <div class="pm-title">개발 전달 &amp; 상태</div>
-          <label class="field">
-            <span class="lab">개발 전달 메모</span>
-            <textarea id="m-memo" style="min-height:90px" placeholder="개발팀에 전달할 내용을 적으세요.">${esc(r.pmMemo)}</textarea>
-          </label>
-          <label class="field" style="margin:0 0 12px">
-            <span class="lab">상태</span>
-            <select id="m-status" style="max-width:200px">${statusSel}</select>
-          </label>
-          <div class="lab" style="margin-bottom:7px">담당자 <span class="muted-s">복수 선택 가능</span></div>
-          <div class="assignee-pick" id="m-assignee">
-            ${team().map(m => `<button type="button" class="asg-chip ${(r.assignees || []).includes(m.id) ? 'on' : ''}" data-asg="${esc(m.id)}">${avatarHTML(m.id, 20)} ${esc(m.en)}</button>`).join('')}
-          </div>
-        </div>
-
-        <div class="sec">
-          <div class="sec-h">댓글 <span class="muted-s">${r.comments.length}</span></div>
-          <div class="comments" id="m-comments">
-            ${r.comments.length ? r.comments.map(c => `<div class="cmt">
-              <div class="cmt-h">${avatarHTML(c.author, 22)}<b>${(member(c.author) || {}).en || '알수없음'}</b><span class="cmt-at">${fmtDate(c.at)}</span></div>
-              <div class="cmt-body">${esc(c.text)}</div></div>`).join('') : '<div class="empty-mini">아직 댓글이 없습니다.</div>'}
-          </div>
-          <div class="cmt-add">
-            <textarea id="m-cmt-input" placeholder="댓글을 입력하세요..."></textarea>
-            <button class="btn sm" id="m-cmt-send">등록</button>
-          </div>
+          <label class="field" style="max-width:200px;margin:0 0 12px"><span class="lab">상태</span><select id="d-status">${statusSel}</select></label>
+          <div class="lab" style="margin-bottom:7px">담당자</div>
+          <div>${avatarStack(r.assignees, 26)}</div>
         </div>
       </div>
       <div class="save-bar">
-        <button class="btn primary" id="m-save" disabled>저장</button>
-        <button class="btn ghost" id="m-cancel">닫기</button>
-        <span class="saved-msg" id="saved-msg" style="display:none">✓ 저장됨</span>
-        <button class="btn danger" id="m-delete">삭제</button>
+        <button class="btn primary" id="d-full">전체 보기 ↗</button>
+        <button class="btn ghost" id="d-close">닫기</button>
       </div>
     </div>
   </div>`;
-
   const wrap = document.createElement('div');
   wrap.innerHTML = html;
   document.getElementById('overlay')?.remove();
@@ -1222,13 +1205,7 @@ function bindBoard() {
     c.onclick = () => { state.detailId = c.dataset.open; renderDrawer(); });
 }
 
-function bindDrawer(r) {
-  const close = () => { document.getElementById('overlay')?.remove(); state.detailId = null; render(); };
-  $('#overlay').onclick = e => { if (e.target.id === 'overlay') close(); };
-  $('#x-close').onclick = close;
-  $('#m-cancel').onclick = close;
-
-  // 임시 보정값 (저장 전까지 로컬)
+function bindEditControls(r) {
   let editTypes = effTypes(r).slice();
   let editImpact = effImpact(r);
   let editAssignees = (r.assignees || []).slice();
@@ -1240,7 +1217,7 @@ function bindDrawer(r) {
       const t = b.dataset.type;
       if (editTypes.includes(t)) editTypes = editTypes.filter(x => x !== t);
       else editTypes.push(t);
-      if (editTypes.length === 0) editTypes = [t]; // 최소 1개
+      if (editTypes.length === 0) editTypes = [t];
       b.classList.toggle('on', editTypes.includes(t));
       touched = true; markDirty();
     });
@@ -1250,7 +1227,6 @@ function bindDrawer(r) {
       document.querySelectorAll('#m-impact .opt-chip').forEach(x => x.classList.remove('on'));
       b.classList.add('on'); touched = true; markDirty();
     });
-  $('#m-emotion').onchange = () => { touched = true; markDirty(); };
   document.querySelectorAll('#m-pri button').forEach(b =>
     b.onclick = () => {
       const p = b.dataset.pri;
@@ -1259,7 +1235,6 @@ function bindDrawer(r) {
       if (r._pendingPri) b.className = 'on ' + r._pendingPri;
       markDirty();
     });
-  // 담당자 복수 선택
   document.querySelectorAll('#m-assignee .asg-chip').forEach(b =>
     b.onclick = () => {
       const id = b.dataset.asg;
@@ -1273,36 +1248,27 @@ function bindDrawer(r) {
   const _b = $('#m-body'); if (_b) _b.oninput = markDirty;
   const _m = $('#m-model'); if (_m) _m.onchange = markDirty;
 
-  // 댓글 등록 (즉시 저장)
   $('#m-cmt-send').onclick = () => {
     const ta = $('#m-cmt-input');
     const text = (ta.value || '').trim();
     if (!text) return;
     r.comments = r.comments || [];
     r.comments.push({ author: DB.me, text, at: Date.now() });
-    save();
-    document.getElementById('overlay')?.remove();
-    renderDrawer();
+    save(); render();
   };
 
   $('#m-save').onclick = () => {
-    const emo = $('#m-emotion').value;
-    // 분류 보정 → 검토 완료 전환
     if (touched) {
       r.types = editTypes.slice();
       r.impact = editImpact;
-      r.emotion = emo;
       if (!r.reviewed) r.reviewedAt = Date.now();
       r.reviewed = true;
     }
     if (r._pendingPri !== undefined) r.priority = r._pendingPri;
     delete r._pendingPri;
     r.pmMemo = $('#m-memo').value;
-    // 원문/모델 수정
     const bodyEl = $('#m-body'); if (bodyEl) r.body = bodyEl.value.trim();
     const modelEl = $('#m-model'); if (modelEl) r.model = modelEl.value;
-
-    // 상태 변경 → 이력 + 알림
     const newStatus = $('#m-status').value;
     if (newStatus !== r.pmStatus) {
       r.statusHistory = r.statusHistory || [];
@@ -1310,15 +1276,11 @@ function bindDrawer(r) {
       r.pmStatus = newStatus;
       pushNotif('status', `${r.id} 상태 변경 → ${newStatus}`, r.id);
     }
-    // 담당자(복수) 변경 → 나에게 배정 시 알림
     const added = editAssignees.filter(id => !(r.assignees || []).includes(id));
     r.assignees = editAssignees.slice();
-    r.assignee = editAssignees[0] || null; // 기존 코드 호환(대표 담당자)
+    r.assignee = editAssignees[0] || null;
     if (added.includes(DB.me)) pushNotif('assign', `${r.id}가 나에게 배정되었습니다`, r.id);
-    save();
-    // 기존 오버레이 제거 후 단일 렌더 (render 말미에서 detailId가 있으면 드로어 1회 재생성)
-    document.getElementById('overlay')?.remove();
-    render();
+    save(); render();
     const msg = $('#saved-msg');
     if (msg) { msg.style.display = 'inline'; setTimeout(() => { const m = $('#saved-msg'); if (m) m.style.display = 'none'; }, 1400); }
   };
@@ -1327,8 +1289,38 @@ function bindDrawer(r) {
     if (!confirm(`${r.id} VOC를 삭제할까요? 되돌릴 수 없습니다.`)) return;
     DB.records = DB.records.filter(x => x.id !== r.id);
     save();
+    state.view = 'board'; state.detailId = null;
+    render();
+  };
+}
+
+function bindDetailPage(r) {
+  const back = $('#d-back');
+  if (back) back.onclick = () => { state.view = 'board'; state.detailId = null; render(); };
+  bindEditControls(r);
+}
+
+function bindDrawer(r) {
+  const close = () => { document.getElementById('overlay')?.remove(); state.detailId = null; render(); };
+  $('#overlay').onclick = e => { if (e.target.id === 'overlay') close(); };
+  $('#x-close').onclick = close;
+  $('#d-close').onclick = close;
+  $('#d-full').onclick = () => {
     document.getElementById('overlay')?.remove();
-    state.detailId = null;
+    state.view = 'detail';
+    render();
+  };
+  const ds = $('#d-status');
+  if (ds) ds.onchange = () => {
+    const ns = ds.value;
+    if (ns !== r.pmStatus) {
+      r.statusHistory = r.statusHistory || [];
+      r.statusHistory.push({ status: ns, at: Date.now() });
+      r.pmStatus = ns;
+      pushNotif('status', `${r.id} 상태 변경 → ${ns}`, r.id);
+      save();
+    }
+    document.getElementById('overlay')?.remove();
     render();
   };
 }
