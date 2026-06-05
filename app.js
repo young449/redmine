@@ -39,7 +39,14 @@ const MODEL_GROUPS_BY_WS = {
   ]
 };
 const modelGroups = ws => MODEL_GROUPS_BY_WS[ws] || [];
-const modelsFor   = ws => ['공통 / 브랜드 이슈', ...modelGroups(ws).flatMap(g => g.models), '기타'];
+const modelsFor   = ws => ['공통', '브랜드 이슈', ...modelGroups(ws).flatMap(g => g.models), '기타'];
+function modelOptionsHTML(ws, selected) {
+  const opt = m => `<option ${m === selected ? 'selected' : ''}>${esc(m)}</option>`;
+  return [opt('공통'), opt('브랜드 이슈')]
+    .concat(modelGroups(ws).map(g => `<optgroup label="${esc(g.label)}">${g.models.map(opt).join('')}</optgroup>`))
+    .concat([opt('기타')])
+    .join('');
+}
 
 /* ---------- 팀 / 담당자 (담당자 1슬롯) ---------- */
 const DEFAULT_TEAM = [
@@ -174,7 +181,7 @@ const SAMPLES = {
   AK: [
     { body: 'SP3000에서 EQ 설정 화면을 찾기가 너무 어려워요. 메뉴가 너무 깊게 들어가 있어서 매번 헤맵니다. 자주 쓰는 기능은 첫 화면에 두면 좋겠어요.', model: 'SP3000', source: '국내', redmine: '10421', st: '검토중', as: 'ellie' },
     { body: '블루투스로 이어폰 연결하면 자꾸 한쪽만 소리가 안 나옵니다. 재연결해도 똑같고 펌웨어 업데이트 후로 더 심해졌어요. 환불하고 싶을 정도로 짜증납니다.', model: 'PD10', source: '국내', redmine: '10455', st: '개발 요청', as: 'ben', rv: true },
-    { body: '해외에서 쓰는데 날짜 표기가 한국식으로만 나와서 불편합니다. 현지 언어와 시간대 설정을 지원해주세요.', model: '공통 / 브랜드 이슈', source: '해외', redmine: '', st: '완료', as: 'etna', rv: true },
+    { body: '해외에서 쓰는데 날짜 표기가 한국식으로만 나와서 불편합니다. 현지 언어와 시간대 설정을 지원해주세요.', model: '공통', source: '해외', redmine: '', st: '완료', as: 'etna', rv: true },
     { body: 'The price is too high compared to competitors. 가격 대비 기능이 아쉽고 스트리밍 구독료까지 따로 내야 해서 가성비가 별로입니다.', model: 'SP4000', source: '해외', redmine: '10470', st: '검토중' },
     { body: '재생 중 배터리가 너무 빨리 닳고 충전 단자 접촉이 안 좋은지 충전이 안 될 때가 있어요. 발열도 좀 있는 것 같습니다.', model: 'KANN MAX', source: '국내', redmine: '10488', st: '개발 요청', as: 'luke' },
     { body: '재생 목록을 넘기다 보면 가끔 멈추고 앱이 튕깁니다. 업데이트 후 오류가 더 자주 발생해요.', model: 'SR35', source: '국내', redmine: '10492', st: '완료', as: 'ben', rv: true },
@@ -221,6 +228,7 @@ function ensureData() {
     if (!('assignee' in r)) { r.assignee = null; changed = true; }
     if (!Array.isArray(r.assignees)) { r.assignees = r.assignee ? [r.assignee] : []; changed = true; }
     if (!Array.isArray(r.comments)) { r.comments = []; changed = true; }
+    if (r.model === '공통 / 브랜드 이슈') { r.model = '공통'; changed = true; }
     if (!('reviewedAt' in r)) { r.reviewedAt = r.reviewed ? r.createdAt : null; changed = true; }
     if (!Array.isArray(r.statusHistory)) {
       r.statusHistory = [{ status: '검토중', at: r.createdAt }];
@@ -250,7 +258,7 @@ function makeRecord(brand, body, model, source, redmine, ts, seq, opts) {
   return {
     id: 'V' + String(seq).padStart(4, '0'),
     seq, brand: brand || 'AK', createdAt,
-    body, model: model || '공통 / 브랜드 이슈', source: source || '국내',
+    body, model: model || '공통', source: source || '국내',
     redmine: redmine || '',
     aiSummary: heuristicSummary(body),
     aiTypes: ai.types, aiImpact: ai.impact, aiEmotion: ai.emotion,
@@ -395,11 +403,7 @@ function updateBell() {
 /* ===== CS 입력 ===== */
 function renderCS() {
   const d = loadDraft();
-  const opt = m => `<option value="${esc(m)}" ${d.model === m ? 'selected' : ''}>${esc(m)}</option>`;
-  const modelOpts = [opt('공통 / 브랜드 이슈')]
-    .concat(modelGroups(state.workspace).map(g => `<optgroup label="${esc(g.label)}">${g.models.map(opt).join('')}</optgroup>`))
-    .concat(opt('기타'))
-    .join('');
+  const modelOpts = modelOptionsHTML(state.workspace, d.model);
   return `
   <div class="page-head">
     <h1>VOC 입력</h1>
@@ -417,7 +421,7 @@ function renderCS() {
         <label class="field">
           <span class="lab">모델명 <span class="opt">선택</span></span>
           <select id="f-model">${modelOpts}</select>
-          <div class="hint">특정 모델 문의가 아니면 “공통 / 브랜드 이슈”를 선택하세요.</div>
+          <div class="hint">특정 모델 문의가 아니면 “공통”을 선택하세요.</div>
         </label>
         <label class="field">
           <span class="lab">고객 출처</span>
@@ -840,7 +844,7 @@ function renderSettings() {
         <div class="role-dd" id="nm-role-dd" data-role="UX">
           <button type="button" class="role-dd-btn" id="nm-role-btn"><span class="role-chip UX">UX</span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
           <div class="role-dd-menu" id="nm-role-menu" hidden>
-            ${['UX', 'PM', 'Dev', 'CS'].map(rr => `<button type="button" data-r="${rr}"><span class="role-chip ${rr}">${rr}</span></button>`).join('')}
+            ${['UX', 'UI', 'PM', 'Dev', 'CS'].map(rr => `<button type="button" data-r="${rr}"><span class="role-chip ${rr}">${rr}</span></button>`).join('')}
           </div>
         </div>
         <input type="text" id="nm-en" placeholder="영문 (Hong)">
@@ -926,9 +930,7 @@ function renderDrawer() {
     `<option value="${esc(s)}" ${r.pmStatus === s ? 'selected' : ''}>${esc(s)}</option>`).join('');
   const assigneeSel = `<option value="">미배정</option>` + team().map(m =>
     `<option value="${esc(m.id)}" ${r.assignee === m.id ? 'selected' : ''}>${esc(m.en)}${m.ko ? ' ' + esc(m.ko) : ''} · ${esc(m.role)}</option>`).join('');
-  const _models = modelsFor(state.workspace);
-  const modelOpts = (_models.includes(r.model) ? _models : [r.model, ..._models])
-    .map(m => `<option ${m === r.model ? 'selected' : ''}>${esc(m)}</option>`).join('');
+  const modelOpts = modelOptionsHTML(state.workspace, r.model);
 
   const redmineLink = r.redmine
     ? `<a href="${redmineBase()}${encodeURIComponent(r.redmine)}" target="_blank" rel="noopener">레드마인 #${esc(r.redmine)} 원문 ↗</a>`
@@ -996,7 +998,7 @@ function renderDrawer() {
         </div>
 
         <div class="sec pm-block">
-          <div class="pm-title"><span class="tag">PM</span> 개발 전달 &amp; 상태</div>
+          <div class="pm-title">개발 전달 &amp; 상태</div>
           <label class="field">
             <span class="lab">개발 전달 메모</span>
             <textarea id="m-memo" style="min-height:90px" placeholder="개발팀에 전달할 내용을 적으세요.">${esc(r.pmMemo)}</textarea>
