@@ -573,11 +573,11 @@ function renderDashboard() {
   ${statsCards(recs)}
   <div class="dash-grid-main">
     <div class="card panel monthly-card">
-      <div class="panel-h">월별 VOC <span class="muted-s">접수량</span>${yearSel}</div>
+      <div class="panel-h">월별 VOC ${yearSel}</div>
       ${monthlyLine(recs, state.dashYear)}
     </div>
     <div class="card panel">
-      <div class="panel-h">유형 분포 <span class="ai-badge">AI 분류 포함</span></div>
+      <div class="panel-h">유형 분포 <span class="muted-s">AI 분류 포함</span></div>
       ${typeDonut(recs)}
     </div>
   </div>
@@ -599,7 +599,8 @@ function typeDonut(recs) {
     .filter(x => x.n > 0).sort((a, b) => b.n - a.n);
   const total = data.reduce((s, x) => s + x.n, 0);
   if (!total) return '<div class="empty-mini">데이터 없음</div>';
-  const GRAY = ['#1d2129', '#3c4250', '#5b6470', '#7e8593', '#9aa1ad', '#b8bdc7', '#cfd3d8', '#dedcd5'];
+  // 브랜드 파운데이션 팔레트 (레드/크림슨 제외)
+  const GRAY = ['#1F47CD', '#008FFF', '#00BEC9', '#00B17D', '#00AD2C', '#FFBB00', '#4389B9', '#94C2DA'];
   const r = 42, C = 2 * Math.PI * r;
   let off = 0;
   const segs = data.map((x, i) => {
@@ -822,7 +823,7 @@ function renderSettings() {
 
   <div class="set-stack">
     <div class="card panel">
-      <div class="panel-h">담당자 명단</div>
+      <div class="panel-h"><span class="ph-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>담당자 명단</div>
       <div class="roster-wrap"><div class="roster">${rows}</div></div>
       <div class="add-member">
         <select id="nm-role"><option>UX</option><option>PM</option><option>Dev</option><option>CS</option></select>
@@ -834,7 +835,7 @@ function renderSettings() {
     </div>
 
     <div class="card panel">
-      <div class="panel-h">레드마인 연동</div>
+      <div class="panel-h"><span class="ph-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>레드마인 연동</div>
       <div class="rm-row">
         <input type="text" id="rm-base" value="${esc(redmineBase())}" placeholder="https://redmine.example.com/issues/">
         <button class="btn primary" id="rm-save">저장</button>
@@ -843,7 +844,7 @@ function renderSettings() {
     </div>
 
     <div class="card panel">
-      <div class="panel-h">구글 계정 연동 <span class="badge-soon" style="background:var(--line-2);color:var(--muted)">준비중</span></div>
+      <div class="panel-h"><span class="ph-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>구글 계정 연동 <span class="badge-soon" style="background:var(--line-2);color:var(--muted)">준비중</span></div>
       <p style="margin:0 0 8px;color:var(--muted);font-size:13px">현재는 백엔드 없는 정적 사이트라 데이터가 브라우저에만 저장됩니다. 여러 명이 같은 VOC를 보고 서로에게 알림이 가려면 공용 백엔드(예: Firebase Auth + Firestore)가 필요합니다.</p>
       <ul style="margin:0;padding-left:18px;color:var(--ink-soft);font-size:13px;line-height:1.7">
         <li>구글 로그인(GIS): 신원·프로필 사진만 — 정적 사이트에서도 가능 (OAuth 클라이언트 ID 필요)</li>

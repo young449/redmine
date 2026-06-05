@@ -79,19 +79,20 @@ a:hover { text-decoration: underline; }
 
 /* 스페이스(워크스페이스) 셀렉터 */
 .ws-select {
-  display: flex; align-items: center; gap: 10px;
-  background: rgba(255,255,255,.05); border: 1px solid #2a2e37; border-radius: 12px;
-  padding: 9px 11px; cursor: pointer; transition: .15s; text-align: left; width: 100%;
+  display: flex; align-items: center; gap: 11px;
+  background: rgba(255,255,255,.05); border: 1px solid #2a2e37; border-radius: 13px;
+  padding: 11px 13px; cursor: pointer; transition: .15s; text-align: left; width: 100%;
 }
 .ws-select:hover { background: rgba(255,255,255,.09); border-color: #3a404b; }
+.ws-select:focus-visible { outline: 2px solid #2050d8; outline-offset: 1px; }
 .ws-ava {
-  width: 30px; height: 30px; flex: 0 0 30px; border-radius: 9px;
+  width: 34px; height: 34px; flex: 0 0 34px; border-radius: 10px;
   display: inline-flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 800; color: #fff; font-family: var(--mono); letter-spacing: -0.02em;
+  font-size: 12px; font-weight: 800; color: #fff; font-family: var(--mono); letter-spacing: -0.02em;
 }
 .ws-ava.AK { background: #d23b34; }
 .ws-ava.Activo { background: #2050d8; }
-.ws-name { flex: 1; font-size: 13.5px; font-weight: 800; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ws-name { flex: 1; font-size: 14.5px; font-weight: 800; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ws-caret { color: #8a909c; font-size: 11px; flex: 0 0 auto; }
 
 .ws-menu {
@@ -124,7 +125,8 @@ a:hover { text-decoration: underline; }
   padding: 9px 10px; border-radius: 9px; cursor: pointer;
   font-size: 13.5px; font-weight: 600; text-align: left; width: 100%; transition: .14s;
 }
-.sidebar .nav button .ic { width: 16px; text-align: center; opacity: .7; font-size: 13px; }
+.sidebar .nav button .ic { width: 18px; height: 18px; flex: 0 0 18px; display: inline-flex; align-items: center; justify-content: center; opacity: .82; }
+.sidebar .nav button .ic svg { width: 18px; height: 18px; }
 .sidebar .nav button:hover { background: rgba(255,255,255,.06); color: #fff; }
 .sidebar .nav button.active { background: rgba(255,255,255,.12); color: #fff; }
 .sidebar .nav button.active .ic { opacity: 1; }
@@ -400,7 +402,9 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
 
 .dash-grid { display: grid; grid-template-columns: 1fr 3fr; gap: 16px; margin-bottom: 16px; align-items: stretch; }
 .dash-grid > .panel { display: flex; flex-direction: column; }
-.panel-h .year-sel { margin-left: auto; width: auto; padding: 5px 9px; font-size: 12px; font-weight: 700; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); }
+.panel-h .year-sel { margin-left: auto; width: auto; padding: 4px 6px; font-size: 12.5px; font-weight: 700; border: 0; background: transparent; color: var(--ink-soft); cursor: pointer; }
+.panel-h .ph-ic { display: inline-flex; width: 16px; height: 16px; color: var(--faint); }
+.panel-h .ph-ic svg { width: 16px; height: 16px; }
 .panel { padding: 16px 18px; }
 .panel-h { font-size: 13px; font-weight: 800; color: var(--ink); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; letter-spacing: -0.01em; }
 
