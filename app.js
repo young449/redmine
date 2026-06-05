@@ -278,6 +278,7 @@ const state = {
   calTab: 'intake',           // 'intake' | 'gantt'
   dashYear: null,             // 월별 차트 연도 필터
   filters: { group: '', impact: '', source: '', model: '', assignee: '', q: '' },
+  sort: 'desc',               // 날짜 정렬: 'desc' 최신순 | 'asc' 오래된순
   detailId: null,
   submitted: null,
 };
@@ -360,7 +361,7 @@ function render() {
   if (state.view === 'detail') {
     const r = DB.records.find(x => x.id === state.detailId);
     if (r) bindDetailPage(r);
-  } else if (state.detailId) renderDrawer();
+  }
 }
 
 const wsCode = w => (w === 'Activo' ? 'Av' : 'AK');
@@ -488,7 +489,7 @@ function renderConfirm() {
 function visibleRecords() {
   const scoped = wsRecords();
   const f = state.filters;
-  let list = scoped.slice().sort((a, b) => b.createdAt - a.createdAt);
+  let list = scoped.slice().sort((a, b) => state.sort === 'asc' ? a.createdAt - b.createdAt : b.createdAt - a.createdAt);
   if (f.group)   list = list.filter(r => groupsOfRecord(r).includes(f.group));
   if (f.impact)  list = list.filter(r => effImpact(r) === f.impact);
   if (f.source)  list = list.filter(r => r.source === f.source);
@@ -573,12 +574,11 @@ function renderDashboard() {
   const recent = recs.slice().sort((a, b) => b.createdAt - a.createdAt).slice(0, 5);
   const recentBody = recent.length ? `<div class="recent-list">${recent.map(r => `
     <div class="recent-item" data-open="${r.id}">
-      ${avatarStack(r.assignees, 32)}
       <div class="ri-text">
         <div class="ri-main"><span class="recv-no">${esc(r.id)}</span><span class="ri-model">${esc(r.model)}</span></div>
         <div class="ri-sum">${esc(r.aiSummary)}</div>
       </div>
-      <span class="status-tag ${r.pmStatus.replace(/\s/g, '')}">${esc(r.pmStatus)}</span>
+      ${avatarStack(r.assignees, 32)}
     </div>`).join('')}</div>` : '<div class="empty-mini">아직 등록된 VOC가 없습니다.</div>';
 
   return `
@@ -692,6 +692,7 @@ function renderBoard() {
     <div class="grp">${selectFilter('impact', f.impact, IMPACTS, '영향범위')}</div>
     <div class="grp">${selectFilter('model', f.model, modelsFor(state.workspace), '모델')}</div>
     <div class="grp"><span class="lab">담당자</span><select data-filter="assignee"><option value="">전체</option>${team().map(m => `<option value="${esc(m.id)}" ${f.assignee === m.id ? 'selected' : ''}>${esc(m.en)}${m.ko ? ' ' + esc(m.ko) : ''}</option>`).join('')}</select></div>
+    <div class="grp"><span class="lab">정렬</span><select id="f-sort"><option value="desc" ${state.sort === 'desc' ? 'selected' : ''}>최신순</option><option value="asc" ${state.sort === 'asc' ? 'selected' : ''}>오래된순</option></select></div>
     <div class="spacer"></div>
     <div class="search">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -860,12 +861,13 @@ function renderSettings() {
 
     <div class="card panel">
       <div class="panel-h">분석 데이터 가져오기</div>
-      <p style="margin:0 0 10px;color:var(--muted);font-size:13px">ChatGPT·Claude로 분류·요약한 VOC 엑셀(.xlsx)을 불러옵니다. <b>요약·유형·영향범위·출처</b>를 그대로 AI 결과로 사용하고, 레드마인 번호가 같은 건은 건너뜁니다.<br>필요 열: No. / 날짜 / Model / VoC유형 / 영향 범위 / 고객 출처 / 요약 / 내용</p>
+      <p style="margin:0 0 10px;color:var(--muted);font-size:13px">ChatGPT·Claude로 분류·요약한 VOC 엑셀(.xlsx)을 불러옵니다. <b>요약·유형·영향범위·출처</b>를 그대로 AI 결과로 사용하고, 레드마인 번호가 같은 건은 건너뜁니다.<br>빈 양식을 내려받아 같은 형식으로 채운 뒤 올리세요. (유형은 “ / ”로 복수 입력)</p>
       <div class="rm-row">
         <input type="file" id="imp-file" accept=".xlsx,.xls">
+        <button class="btn" id="imp-tpl">양식</button>
         <button class="btn primary" id="imp-run">가져오기</button>
       </div>
-      <div class="hint" id="imp-msg">프롬프트 A(배치 분류) 결과 시트를 그대로 올리면 됩니다.</div>
+      <div class="hint" id="imp-msg">양식 컬럼: No. / 날짜 / Model / 제목 / 내용 / 고객 출처 / VoC유형 / 영향 범위 / 요약</div>
     </div>
 
     <div class="card panel">
@@ -904,7 +906,6 @@ function renderVOCCard(r) {
   <div class="card voc" data-open="${r.id}">
     <div class="col-id">
       <div class="recv-no">${esc(r.id)}</div>
-      <div class="date">${fmtDate(r.createdAt)}</div>
     </div>
     <div class="col-body">
       <div class="ai-summary">
@@ -998,40 +999,6 @@ function renderDetailPage() {
   </div>`;
 }
 
-/* 보드용 가벼운 드로어 (빠른 보기 + 전체 보기 이동) */
-function renderDrawer() {
-  const r = DB.records.find(x => x.id === state.detailId);
-  if (!r) { state.detailId = null; return; }
-  const statusSel = ['검토중', '개발 요청', '완료'].map(s => `<option value="${esc(s)}" ${r.pmStatus === s ? 'selected' : ''}>${esc(s)}</option>`).join('');
-  const html = `
-  <div class="overlay" id="overlay">
-    <div class="drawer light" id="drawer">
-      <div class="drawer-head">
-        <div><div class="recv-no">${esc(r.id)}</div><div class="date">${fmtDate(r.createdAt)} · ${esc(r.model)} · ${esc(r.source)}</div></div>
-        <button class="x-btn" id="x-close">×</button>
-      </div>
-      <div class="drawer-body">
-        <div class="sec"><div class="sec-h">${warnIcon()} AI 요약 <span class="ai-badge">AI</span></div><div class="box ai">${esc(r.aiSummary)}</div></div>
-        <div class="sec"><div class="sec-h">원문</div><div class="box orig clamp">${esc(r.body)}</div></div>
-        <div class="sec">
-          <label class="field" style="max-width:200px;margin:0 0 12px"><span class="lab">상태</span><select id="d-status">${statusSel}</select></label>
-          <div class="lab" style="margin-bottom:7px">담당자</div>
-          <div>${avatarStack(r.assignees, 26)}</div>
-        </div>
-      </div>
-      <div class="save-bar">
-        <button class="btn primary" id="d-full">전체 보기 ↗</button>
-        <button class="btn ghost" id="d-close">닫기</button>
-      </div>
-    </div>
-  </div>`;
-  const wrap = document.createElement('div');
-  wrap.innerHTML = html;
-  document.getElementById('overlay')?.remove();
-  document.body.appendChild(wrap.firstElementChild);
-  bindDrawer(r);
-}
-
 /* ---------- 이벤트 바인딩 ---------- */
 function bind() {
   // 뷰 이동 (사이드바 + 헤더 버튼 공통)
@@ -1052,7 +1019,7 @@ function bindCalendar() {
   document.querySelectorAll('[data-caltab]').forEach(b =>
     b.onclick = () => { state.calTab = b.dataset.caltab; render(); });
   document.querySelectorAll('[data-open]').forEach(c =>
-    c.onclick = () => { state.detailId = c.dataset.open; renderDrawer(); });
+    c.onclick = () => { state.detailId = c.dataset.open; state.view = "detail"; render(); });
 }
 
 function bindSettings() {
@@ -1102,6 +1069,9 @@ function bindSettings() {
     DB.redmineBase = $('#rm-base').value.trim() || REDMINE_BASE;
     save(); const n = $('#rm-note'); if (n) n.textContent = '저장됨';
   };
+
+  const impTpl = $('#imp-tpl');
+  if (impTpl) impTpl.onclick = () => downloadImportTemplate();
 
   const impRun = $('#imp-run');
   if (impRun) impRun.onclick = () => {
@@ -1205,6 +1175,24 @@ function importAnalyzedXlsx(file, cb) {
   reader.readAsArrayBuffer(file);
 }
 
+/* 가져오기용 빈 양식(.xlsx) 내려받기 */
+function downloadImportTemplate() {
+  const header = ['No.', '날짜', 'Model', '제목', '내용', '고객 출처', 'VoC유형', '영향 범위', '요약'];
+  const fname = 'VOC_가져오기_양식';
+  if (window.XLSX) {
+    const ws = XLSX.utils.aoa_to_sheet([header]);
+    ws['!cols'] = [{ wch: 8 }, { wch: 12 }, { wch: 14 }, { wch: 24 }, { wch: 50 }, { wch: 10 }, { wch: 28 }, { wch: 12 }, { wch: 44 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'VOC');
+    XLSX.writeFile(wb, fname + '.xlsx');
+  } else {
+    const blob = new Blob(['\uFEFF' + header.map(h => `"${h}"`).join(',')], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = fname + '.csv'; a.click();
+    URL.revokeObjectURL(a.href);
+  }
+}
+
 function bindCS() {
   const body = $('#f-body'), model = $('#f-model'), redmine = $('#f-redmine');
   const note = $('#draft-note');
@@ -1253,7 +1241,7 @@ function bindConfirm() {
 
 function bindDashboard() {
   document.querySelectorAll('[data-open]').forEach(c =>
-    c.onclick = () => { state.detailId = c.dataset.open; renderDrawer(); });
+    c.onclick = () => { state.detailId = c.dataset.open; state.view = "detail"; render(); });
   const ys = document.getElementById('dash-year');
   if (ys) ys.onchange = () => { state.dashYear = +ys.value; render(); };
 }
@@ -1261,13 +1249,15 @@ function bindDashboard() {
 function bindBoard() {
   document.querySelectorAll('[data-filter]').forEach(sel =>
     sel.onchange = () => { state.filters[sel.dataset.filter] = sel.value; render(); });
+  const sortSel = $('#f-sort');
+  if (sortSel) sortSel.onchange = () => { state.sort = sortSel.value === 'asc' ? 'asc' : 'desc'; render(); };
   const q = $('#f-q');
   if (q) {
     let t;
     q.oninput = () => { clearTimeout(t); t = setTimeout(() => { state.filters.q = q.value; const pos = q.selectionStart; render(); const nq = $('#f-q'); if (nq) { nq.focus(); nq.setSelectionRange(pos, pos); } }, 250); };
   }
   document.querySelectorAll('[data-open]').forEach(c =>
-    c.onclick = () => { state.detailId = c.dataset.open; renderDrawer(); });
+    c.onclick = () => { state.detailId = c.dataset.open; state.view = "detail"; render(); });
 }
 
 function bindEditControls(r) {
@@ -1365,31 +1355,6 @@ function bindDetailPage(r) {
   bindEditControls(r);
 }
 
-function bindDrawer(r) {
-  const close = () => { document.getElementById('overlay')?.remove(); state.detailId = null; render(); };
-  $('#overlay').onclick = e => { if (e.target.id === 'overlay') close(); };
-  $('#x-close').onclick = close;
-  $('#d-close').onclick = close;
-  $('#d-full').onclick = () => {
-    document.getElementById('overlay')?.remove();
-    state.view = 'detail';
-    render();
-  };
-  const ds = $('#d-status');
-  if (ds) ds.onchange = () => {
-    const ns = ds.value;
-    if (ns !== r.pmStatus) {
-      r.statusHistory = r.statusHistory || [];
-      r.statusHistory.push({ status: ns, at: Date.now() });
-      r.pmStatus = ns;
-      pushNotif('status', `${r.id} 상태 변경 → ${ns}`, r.id);
-      save();
-    }
-    document.getElementById('overlay')?.remove();
-    render();
-  };
-}
-
 /* ---------- 알림 종 드롭다운 (정적 요소, 1회 바인딩) ---------- */
 function bindTopbar() {
   const bell = document.getElementById('bell');
@@ -1460,7 +1425,7 @@ function toggleNotifPanel() {
       save(); updateBell(); panel.remove();
       if (vid) {
         const rec = DB.records.find(r => r.id === vid);
-        if (rec) { state.workspace = rec.brand || state.workspace; state.view = 'board'; state.detailId = vid; render(); }
+        if (rec) { state.workspace = rec.brand || state.workspace; state.view = 'detail'; state.detailId = vid; render(); }
       }
     };
   });
