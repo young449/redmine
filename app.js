@@ -491,8 +491,8 @@ function statsCards(recs) {
   return `
   <div class="dash-stats">
     <div class="card stat"><div class="l">전체 VOC</div><div class="n">${total}</div>${delta(d.total)}</div>
-    <div class="card stat"><div class="l">사람 검토 완료</div><div class="n">${reviewed}</div>${delta(d.reviewed)}</div>
-    <div class="card stat"><div class="l">완료된 VOC</div><div class="n">${done}</div>${delta(d.done)}</div>
+    <div class="card stat"><div class="l">분류 검토 완료</div><div class="n">${reviewed}</div>${delta(d.reviewed)}</div>
+    <div class="card stat"><div class="l">처리 완료</div><div class="n">${done}</div>${delta(d.done)}</div>
     <div class="card stat"><div class="l">개발 요청 VOC</div><div class="n">${devReq}</div>${delta(d.dev)}</div>
   </div>`;
 }
@@ -500,7 +500,6 @@ function statsCards(recs) {
 /* ===== 대시보드 (읽기 전용 파악용) ===== */
 function renderDashboard() {
   const recs = wsRecords();
-  computeRepeats(recs);
 
   const statuses = ['검토중', '개발 요청', '완료'];
   const statusTotal = Math.max(1, recs.length);
@@ -520,9 +519,6 @@ function renderDashboard() {
     `<div class="trow"><span class="tname">${esc(t)}</span>
       <div class="track"><div class="fill brand" style="width:${Math.round((n / maxType) * 100)}%"></div></div>
       <b>${n}</b></div>`).join('') : '<div class="empty-mini">데이터 없음</div>';
-
-  const repeats = recs.filter(r => r._repeatKeys && r._repeatKeys.length).length;
-  const strong = recs.filter(r => effEmotion(r) === '강한 불만').length;
 
   const recent = recs.slice().sort((a, b) => b.createdAt - a.createdAt).slice(0, 5);
   const recentRows = recent.length ? recent.map(r => `
@@ -550,10 +546,6 @@ function renderDashboard() {
     </div>
   </div>
   ${statsCards(recs)}
-  <div class="alert-cards">
-    <div class="card mini ${repeats ? 'warn' : ''}"><div class="mini-n">${repeats}</div><div class="mini-l">반복 이슈 감지</div></div>
-    <div class="card mini ${strong ? 'alert' : ''}"><div class="mini-n">${strong}</div><div class="mini-l">강한 불만</div></div>
-  </div>
   <div class="dash-grid">
     <div class="card panel">
       <div class="panel-h">상태 분포</div>
@@ -997,7 +989,7 @@ function exportXlsx() {
     WORKSPACE_LABEL[r.brand] || r.brand || 'AK',
     r.model, r.source, r.redmine || '',
     effTypes(r).join(', '), effImpact(r), effEmotion(r),
-    r.reviewed ? '사람 검토 완료' : 'AI 분류',
+    r.reviewed ? '분류 검토 완료' : 'AI 분류',
     r.priority || '', r.pmStatus, r.pmMemo || '',
     (r.aiTypes || []).join(', '), r.aiImpact, r.aiEmotion,
     (r._repeatKeys || []).join(', '), r.body
