@@ -385,6 +385,7 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .pri-pick button.on.High { background: var(--alert-bg); border-color: #f5cccc; color: var(--alert); }
 .pri-pick button.on.Mid  { background: var(--ai-bg); border-color: var(--ai-line); color: var(--ai); }
 .pri-pick button.on.Low  { background: #eef1f6; border-color: #dde3ec; color: #5a6678; }
+.pri-pick#m-impact button.on { background: #41506b; border-color: #41506b; color: #fff; }
 
 .pm-block { border-top: 1px dashed var(--line); padding-top: 18px; }
 .pm-block .pm-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 800; margin-bottom: 12px; }
@@ -637,7 +638,7 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .detail-2col .dcol { display: flex; flex-direction: column; gap: 20px; }
 .detail-2col .dcol .sec.grow { flex: 1 1 auto; display: flex; flex-direction: column; }
 .detail-2col .dcol .sec.grow .grow-fill { flex: 1 1 auto; }
-.detail-sep { border: 0; border-top: 1px solid var(--line); margin: 10px 0; }
+.detail-sep { border: 0; border-top: 1px solid var(--line); margin: 28px 0; }
 .detail-savebar { display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin-top: 16px; padding: 0; border: 0; position: static; background: transparent; backdrop-filter: none; }
 .detail-savebar .saved-msg { margin-right: auto; }
 .detail-savebar #m-delete { margin-left: 0; }

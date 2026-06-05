@@ -374,7 +374,7 @@ function updateWS() {
   if (!brand) return;
   if (state.view === 'detail') {
     const r = DB.records.find(x => x.id === state.detailId);
-    brand.innerHTML = `<button type="button" class="appbar-back" id="appbar-back">← VOC 보드</button>${r ? `<span class="appbar-voc">${esc(r.id)}</span>` : ''}`;
+    brand.innerHTML = `<button type="button" class="appbar-back" id="appbar-back">← <span class="appbar-voc">${r ? esc(r.id) : ''}</span></button>`;
     const back = document.getElementById('appbar-back');
     if (back) back.onclick = () => { state.view = 'board'; state.detailId = null; render(); };
   } else {
@@ -905,8 +905,6 @@ function renderVOCCard(r) {
     <div class="col-id">
       <div class="recv-no">${esc(r.id)}</div>
       <div class="date">${fmtDate(r.createdAt)}</div>
-      <div class="model">${esc(r.model)}</div>
-      <div class="src">${esc(r.source)} · ${esc(effImpact(r))}</div>
     </div>
     <div class="col-body">
       <div class="ai-summary">
@@ -929,7 +927,7 @@ function renderVOCCard(r) {
 function detailSections(r) {
   const types = effTypes(r);
   const typeChips = TYPES.map(t => `<button class="opt-chip ${types.includes(t) ? 'on' : ''}" data-type="${esc(t)}">${esc(t)}</button>`).join('');
-  const impactChips = IMPACTS.map(i => `<button class="opt-chip ${effImpact(r) === i ? 'on' : ''}" data-impact="${esc(i)}">${esc(i)}</button>`).join('');
+  const impactChips = IMPACTS.map(i => `<button class="${effImpact(r) === i ? 'on' : ''}" data-impact="${esc(i)}">${esc(i)}</button>`).join('');
   const priBtns = ['High', 'Mid', 'Low'].map(p => `<button class="${r.priority === p ? 'on ' + p : ''}" data-pri="${p}">${p}</button>`).join('');
   const statusSel = ['검토중', '개발 요청', '완료'].map(s => `<option value="${esc(s)}" ${r.pmStatus === s ? 'selected' : ''}>${esc(s)}</option>`).join('');
   const modelOpts = modelOptionsHTML(state.workspace, r.model);
@@ -956,8 +954,8 @@ function detailSections(r) {
       <div class="disclaimer" style="margin-bottom:12px">${warnIcon()}<div>아래는 AI 1차 분류입니다. 수정하면 <b>검토 완료(사람)</b>로 전환됩니다.</div></div>
       <div class="edit-grid">
         <div><div class="sec-h" style="margin-bottom:6px">유형 (복수 선택)</div><div class="multi" id="m-types">${typeChips}</div></div>
-        <div><div class="sec-h" style="margin-bottom:6px">영향 범위</div><div class="multi impact" id="m-impact">${impactChips}</div></div>
-        <div><div class="lab" style="margin-bottom:7px">우선순위 태깅</div><div class="pri-pick" id="m-pri">${priBtns}</div></div>
+        <div><div class="sec-h" style="margin-bottom:6px">영향 범위</div><div class="pri-pick" id="m-impact">${impactChips}</div></div>
+        <div><div class="sec-h" style="margin-bottom:6px">우선순위 태깅</div><div class="pri-pick" id="m-pri">${priBtns}</div></div>
       </div>
     </div>`,
     pm: `
@@ -983,13 +981,6 @@ function renderDetailPage() {
   if (!r) { state.view = 'board'; state.detailId = null; return renderBoard(); }
   const s = detailSections(r);
   return `
-  <button class="backlink" id="d-back">← VOC 보드</button>
-  <div class="detail-head">
-    <span class="recv-no big">${esc(r.id)}</span>
-    <span class="status-tag ${r.pmStatus.replace(/\s/g, '')}">${esc(r.pmStatus)}</span>
-    ${r.reviewed ? '<span class="human-badge">✓ 검토 완료</span>' : ''}
-    <span class="muted-s">${fmtDate(r.createdAt)} · ${esc(r.model)} · ${esc(r.source)}</span>
-  </div>
   <div class="detail-form">
     <div class="detail-2col">
       <div class="dcol">${s.summary}${s.orig}</div>
@@ -1295,10 +1286,10 @@ function bindEditControls(r) {
       b.classList.toggle('on', editTypes.includes(t));
       touched = true; markDirty();
     });
-  document.querySelectorAll('#m-impact .opt-chip').forEach(b =>
+  document.querySelectorAll('#m-impact button').forEach(b =>
     b.onclick = () => {
       editImpact = b.dataset.impact;
-      document.querySelectorAll('#m-impact .opt-chip').forEach(x => x.classList.remove('on'));
+      document.querySelectorAll('#m-impact button').forEach(x => x.classList.remove('on'));
       b.classList.add('on'); touched = true; markDirty();
     });
   document.querySelectorAll('#m-pri button').forEach(b =>
