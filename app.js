@@ -19,11 +19,15 @@ const TYPES = [
 const IMPACTS = ['SW 전용', 'HW 전용', 'SW+HW 복합'];
 const EMOTIONS = ['정보 제공', '제안', '불만', '강한 불만'];
 const SOURCES = ['국내', '해외'];
-const MODELS = [
-  '공통 / 브랜드 이슈',
-  'Galaxy Watch', 'Galaxy Buds', 'Smart Tag',
-  'Soundbar', 'Air Purifier', 'Robot Cleaner', '기타'
+// Astell&Kern DAP 라인업 — 제품 페이지 기준 4개 시리즈
+// 참고: https://www.astellnkern.com/product/dap.php
+const MODEL_GROUPS = [
+  { label: 'A&ultima', models: ['SP4000T', 'SP4000', 'SP3000M', 'SP3000T', 'SP3000', 'SP2000T', 'SP2000', 'SP1000', 'SP1000M', 'SP1000M GOLD'] },
+  { label: 'PD series', models: ['PD20', 'PD10', 'PD10 & Cradle'] },
+  { label: 'Heritage', models: ['SR35', 'SR25 MKII', 'SE300', 'SE200', 'SE180'] },
+  { label: 'Classic', models: ['KANN ULTRA', 'KANN MAX', 'KANN ALPHA'] }
 ];
+const MODELS = ['공통 / 브랜드 이슈', ...MODEL_GROUPS.flatMap(g => g.models), '기타'];
 // 레드마인 티켓 원본 URL 패턴 (운영 시 실제 레드마인 주소로 교체)
 const REDMINE_BASE = 'https://redmine.example.com/issues/';
 
@@ -125,12 +129,12 @@ let DB = load() || seed();
 function seed() {
   const now = Date.now();
   const samples = [
-    { body: '워치 앱에서 운동 기록 화면을 찾기가 너무 어려워요. 메뉴가 너무 깊게 들어가 있어서 매번 헤맵니다. 자주 쓰는 기능은 첫 화면에 두면 좋겠어요.', model: 'Galaxy Watch', source: '국내', redmine: '10421' },
-    { body: '버즈가 자꾸 한쪽만 소리가 안 나옵니다. 재연결해도 똑같고 펌웨어 업데이트 후로 더 심해졌어요. 환불하고 싶을 정도로 짜증납니다.', model: 'Galaxy Buds', source: '국내', redmine: '10455' },
+    { body: 'SP3000에서 EQ 설정 화면을 찾기가 너무 어려워요. 메뉴가 너무 깊게 들어가 있어서 매번 헤맵니다. 자주 쓰는 기능은 첫 화면에 두면 좋겠어요.', model: 'SP3000', source: '국내', redmine: '10421' },
+    { body: '블루투스로 이어폰 연결하면 자꾸 한쪽만 소리가 안 나옵니다. 재연결해도 똑같고 펌웨어 업데이트 후로 더 심해졌어요. 환불하고 싶을 정도로 짜증납니다.', model: 'PD10', source: '국내', redmine: '10455' },
     { body: '해외에서 쓰는데 날짜 표기가 한국식으로만 나와서 불편합니다. 현지 언어와 시간대 설정을 지원해주세요.', model: '공통 / 브랜드 이슈', source: '해외', redmine: '' },
-    { body: 'The price is too high compared to competitors. 가격 대비 기능이 아쉽고 구독료까지 내야 해서 가성비가 별로입니다.', model: 'Air Purifier', source: '해외', redmine: '10470' },
-    { body: '로봇청소기 배터리가 너무 빨리 닳고 충전 단자 접촉이 안 좋은지 충전이 안 될 때가 있어요. 발열도 좀 있는 것 같습니다.', model: 'Robot Cleaner', source: '국내', redmine: '10488' },
-    { body: '워치 운동 기록이 가끔 멈추고 앱이 튕깁니다. 업데이트 후 오류가 더 자주 발생해요.', model: 'Galaxy Watch', source: '국내', redmine: '10492' },
+    { body: 'The price is too high compared to competitors. 가격 대비 기능이 아쉽고 스트리밍 구독료까지 따로 내야 해서 가성비가 별로입니다.', model: 'SP4000', source: '해외', redmine: '10470' },
+    { body: '재생 중 배터리가 너무 빨리 닳고 충전 단자 접촉이 안 좋은지 충전이 안 될 때가 있어요. 발열도 좀 있는 것 같습니다.', model: 'KANN MAX', source: '국내', redmine: '10488' },
+    { body: '재생 목록을 넘기다 보면 가끔 멈추고 앱이 튕깁니다. 업데이트 후 오류가 더 자주 발생해요.', model: 'SR35', source: '국내', redmine: '10492' },
   ];
   const records = samples.map((s, i) => makeRecord(s.body, s.model, s.source, s.redmine, now - (samples.length - i) * 8.6e7, i + 1));
   return { seq: samples.length, records };
@@ -223,7 +227,11 @@ function setNav() {
 /* ===== CS 입력 ===== */
 function renderCS() {
   const d = loadDraft();
-  const modelOpts = MODELS.map(m => `<option value="${esc(m)}" ${d.model === m ? 'selected' : ''}>${esc(m)}</option>`).join('');
+  const opt = m => `<option value="${esc(m)}" ${d.model === m ? 'selected' : ''}>${esc(m)}</option>`;
+  const modelOpts = [opt('공통 / 브랜드 이슈')]
+    .concat(MODEL_GROUPS.map(g => `<optgroup label="${esc(g.label)}">${g.models.map(opt).join('')}</optgroup>`))
+    .concat(opt('기타'))
+    .join('');
   return `
   <div class="page-head">
     <h1>VOC 입력</h1>
@@ -327,15 +335,15 @@ function renderDashboard() {
   const f = state.filters;
   const total = DB.records.length;
   const reviewed = DB.records.filter(r => r.reviewed).length;
-  const repeats = DB.records.filter(r => r._repeatKeys && r._repeatKeys.length).length;
-  const strong = DB.records.filter(r => effEmotion(r) === '강한 불만').length;
+  const done = DB.records.filter(r => r.pmStatus === '완료').length;
+  const devReq = DB.records.filter(r => r.pmStatus === '개발 요청').length;
 
   const stats = `
   <div class="dash-stats">
     <div class="card stat"><div class="n">${total}</div><div class="l">전체 VOC</div></div>
     <div class="card stat acc"><div class="n">${reviewed}</div><div class="l">사람 검토 완료</div></div>
-    <div class="card stat warn"><div class="n">${repeats}</div><div class="l">반복 이슈 감지</div></div>
-    <div class="card stat warn"><div class="n">${strong}</div><div class="l">강한 불만</div></div>
+    <div class="card stat done"><div class="n">${done}</div><div class="l">완료된 VOC</div></div>
+    <div class="card stat dev"><div class="n">${devReq}</div><div class="l">개발 요청 VOC</div></div>
   </div>`;
 
   const toolbar = `
