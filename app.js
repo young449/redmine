@@ -912,8 +912,8 @@ function renderVOCCard(r) {
 }
 
 /* ===== 상세 드로어 ===== */
-/* 상세 폼 — 전용 페이지에서 사용 (동일 ID 재사용) */
-function detailFormHTML(r) {
+/* 상세 폼 섹션들 — 전용 페이지에서 2단 배치 (동일 ID 재사용) */
+function detailSections(r) {
   const types = effTypes(r);
   const typeChips = TYPES.map(t => `<button class="opt-chip ${types.includes(t) ? 'on' : ''}" data-type="${esc(t)}">${esc(t)}</button>`).join('');
   const impactChips = IMPACTS.map(i => `<button class="opt-chip ${effImpact(r) === i ? 'on' : ''}" data-impact="${esc(i)}">${esc(i)}</button>`).join('');
@@ -924,17 +924,20 @@ function detailFormHTML(r) {
     ? `<a href="${redmineBase()}${encodeURIComponent(r.redmine)}" target="_blank" rel="noopener">레드마인 #${esc(r.redmine)} 원문 ↗</a>`
     : '<span style="color:var(--faint)">레드마인 번호 미입력</span>';
   const reviewBadge = r.reviewed ? '<span class="human-badge">✓ 검토 완료 (사람)</span>' : '<span class="ai-badge">AI 분류</span>';
-  return `
+  return {
+    summary: `
     <div class="sec">
       <div class="sec-h">${warnIcon()} AI 요약 <span class="ai-badge">AI</span></div>
       <div class="box ai">${esc(r.aiSummary)}</div>
       <div class="hint" style="color:var(--ai)">${esc(AI_NOTE)}</div>
-    </div>
+    </div>`,
+    orig: `
     <div class="sec">
       <div class="sec-h">원문 ${redmineLink}</div>
-      <textarea id="m-body" class="box orig edit" style="min-height:96px">${esc(r.body)}</textarea>
+      <textarea id="m-body" class="box orig edit" style="min-height:160px">${esc(r.body)}</textarea>
       <label class="field" style="margin:10px 0 0;max-width:280px"><span class="lab">모델</span><select id="m-model">${modelOpts}</select></label>
-    </div>
+    </div>`,
+    classify: `
     <div class="sec">
       <div class="sec-h">분류 보정 ${reviewBadge}</div>
       <div class="disclaimer" style="margin-bottom:12px">${warnIcon()}<div>아래는 AI 1차 분류입니다. 수정하면 <b>검토 완료(사람)</b>로 전환됩니다.</div></div>
@@ -943,25 +946,29 @@ function detailFormHTML(r) {
         <div><div class="sec-h" style="margin-bottom:6px">영향 범위</div><div class="multi impact" id="m-impact">${impactChips}</div></div>
         <div><div class="lab" style="margin-bottom:7px">우선순위 태깅</div><div class="pri-pick" id="m-pri">${priBtns}</div></div>
       </div>
-    </div>
+    </div>`,
+    pm: `
     <div class="sec pm-block">
       <div class="pm-title">개발 전달 &amp; 상태</div>
       <label class="field"><span class="lab">개발 전달 메모</span><textarea id="m-memo" style="min-height:90px" placeholder="개발팀에 전달할 내용을 적으세요.">${esc(r.pmMemo)}</textarea></label>
       <label class="field" style="margin:0 0 12px"><span class="lab">상태</span><select id="m-status" style="max-width:200px">${statusSel}</select></label>
       <div class="lab" style="margin-bottom:7px">담당자 <span class="muted-s">복수 선택 가능</span></div>
       <div class="assignee-pick" id="m-assignee">${team().map(m => `<button type="button" class="asg-chip ${(r.assignees || []).includes(m.id) ? 'on' : ''}" data-asg="${esc(m.id)}">${avatarHTML(m.id, 20)} ${esc(m.en)}</button>`).join('')}</div>
-    </div>
+    </div>`,
+    comments: `
     <div class="sec">
       <div class="sec-h">댓글 <span class="muted-s">${r.comments.length}</span></div>
       <div class="comments" id="m-comments">${r.comments.length ? r.comments.map(c => `<div class="cmt"><div class="cmt-h">${avatarHTML(c.author, 22)}<b>${(member(c.author) || {}).en || '알수없음'}</b><span class="cmt-at">${fmtDate(c.at)}</span></div><div class="cmt-body">${esc(c.text)}</div></div>`).join('') : '<div class="empty-mini">아직 댓글이 없습니다.</div>'}</div>
       <div class="cmt-add"><textarea id="m-cmt-input" placeholder="댓글을 입력하세요..."></textarea><button class="btn sm" id="m-cmt-send">등록</button></div>
-    </div>`;
+    </div>`
+  };
 }
 
-/* 전용 상세 페이지 (딥링크 가능) */
+/* 전용 상세 페이지 (딥링크 가능) — 2단 + 댓글 1단 */
 function renderDetailPage() {
   const r = DB.records.find(x => x.id === state.detailId);
   if (!r) { state.view = 'board'; state.detailId = null; return renderBoard(); }
+  const s = detailSections(r);
   return `
   <button class="backlink" id="d-back">← VOC 보드</button>
   <div class="detail-head">
@@ -970,7 +977,13 @@ function renderDetailPage() {
     ${r.reviewed ? '<span class="human-badge">✓ 검토 완료</span>' : ''}
     <span class="muted-s">${fmtDate(r.createdAt)} · ${esc(r.model)} · ${esc(r.source)}</span>
   </div>
-  <div class="detail-form">${detailFormHTML(r)}</div>
+  <div class="detail-form">
+    <div class="detail-2col">
+      <div class="dcol">${s.summary}${s.orig}</div>
+      <div class="dcol">${s.classify}${s.pm}</div>
+    </div>
+    ${s.comments}
+  </div>
   <div class="save-bar detail-savebar">
     <button class="btn primary" id="m-save" disabled>저장</button>
     <span class="saved-msg" id="saved-msg" style="display:none">✓ 저장됨</span>
