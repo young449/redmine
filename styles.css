@@ -98,7 +98,7 @@ a:hover { text-decoration: underline; }
 .appbar-brand { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; }
 .appbar-back { border: 0; background: transparent; color: var(--muted); font-size: 13px; font-weight: 700; cursor: pointer; padding: 4px 0; }
 .appbar-back:hover { color: var(--ink); }
-.appbar-voc { font-family: var(--mono); font-size: 15px; font-weight: 800; color: var(--ink); }
+.appbar-voc { font-family: var(--mono); font-size: 22px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; }
 .notif-actions { display: flex; gap: 2px; }
 
 .ws-menu {
@@ -650,7 +650,6 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .detail-2col .dcol .sec.grow .grow-fill { flex: 1 1 auto; }
 .detail-sep { border: 0; border-top: 1px solid var(--line); margin: 28px 0; }
 .detail-savebar { display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin-top: 16px; padding: 0; border: 0; position: static; background: transparent; backdrop-filter: none; }
-.detail-savebar .saved-msg { margin-right: auto; }
 .detail-savebar #m-delete { margin-left: 0; }
 .model-row { display: flex; align-items: center; justify-content: flex-start; gap: 10px; margin: 0 0 12px; }
 .model-row .lab { margin: 0; font-size: 13px; font-weight: 700; color: var(--ink-soft); white-space: nowrap; }

@@ -377,9 +377,7 @@ function updateWS() {
   if (!brand) return;
   if (state.view === 'detail') {
     const r = DB.records.find(x => x.id === state.detailId);
-    brand.innerHTML = `<button type="button" class="appbar-back" id="appbar-back">← <span class="appbar-voc">${r ? esc(r.id) : ''}</span></button>`;
-    const back = document.getElementById('appbar-back');
-    if (back) back.onclick = () => { state.view = 'board'; state.detailId = null; render(); };
+    brand.innerHTML = `<span class="appbar-voc">${r ? esc(r.id) : ''}</span>`;
   } else {
     brand.innerHTML = `<img id="appbar-logo" class="appbar-logo" alt="대시보드로 이동" title="대시보드">`;
     const abLogo = document.getElementById('appbar-logo');
