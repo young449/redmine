@@ -43,7 +43,7 @@ const modelsFor   = ws => ['공통 / 브랜드 이슈', ...modelGroups(ws).flatM
 
 /* ---------- 팀 / 담당자 (담당자 1슬롯) ---------- */
 const DEFAULT_TEAM = [
-  { id: 'olivia', en: 'Olivia', ko: '김유나', role: 'UX' },
+  { id: 'ellie',  en: 'Ellie',  ko: '',     role: 'UX' },
   { id: 'marlon', en: 'Marlon', ko: '박준영', role: 'PM' },
   { id: 'ben',    en: 'Ben',    ko: '황동오', role: '개발' },
   { id: 'luke',   en: 'Luke',   ko: '윤태준', role: '개발' },
@@ -60,7 +60,7 @@ function avatarHTML(id, size) {
   const m = member(id);
   if (!m) return `<span class="avatar none" style="${style}" title="미배정">–</span>`;
   const c = AVATAR_COLORS[hashIdx(m.id, AVATAR_COLORS.length)];
-  return `<span class="avatar" style="${style};background:${c}" title="${esc(m.en + ' ' + m.ko)}">${esc(m.en[0])}</span>`;
+  return `<span class="avatar" style="${style};background:${c}" title="${esc((m.en + ' ' + (m.ko || '')).trim())}">${esc(m.en[0])}</span>`;
 }
 // 레드마인 티켓 원본 URL 패턴 (운영 시 실제 레드마인 주소로 교체)
 const REDMINE_BASE = 'https://redmine.example.com/issues/';
@@ -164,7 +164,7 @@ let DB;
 // 워크스페이스별 샘플 (데모/초기 데이터)  st: 상태, as: 담당자, rv: 검토완료
 const SAMPLES = {
   AK: [
-    { body: 'SP3000에서 EQ 설정 화면을 찾기가 너무 어려워요. 메뉴가 너무 깊게 들어가 있어서 매번 헤맵니다. 자주 쓰는 기능은 첫 화면에 두면 좋겠어요.', model: 'SP3000', source: '국내', redmine: '10421', st: '검토중', as: 'olivia' },
+    { body: 'SP3000에서 EQ 설정 화면을 찾기가 너무 어려워요. 메뉴가 너무 깊게 들어가 있어서 매번 헤맵니다. 자주 쓰는 기능은 첫 화면에 두면 좋겠어요.', model: 'SP3000', source: '국내', redmine: '10421', st: '검토중', as: 'ellie' },
     { body: '블루투스로 이어폰 연결하면 자꾸 한쪽만 소리가 안 나옵니다. 재연결해도 똑같고 펌웨어 업데이트 후로 더 심해졌어요. 환불하고 싶을 정도로 짜증납니다.', model: 'PD10', source: '국내', redmine: '10455', st: '개발 요청', as: 'ben', rv: true },
     { body: '해외에서 쓰는데 날짜 표기가 한국식으로만 나와서 불편합니다. 현지 언어와 시간대 설정을 지원해주세요.', model: '공통 / 브랜드 이슈', source: '해외', redmine: '', st: '완료', as: 'etna', rv: true },
     { body: 'The price is too high compared to competitors. 가격 대비 기능이 아쉽고 스트리밍 구독료까지 따로 내야 해서 가성비가 별로입니다.', model: 'SP4000', source: '해외', redmine: '10470', st: '검토중' },
@@ -172,7 +172,7 @@ const SAMPLES = {
     { body: '재생 목록을 넘기다 보면 가끔 멈추고 앱이 튕깁니다. 업데이트 후 오류가 더 자주 발생해요.', model: 'SR35', source: '국내', redmine: '10492', st: '완료', as: 'ben', rv: true },
   ],
   Activo: [
-    { body: 'P1 화면이 작아서 재생 목록 글씨가 잘 안 보입니다. 글씨 크기를 키우는 옵션이 있으면 좋겠어요.', model: 'P1', source: '국내', redmine: '10510', st: '검토중', as: 'olivia' },
+    { body: 'P1 화면이 작아서 재생 목록 글씨가 잘 안 보입니다. 글씨 크기를 키우는 옵션이 있으면 좋겠어요.', model: 'P1', source: '국내', redmine: '10510', st: '검토중', as: 'ellie' },
     { body: 'CT10에서 와이파이가 자꾸 끊기고 스트리밍 재생이 멈춥니다. 재연결해도 같은 증상이 반복돼요.', model: 'CT10', source: '해외', redmine: '10515', st: '개발 요청', as: 'luke', rv: true },
     { body: 'Q1 이어폰 한쪽 소리가 작게 나오고 케이블 마감이 좀 아쉽습니다. 디자인은 마음에 들어요.', model: 'Q1', source: '국내', redmine: '', st: '완료', rv: true },
   ]
@@ -187,14 +187,22 @@ function seed() {
     const ts = now - (order.length - seq) * 4.6e8; // 약 5.3일 간격으로 분산 (히트맵/델타용)
     return makeRecord(brand, s.body, s.model, s.source, s.redmine, ts, seq, { status: s.st, assignee: s.as, reviewed: s.rv });
   });
-  return { seq, records, team: DEFAULT_TEAM.slice(), me: 'olivia', notifs: [], redmineBase: REDMINE_BASE, _seededActivo: true };
+  return { seq, records, team: DEFAULT_TEAM.slice(), me: 'ellie', notifs: [], redmineBase: REDMINE_BASE, _seededActivo: true };
 }
 
 // 기존 저장 데이터 마이그레이션
 function ensureData() {
   let changed = false;
   if (!DB.team) { DB.team = DEFAULT_TEAM.slice(); changed = true; }
-  if (!DB.me) { DB.me = DB.team[0] ? DB.team[0].id : 'olivia'; changed = true; }
+  // 프로필 기본 사용자 Olivia → Ellie 로 변경 (기존 저장 데이터)
+  const ol = DB.team.find(m => m.id === 'olivia');
+  if (ol) {
+    ol.id = 'ellie'; ol.en = 'Ellie'; ol.ko = '';
+    DB.records.forEach(r => { if (r.assignee === 'olivia') r.assignee = 'ellie'; });
+    if (DB.me === 'olivia') DB.me = 'ellie';
+    changed = true;
+  }
+  if (!DB.me) { DB.me = DB.team[0] ? DB.team[0].id : 'ellie'; changed = true; }
   if (!DB.notifs) { DB.notifs = []; changed = true; }
   if (!DB.redmineBase) { DB.redmineBase = REDMINE_BASE; changed = true; }
   DB.records.forEach(r => {
@@ -256,7 +264,7 @@ const state = {
   workspace: 'AK',            // 'AK' | 'Activo'
   view: 'dashboard',          // 'dashboard' | 'board' | 'calendar' | 'settings' | 'cs'
   calTab: 'intake',           // 'intake' | 'gantt'
-  filters: { type: '', impact: '', source: '', emotion: '', model: '', q: '', repeat: false },
+  filters: { type: '', impact: '', source: '', emotion: '', model: '', assignee: '', q: '', repeat: false },
   detailId: null,
   submitted: null,
 };
@@ -286,6 +294,7 @@ function readURL() {
   state.filters.source  = h.get('source') || '';
   state.filters.emotion = h.get('emotion') || '';
   state.filters.model   = h.get('model') || '';
+  state.filters.assignee = h.get('assignee') || '';
   state.filters.q       = h.get('q') || '';
   state.filters.repeat  = h.get('repeat') === '1';
 }
@@ -300,6 +309,7 @@ function writeURL() {
   if (f.source) h.set('source', f.source);
   if (f.emotion) h.set('emotion', f.emotion);
   if (f.model) h.set('model', f.model);
+  if (f.assignee) h.set('assignee', f.assignee);
   if (f.q) h.set('q', f.q);
   if (f.repeat) h.set('repeat', '1');
   localStorage.setItem(WS_KEY, state.workspace);
@@ -448,6 +458,7 @@ function visibleRecords() {
   if (f.source)  list = list.filter(r => r.source === f.source);
   if (f.emotion) list = list.filter(r => effEmotion(r) === f.emotion);
   if (f.model)   list = list.filter(r => r.model === f.model);
+  if (f.assignee) list = list.filter(r => r.assignee === f.assignee);
   if (f.repeat)  list = list.filter(r => r._repeatKeys && r._repeatKeys.length);
   if (f.q) {
     const q = f.q.toLowerCase();
@@ -501,6 +512,7 @@ function statsCards(recs) {
 function renderDashboard() {
   const recs = wsRecords();
 
+  // 상태 분포
   const statuses = ['검토중', '개발 요청', '완료'];
   const statusTotal = Math.max(1, recs.length);
   const statusRows = statuses.map(s => {
@@ -512,6 +524,7 @@ function renderDashboard() {
       <b>${n}</b></div>`;
   }).join('');
 
+  // 유형 분포 (AI 분류 포함 = 사람 보정 없으면 AI값 사용)
   const typeCounts = TYPES.map(t => ({ t, n: recs.filter(r => effTypes(r).includes(t)).length }))
     .filter(x => x.n > 0).sort((a, b) => b.n - a.n);
   const maxType = Math.max(1, ...typeCounts.map(x => x.n));
@@ -520,19 +533,21 @@ function renderDashboard() {
       <div class="track"><div class="fill brand" style="width:${Math.round((n / maxType) * 100)}%"></div></div>
       <b>${n}</b></div>`).join('') : '<div class="empty-mini">데이터 없음</div>';
 
-  const recent = recs.slice().sort((a, b) => b.createdAt - a.createdAt).slice(0, 5);
-  const recentRows = recent.length ? recent.map(r => `
-    <div class="recent-item" data-open="${r.id}">
-      ${avatarHTML(r.assignee, 30)}
-      <div class="ri-text">
-        <div class="ri-main">
-          <span class="recv-no">${esc(r.id)}</span>
-          <span class="ri-model">${esc(r.model)}</span>
-          <span class="status-tag ${r.pmStatus.replace(/\s/g, '')}">${esc(r.pmStatus)}</span>
-        </div>
-        <div class="ri-sum">${esc(r.aiSummary)}</div>
-      </div>
-    </div>`).join('') : '<div class="empty-mini">아직 등록된 VOC가 없습니다.</div>';
+  // 자주 배정된 담당자
+  const aCount = {};
+  recs.forEach(r => { if (r.assignee) aCount[r.assignee] = (aCount[r.assignee] || 0) + 1; });
+  const ranked = Object.keys(aCount).map(id => ({ id, n: aCount[id] })).sort((a, b) => b.n - a.n).slice(0, 6);
+  const maxA = Math.max(1, ...ranked.map(x => x.n));
+  const unassigned = recs.filter(r => !r.assignee).length;
+  const assigneeRows = ranked.length ? ranked.map(({ id, n }) => {
+    const m = member(id);
+    return `<div class="arow" data-asg="${esc(id)}">
+      ${avatarHTML(id, 28)}
+      <span class="aname">${m ? esc(m.en) : '?'}${m && m.ko ? ' <span class="muted-s">' + esc(m.ko) + '</span>' : ''}</span>
+      <div class="track"><div class="fill brand" style="width:${Math.round((n / maxA) * 100)}%"></div></div>
+      <b>${n}</b></div>`;
+  }).join('') + (unassigned ? `<div class="arow muted"><span class="avatar none" style="width:28px;height:28px;font-size:12px">–</span><span class="aname muted-s">미배정</span><div class="track"></div><b>${unassigned}</b></div>` : '')
+    : '<div class="empty-mini">배정된 담당자가 없습니다.</div>';
 
   return `
   <div class="page-head row">
@@ -546,7 +561,11 @@ function renderDashboard() {
     </div>
   </div>
   ${statsCards(recs)}
-  <div class="dash-grid">
+  <div class="card panel">
+    <div class="panel-h">월별 VOC <span class="muted-s">최근 6개월 · 상태별 누적</span></div>
+    ${monthlyChart(recs)}
+  </div>
+  <div class="dash-grid-3">
     <div class="card panel">
       <div class="panel-h">상태 분포</div>
       ${statusRows}
@@ -555,10 +574,45 @@ function renderDashboard() {
       <div class="panel-h">유형 분포 <span class="ai-badge">AI 분류 포함</span></div>
       ${typeRows}
     </div>
-  </div>
-  <div class="card panel">
-    <div class="panel-h">최근 접수 <span class="muted-s">최신 5건 · 클릭 시 상세</span></div>
-    <div class="recent">${recentRows}</div>
+    <div class="card panel">
+      <div class="panel-h">자주 배정된 담당자 <span class="muted-s">클릭 시 보드 필터</span></div>
+      ${assigneeRows}
+    </div>
+  </div>`;
+}
+
+/* 월별 VOC — 상태별 누적 막대 (최근 6개월) */
+function monthlyChart(recs) {
+  const now = new Date();
+  const months = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({ y: d.getFullYear(), m: d.getMonth(), label: (d.getMonth() + 1) + '월', '검토중': 0, '개발 요청': 0, '완료': 0, total: 0 });
+  }
+  recs.forEach(r => {
+    const d = new Date(r.createdAt);
+    const b = months.find(x => x.y === d.getFullYear() && x.m === d.getMonth());
+    if (b) { b[r.pmStatus] = (b[r.pmStatus] || 0) + 1; b.total += 1; }
+  });
+  const max = Math.max(1, ...months.map(x => x.total));
+  const H = 150;
+  const cols = months.map(mo => {
+    const seg = ['검토중', '개발 요청', '완료'].map(s =>
+      mo[s] ? `<div class="mc-seg ${s.replace(/\s/g, '')}" style="height:${(mo[s] / max) * H}px" title="${s} ${mo[s]}건"></div>` : '').join('');
+    return `<div class="mc-col">
+      <div class="mc-total">${mo.total || ''}</div>
+      <div class="mc-stack" style="height:${H}px">${seg}</div>
+      <div class="mc-x">${mo.label}</div>
+    </div>`;
+  }).join('');
+  return `
+  <div class="monthly">
+    <div class="mc-grid">${cols}</div>
+    <div class="mc-legend">
+      <span><i class="dot 검토중"></i>검토중</span>
+      <span><i class="dot 개발요청"></i>개발 요청</span>
+      <span><i class="dot 완료"></i>완료</span>
+    </div>
   </div>`;
 }
 
@@ -566,7 +620,7 @@ function renderDashboard() {
 function renderBoard() {
   const list = visibleRecords();
   const f = state.filters;
-  const anyFilter = !!(f.type || f.impact || f.source || f.emotion || f.model || f.q || f.repeat);
+  const anyFilter = !!(f.type || f.impact || f.source || f.emotion || f.model || f.assignee || f.q || f.repeat);
 
   const toolbar = `
   <div class="card toolbar">
@@ -575,6 +629,7 @@ function renderBoard() {
     <div class="grp">${selectFilter('model', f.model, modelsFor(state.workspace), '모델')}</div>
     <div class="grp">${selectFilter('source', f.source, SOURCES, '출처')}</div>
     <div class="grp">${selectFilter('emotion', f.emotion, EMOTIONS, '감정')}</div>
+    <div class="grp"><span class="lab">담당자</span><select data-filter="assignee"><option value="">전체</option>${team().map(m => `<option value="${esc(m.id)}" ${f.assignee === m.id ? 'selected' : ''}>${esc(m.en)}${m.ko ? ' ' + esc(m.ko) : ''}</option>`).join('')}</select></div>
     <button class="btn sm ${f.repeat ? 'primary' : ''}" id="f-repeat">반복 이슈만</button>
     <div class="spacer"></div>
     <div class="search">
@@ -717,12 +772,12 @@ function renderSettings() {
   const rows = team().map(m => `
     <tr>
       <td>${avatarHTML(m.id, 26)}</td>
-      <td><b>${esc(m.en)}</b> ${esc(m.ko)}</td>
+      <td><b>${esc(m.en)}</b>${m.ko ? ' ' + esc(m.ko) : ''}</td>
       <td>${esc(m.role)}</td>
       <td>${DB.me === m.id ? '<span class="me-tag">나</span>' : ''}</td>
       <td><button class="btn ghost sm" data-rm="${esc(m.id)}">삭제</button></td>
     </tr>`).join('');
-  const meOpts = team().map(m => `<option value="${esc(m.id)}" ${DB.me === m.id ? 'selected' : ''}>${esc(m.en)} ${esc(m.ko)}</option>`).join('');
+  const meOpts = team().map(m => `<option value="${esc(m.id)}" ${DB.me === m.id ? 'selected' : ''}>${esc(m.en)}${m.ko ? ' ' + esc(m.ko) : ''}</option>`).join('');
 
   return `
   <div class="page-head"><h1>셋팅</h1><p>담당자 명단·현재 사용자·연동을 관리합니다.</p></div>
@@ -731,7 +786,7 @@ function renderSettings() {
     <div class="panel-h">담당자 명단</div>
     <table class="roster"><tbody>${rows}</tbody></table>
     <div class="add-member">
-      <input type="text" id="nm-en" placeholder="영문 (예: Olivia)">
+      <input type="text" id="nm-en" placeholder="영문 (예: Ellie)">
       <input type="text" id="nm-ko" placeholder="한글 (예: 김유나)">
       <select id="nm-role"><option>UX</option><option>PM</option><option>개발</option><option>CS</option></select>
       <button class="btn primary sm" id="nm-add">＋ 추가</button>
@@ -819,7 +874,7 @@ function renderDrawer() {
   const statusSel = ['검토중', '개발 요청', '완료'].map(s =>
     `<option value="${esc(s)}" ${r.pmStatus === s ? 'selected' : ''}>${esc(s)}</option>`).join('');
   const assigneeSel = `<option value="">미배정</option>` + team().map(m =>
-    `<option value="${esc(m.id)}" ${r.assignee === m.id ? 'selected' : ''}>${esc(m.en)} ${esc(m.ko)} · ${esc(m.role)}</option>`).join('');
+    `<option value="${esc(m.id)}" ${r.assignee === m.id ? 'selected' : ''}>${esc(m.en)}${m.ko ? ' ' + esc(m.ko) : ''} · ${esc(m.role)}</option>`).join('');
 
   const redmineLink = r.redmine
     ? `<a href="${redmineBase()}${encodeURIComponent(r.redmine)}" target="_blank" rel="noopener">레드마인 #${esc(r.redmine)} 원문 ↗</a>`
@@ -1064,6 +1119,12 @@ function bindConfirm() {
 function bindDashboard() {
   document.querySelectorAll('[data-open]').forEach(c =>
     c.onclick = () => { state.detailId = c.dataset.open; renderDrawer(); });
+  document.querySelectorAll('[data-asg]').forEach(c =>
+    c.onclick = () => {
+      state.filters = { type: '', impact: '', source: '', emotion: '', model: '', assignee: c.dataset.asg, q: '', repeat: false };
+      state.view = 'board';
+      render();
+    });
 }
 
 function bindBoard() {

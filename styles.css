@@ -121,6 +121,7 @@ a:hover { text-decoration: underline; }
   display: flex; align-items: center; gap: 7px; padding: 8px 8px 2px; border-top: 1px solid #2a2e37;
 }
 .side-foot .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--brand); }
+.sidebar .nav.nav-bottom { flex: 0 0 auto; border-top: 1px solid #2a2e37; padding-top: 10px; margin-top: 4px; }
 
 .main { flex: 1; min-width: 0; max-width: 1180px; margin: 0 auto; width: 100%; padding: 28px 32px 80px; }
 
@@ -424,7 +425,7 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
 .delta .dl { color: var(--faint); font-family: var(--sans); }
 
 /* ---------- 상단 앱바 (알림 + 사용자) ---------- */
-.appbar { display: flex; align-items: center; gap: 12px; padding: 14px 32px 0; }
+.appbar { display: flex; align-items: center; gap: 12px; padding: 14px 0 0; }
 .appbar-spacer { flex: 1; }
 .bell { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; color: var(--ink-soft); cursor: pointer; transition: .15s; }
 .bell:hover { background: var(--surface-2); border-color: var(--faint); }
@@ -489,6 +490,34 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
 .add-member select { width: auto; flex: 0 0 110px; }
 .add-member .btn { flex: 0 0 auto; }
 
+/* ---------- 대시보드 3열 그리드 ---------- */
+.dash-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; align-items: start; }
+
+/* 자주 배정된 담당자 */
+.arow { display: grid; grid-template-columns: 28px 1fr 70px 24px; align-items: center; gap: 10px; margin-bottom: 10px; cursor: pointer; border-radius: 8px; padding: 2px; }
+.arow:hover { background: var(--surface-2); }
+.arow.muted, .arow.muted:hover { cursor: default; background: transparent; }
+.arow .aname { font-size: 12.5px; font-weight: 700; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.arow b { font-family: var(--mono); font-size: 13px; text-align: right; }
+
+/* 월별 VOC 누적 막대 */
+.monthly { padding-top: 6px; }
+.mc-grid { display: flex; align-items: flex-end; gap: 18px; padding: 4px 4px 0; }
+.mc-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.mc-total { font-size: 12px; font-weight: 800; font-family: var(--mono); color: var(--ink-soft); height: 16px; }
+.mc-stack { width: 100%; max-width: 56px; display: flex; flex-direction: column; justify-content: flex-end; background: var(--line-2); border-radius: 6px; overflow: hidden; }
+.mc-seg { width: 100%; }
+.mc-seg.검토중 { background: #9aa1ad; }
+.mc-seg.개발요청 { background: var(--ai); }
+.mc-seg.완료 { background: var(--human); }
+.mc-x { font-size: 11.5px; color: var(--muted); font-family: var(--mono); }
+.mc-legend { display: flex; gap: 18px; justify-content: center; margin-top: 16px; font-size: 12px; color: var(--muted); }
+.mc-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.mc-legend .dot { width: 9px; height: 9px; border-radius: 3px; }
+.mc-legend .dot.검토중 { background: #9aa1ad; }
+.mc-legend .dot.개발요청 { background: var(--ai); }
+.mc-legend .dot.완료 { background: var(--human); }
+
 /* ---------- 반응형 ---------- */
 @media (max-width: 980px) {
   .app { flex-direction: column; }
@@ -510,6 +539,8 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
   .cs-side { position: static; }
   .dash-stats { grid-template-columns: repeat(2,1fr); }
   .dash-grid { grid-template-columns: 1fr; }
+  .dash-grid-3 { grid-template-columns: 1fr; }
+  .mc-grid { gap: 8px; }
 }
 @media (max-width: 640px) {
   .main { padding: 20px 16px 60px; }
