@@ -40,8 +40,31 @@ const MODEL_GROUPS_BY_WS = {
 };
 const modelGroups = ws => MODEL_GROUPS_BY_WS[ws] || [];
 const modelsFor   = ws => ['공통 / 브랜드 이슈', ...modelGroups(ws).flatMap(g => g.models), '기타'];
+
+/* ---------- 팀 / 담당자 (담당자 1슬롯) ---------- */
+const DEFAULT_TEAM = [
+  { id: 'olivia', en: 'Olivia', ko: '김유나', role: 'UX' },
+  { id: 'marlon', en: 'Marlon', ko: '박준영', role: 'PM' },
+  { id: 'ben',    en: 'Ben',    ko: '황동오', role: '개발' },
+  { id: 'luke',   en: 'Luke',   ko: '윤태준', role: '개발' },
+  { id: 'etna',   en: 'Etna',   ko: '윤수정', role: 'UX' },
+];
+// 컬러 아바타 팔레트 (무채색 UI 위 유일한 컬러 포인트)
+const AVATAR_COLORS = ['#c0392b', '#b03a6e', '#7159c1', '#2670c4', '#0e8a6e', '#c47f0a', '#5b6b7b', '#8e44ad'];
+const hashIdx = (s, n) => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h % n; };
+const team = () => (DB && DB.team) || DEFAULT_TEAM;
+const member = id => team().find(m => m.id === id) || null;
+function avatarHTML(id, size) {
+  const sz = size || 26;
+  const style = `width:${sz}px;height:${sz}px;font-size:${Math.round(sz * 0.42)}px`;
+  const m = member(id);
+  if (!m) return `<span class="avatar none" style="${style}" title="미배정">–</span>`;
+  const c = AVATAR_COLORS[hashIdx(m.id, AVATAR_COLORS.length)];
+  return `<span class="avatar" style="${style};background:${c}" title="${esc(m.en + ' ' + m.ko)}">${esc(m.en[0])}</span>`;
+}
 // 레드마인 티켓 원본 URL 패턴 (운영 시 실제 레드마인 주소로 교체)
 const REDMINE_BASE = 'https://redmine.example.com/issues/';
+const redmineBase = () => (DB && DB.redmineBase) || REDMINE_BASE;
 
 const STORE_KEY = 'voc_console_v1';
 const DRAFT_KEY = 'voc_cs_draft_v1';
@@ -138,20 +161,20 @@ function save() { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); }
 
 let DB;
 
-// 워크스페이스별 샘플 (데모/초기 데이터)
+// 워크스페이스별 샘플 (데모/초기 데이터)  st: 상태, as: 담당자, rv: 검토완료
 const SAMPLES = {
   AK: [
-    { body: 'SP3000에서 EQ 설정 화면을 찾기가 너무 어려워요. 메뉴가 너무 깊게 들어가 있어서 매번 헤맵니다. 자주 쓰는 기능은 첫 화면에 두면 좋겠어요.', model: 'SP3000', source: '국내', redmine: '10421' },
-    { body: '블루투스로 이어폰 연결하면 자꾸 한쪽만 소리가 안 나옵니다. 재연결해도 똑같고 펌웨어 업데이트 후로 더 심해졌어요. 환불하고 싶을 정도로 짜증납니다.', model: 'PD10', source: '국내', redmine: '10455' },
-    { body: '해외에서 쓰는데 날짜 표기가 한국식으로만 나와서 불편합니다. 현지 언어와 시간대 설정을 지원해주세요.', model: '공통 / 브랜드 이슈', source: '해외', redmine: '' },
-    { body: 'The price is too high compared to competitors. 가격 대비 기능이 아쉽고 스트리밍 구독료까지 따로 내야 해서 가성비가 별로입니다.', model: 'SP4000', source: '해외', redmine: '10470' },
-    { body: '재생 중 배터리가 너무 빨리 닳고 충전 단자 접촉이 안 좋은지 충전이 안 될 때가 있어요. 발열도 좀 있는 것 같습니다.', model: 'KANN MAX', source: '국내', redmine: '10488' },
-    { body: '재생 목록을 넘기다 보면 가끔 멈추고 앱이 튕깁니다. 업데이트 후 오류가 더 자주 발생해요.', model: 'SR35', source: '국내', redmine: '10492' },
+    { body: 'SP3000에서 EQ 설정 화면을 찾기가 너무 어려워요. 메뉴가 너무 깊게 들어가 있어서 매번 헤맵니다. 자주 쓰는 기능은 첫 화면에 두면 좋겠어요.', model: 'SP3000', source: '국내', redmine: '10421', st: '검토중', as: 'olivia' },
+    { body: '블루투스로 이어폰 연결하면 자꾸 한쪽만 소리가 안 나옵니다. 재연결해도 똑같고 펌웨어 업데이트 후로 더 심해졌어요. 환불하고 싶을 정도로 짜증납니다.', model: 'PD10', source: '국내', redmine: '10455', st: '개발 요청', as: 'ben', rv: true },
+    { body: '해외에서 쓰는데 날짜 표기가 한국식으로만 나와서 불편합니다. 현지 언어와 시간대 설정을 지원해주세요.', model: '공통 / 브랜드 이슈', source: '해외', redmine: '', st: '완료', as: 'etna', rv: true },
+    { body: 'The price is too high compared to competitors. 가격 대비 기능이 아쉽고 스트리밍 구독료까지 따로 내야 해서 가성비가 별로입니다.', model: 'SP4000', source: '해외', redmine: '10470', st: '검토중' },
+    { body: '재생 중 배터리가 너무 빨리 닳고 충전 단자 접촉이 안 좋은지 충전이 안 될 때가 있어요. 발열도 좀 있는 것 같습니다.', model: 'KANN MAX', source: '국내', redmine: '10488', st: '개발 요청', as: 'luke' },
+    { body: '재생 목록을 넘기다 보면 가끔 멈추고 앱이 튕깁니다. 업데이트 후 오류가 더 자주 발생해요.', model: 'SR35', source: '국내', redmine: '10492', st: '완료', as: 'ben', rv: true },
   ],
   Activo: [
-    { body: 'P1 화면이 작아서 재생 목록 글씨가 잘 안 보입니다. 글씨 크기를 키우는 옵션이 있으면 좋겠어요.', model: 'P1', source: '국내', redmine: '10510' },
-    { body: 'CT10에서 와이파이가 자꾸 끊기고 스트리밍 재생이 멈춥니다. 재연결해도 같은 증상이 반복돼요.', model: 'CT10', source: '해외', redmine: '10515' },
-    { body: 'Q1 이어폰 한쪽 소리가 작게 나오고 케이블 마감이 좀 아쉽습니다. 디자인은 마음에 들어요.', model: 'Q1', source: '국내', redmine: '' },
+    { body: 'P1 화면이 작아서 재생 목록 글씨가 잘 안 보입니다. 글씨 크기를 키우는 옵션이 있으면 좋겠어요.', model: 'P1', source: '국내', redmine: '10510', st: '검토중', as: 'olivia' },
+    { body: 'CT10에서 와이파이가 자꾸 끊기고 스트리밍 재생이 멈춥니다. 재연결해도 같은 증상이 반복돼요.', model: 'CT10', source: '해외', redmine: '10515', st: '개발 요청', as: 'luke', rv: true },
+    { body: 'Q1 이어폰 한쪽 소리가 작게 나오고 케이블 마감이 좀 아쉽습니다. 디자인은 마음에 들어요.', model: 'Q1', source: '국내', redmine: '', st: '완료', rv: true },
   ]
 };
 
@@ -161,40 +184,62 @@ function seed() {
   let seq = 0;
   const records = order.map(([brand, s]) => {
     seq += 1;
-    return makeRecord(brand, s.body, s.model, s.source, s.redmine, now - (order.length - seq) * 8.6e7, seq);
+    const ts = now - (order.length - seq) * 4.6e8; // 약 5.3일 간격으로 분산 (히트맵/델타용)
+    return makeRecord(brand, s.body, s.model, s.source, s.redmine, ts, seq, { status: s.st, assignee: s.as, reviewed: s.rv });
   });
-  return { seq, records, _seededActivo: true };
+  return { seq, records, team: DEFAULT_TEAM.slice(), me: 'olivia', notifs: [], redmineBase: REDMINE_BASE, _seededActivo: true };
 }
 
-// 기존 저장 데이터 마이그레이션: brand 누락분은 AK로, Activo 샘플이 없으면 1회 주입
+// 기존 저장 데이터 마이그레이션
 function ensureData() {
   let changed = false;
-  DB.records.forEach(r => { if (!r.brand) { r.brand = 'AK'; changed = true; } });
+  if (!DB.team) { DB.team = DEFAULT_TEAM.slice(); changed = true; }
+  if (!DB.me) { DB.me = DB.team[0] ? DB.team[0].id : 'olivia'; changed = true; }
+  if (!DB.notifs) { DB.notifs = []; changed = true; }
+  if (!DB.redmineBase) { DB.redmineBase = REDMINE_BASE; changed = true; }
+  DB.records.forEach(r => {
+    if (!r.brand) { r.brand = 'AK'; changed = true; }
+    if (!('assignee' in r)) { r.assignee = null; changed = true; }
+    if (!('reviewedAt' in r)) { r.reviewedAt = r.reviewed ? r.createdAt : null; changed = true; }
+    if (!Array.isArray(r.statusHistory)) {
+      r.statusHistory = [{ status: '검토중', at: r.createdAt }];
+      if (r.pmStatus && r.pmStatus !== '검토중') r.statusHistory.push({ status: r.pmStatus, at: r.createdAt + 6e6 });
+      changed = true;
+    }
+  });
   if (!DB._seededActivo && !DB.records.some(r => r.brand === 'Activo')) {
     const now = Date.now();
     SAMPLES.Activo.forEach((s, i) => {
       DB.seq += 1;
-      DB.records.push(makeRecord('Activo', s.body, s.model, s.source, s.redmine, now - (SAMPLES.Activo.length - i) * 6e6, DB.seq));
+      const ts = now - (SAMPLES.Activo.length - i) * 4.6e8;
+      DB.records.push(makeRecord('Activo', s.body, s.model, s.source, s.redmine, ts, DB.seq, { status: s.st, assignee: s.as, reviewed: s.rv }));
     });
     DB._seededActivo = true; changed = true;
   }
   if (changed) save();
 }
 
-function makeRecord(brand, body, model, source, redmine, ts, seq) {
+function makeRecord(brand, body, model, source, redmine, ts, seq, opts) {
+  opts = opts || {};
   const ai = heuristicClassify(body);
+  const createdAt = ts || Date.now();
+  const status = opts.status || '검토중';
+  const history = [{ status: '검토중', at: createdAt }];
+  if (status !== '검토중') history.push({ status, at: createdAt + 6e6 });
   return {
     id: 'V' + String(seq).padStart(4, '0'),
-    seq, brand: brand || 'AK', createdAt: ts || Date.now(),
+    seq, brand: brand || 'AK', createdAt,
     body, model: model || '공통 / 브랜드 이슈', source: source || '국내',
     redmine: redmine || '',
     aiSummary: heuristicSummary(body),
     aiTypes: ai.types, aiImpact: ai.impact, aiEmotion: ai.emotion,
     // 사람 보정 값 (없으면 AI값 사용)
     types: null, impact: null, emotion: null,
-    reviewed: false,
-    priority: null,
-    pmStatus: '검토중', pmMemo: ''
+    reviewed: !!opts.reviewed, reviewedAt: opts.reviewed ? createdAt + 3e6 : null,
+    priority: opts.priority || null,
+    assignee: opts.assignee || null,
+    pmStatus: status, pmMemo: opts.memo || '',
+    statusHistory: history
   };
 }
 
@@ -209,22 +254,33 @@ const effEmotion = r => r.emotion || r.aiEmotion;
 /* ---------- 라우팅 (해시 + 필터 URL 동기화, PRD 8-2) ---------- */
 const state = {
   workspace: 'AK',            // 'AK' | 'Activo'
-  view: 'dashboard',          // 'dashboard' | 'board' | 'cs'
+  view: 'dashboard',          // 'dashboard' | 'board' | 'calendar' | 'settings' | 'cs'
+  calTab: 'intake',           // 'intake' | 'gantt'
   filters: { type: '', impact: '', source: '', emotion: '', model: '', q: '', repeat: false },
   detailId: null,
   submitted: null,
 };
 const WS_KEY = 'voc_console_ws';
+const VIEWS = ['dashboard', 'board', 'calendar', 'settings', 'cs'];
 
 // 현재 워크스페이스(브랜드)에 속한 레코드만
 const wsRecords = () => DB.records.filter(r => (r.brand || 'AK') === state.workspace);
+
+/* ---------- 알림 (로컬 시뮬레이션 — 멀티유저는 추후 백엔드) ---------- */
+function pushNotif(kind, text, vocId) {
+  DB.notifs = DB.notifs || [];
+  DB.notifs.unshift({ id: 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), kind, text, vocId: vocId || null, at: Date.now(), read: false });
+  DB.notifs = DB.notifs.slice(0, 50);
+  save(); updateBell();
+}
 
 function readURL() {
   const h = new URLSearchParams(location.hash.slice(1));
   const ws = h.get('ws') || localStorage.getItem(WS_KEY) || 'AK';
   state.workspace = WORKSPACES.includes(ws) ? ws : 'AK';
   const v = h.get('view');
-  state.view = ['dashboard', 'board', 'cs'].includes(v) ? v : 'dashboard';
+  state.view = VIEWS.includes(v) ? v : 'dashboard';
+  state.calTab = h.get('tab') === 'gantt' ? 'gantt' : 'intake';
   state.filters.type    = h.get('type') || '';
   state.filters.impact  = h.get('impact') || '';
   state.filters.source  = h.get('source') || '';
@@ -237,6 +293,7 @@ function writeURL() {
   const h = new URLSearchParams();
   h.set('ws', state.workspace);
   h.set('view', state.view);
+  if (state.view === 'calendar') h.set('tab', state.calTab);
   const f = state.filters;
   if (f.type) h.set('type', f.type);
   if (f.impact) h.set('impact', f.impact);
@@ -269,8 +326,11 @@ function render() {
   setNav();
   if (state.view === 'cs') root.innerHTML = state.submitted ? renderConfirm() : renderCS();
   else if (state.view === 'board') root.innerHTML = renderBoard();
+  else if (state.view === 'calendar') root.innerHTML = renderCalendar();
+  else if (state.view === 'settings') root.innerHTML = renderSettings();
   else root.innerHTML = renderDashboard();
   bind();
+  updateBell();
   if (state.detailId) renderDrawer();
 }
 
@@ -279,6 +339,21 @@ function setNav() {
     b.classList.toggle('active', b.dataset.view === state.view));
   document.querySelectorAll('#ws-switch button').forEach(b =>
     b.classList.toggle('on', b.dataset.ws === state.workspace));
+}
+
+/* ---------- 상단바: 알림 종 + 현재 사용자 ---------- */
+function updateBell() {
+  const bell = document.getElementById('bell');
+  if (bell) {
+    const unread = (DB.notifs || []).filter(n => !n.read).length;
+    const badge = bell.querySelector('.badge');
+    if (badge) { badge.style.display = unread ? 'flex' : 'none'; badge.textContent = unread > 9 ? '9+' : String(unread); }
+  }
+  const me = document.getElementById('me-chip');
+  if (me) {
+    const m = member(DB.me);
+    me.innerHTML = `${avatarHTML(DB.me, 28)}<span class="me-name">${m ? esc(m.en) : '게스트'}</span>`;
+  }
 }
 
 /* ===== CS 입력 ===== */
@@ -344,7 +419,7 @@ function renderCS() {
 
 function renderConfirm() {
   const r = state.submitted;
-  const link = r.redmine ? `<a href="${REDMINE_BASE}${encodeURIComponent(r.redmine)}" target="_blank" rel="noopener">레드마인 #${esc(r.redmine)} 원문 열기 ↗</a>` : '레드마인 번호 미입력';
+  const link = r.redmine ? `<a href="${redmineBase()}${encodeURIComponent(r.redmine)}" target="_blank" rel="noopener">레드마인 #${esc(r.redmine)} 원문 열기 ↗</a>` : '레드마인 번호 미입력';
   return `
   <div class="card confirm">
     <div class="check">✓</div>
@@ -388,18 +463,37 @@ function selectFilter(id, value, options, label) {
   return `<span class="lab">${label}</span><select data-filter="${id}">${opts}</select>`;
 }
 
-/* ----- KPI 카드 (대시보드/보드 공용) ----- */
+/* ----- KPI 카드 (값 + 지난 30일 증감) ----- */
 function statsCards(recs) {
+  const now = Date.now(), D = 30 * 864e5;
+  const lastEntered = (r, s) => { const h = (r.statusHistory || []).filter(x => x.status === s); return h.length ? h[h.length - 1].at : null; };
+  const deltaBy = getTs => {
+    const cur = recs.filter(r => { const t = getTs(r); return t != null && t >= now - D; }).length;
+    const prev = recs.filter(r => { const t = getTs(r); return t != null && t >= now - 2 * D && t < now - D; }).length;
+    return cur - prev;
+  };
   const total = recs.length;
   const reviewed = recs.filter(r => r.reviewed).length;
   const done = recs.filter(r => r.pmStatus === '완료').length;
   const devReq = recs.filter(r => r.pmStatus === '개발 요청').length;
+
+  const d = {
+    total: deltaBy(r => r.createdAt),
+    reviewed: deltaBy(r => r.reviewedAt),
+    done: deltaBy(r => lastEntered(r, '완료')),
+    dev: deltaBy(r => lastEntered(r, '개발 요청')),
+  };
+  const delta = v => {
+    const arrow = v > 0 ? '▲' : v < 0 ? '▼' : '·';
+    const sign = v > 0 ? '+' : '';
+    return `<div class="delta"><span class="ar">${arrow}</span> ${sign}${v} <span class="dl">지난 30일</span></div>`;
+  };
   return `
   <div class="dash-stats">
-    <div class="card stat"><div class="n">${total}</div><div class="l">전체 VOC</div></div>
-    <div class="card stat acc"><div class="n">${reviewed}</div><div class="l">사람 검토 완료</div></div>
-    <div class="card stat done"><div class="n">${done}</div><div class="l">완료된 VOC</div></div>
-    <div class="card stat dev"><div class="n">${devReq}</div><div class="l">개발 요청 VOC</div></div>
+    <div class="card stat"><div class="l">전체 VOC</div><div class="n">${total}</div>${delta(d.total)}</div>
+    <div class="card stat"><div class="l">사람 검토 완료</div><div class="n">${reviewed}</div>${delta(d.reviewed)}</div>
+    <div class="card stat"><div class="l">완료된 VOC</div><div class="n">${done}</div>${delta(d.done)}</div>
+    <div class="card stat"><div class="l">개발 요청 VOC</div><div class="n">${devReq}</div>${delta(d.dev)}</div>
   </div>`;
 }
 
@@ -433,12 +527,15 @@ function renderDashboard() {
   const recent = recs.slice().sort((a, b) => b.createdAt - a.createdAt).slice(0, 5);
   const recentRows = recent.length ? recent.map(r => `
     <div class="recent-item" data-open="${r.id}">
-      <div class="ri-main">
-        <span class="recv-no">${esc(r.id)}</span>
-        <span class="ri-model">${esc(r.model)}</span>
-        <span class="status-tag ${r.pmStatus.replace(/\s/g, '')}">${esc(r.pmStatus)}</span>
+      ${avatarHTML(r.assignee, 30)}
+      <div class="ri-text">
+        <div class="ri-main">
+          <span class="recv-no">${esc(r.id)}</span>
+          <span class="ri-model">${esc(r.model)}</span>
+          <span class="status-tag ${r.pmStatus.replace(/\s/g, '')}">${esc(r.pmStatus)}</span>
+        </div>
+        <div class="ri-sum">${esc(r.aiSummary)}</div>
       </div>
-      <div class="ri-sum">${esc(r.aiSummary)}</div>
     </div>`).join('') : '<div class="empty-mini">아직 등록된 VOC가 없습니다.</div>';
 
   return `
@@ -520,6 +617,161 @@ function renderBoard() {
   <div class="voc-list">${items}</div>`;
 }
 
+/* ===== 캘린더 (접수 히트맵 / 작업 기간 간트) ===== */
+function renderCalendar() {
+  const recs = wsRecords();
+  const tab = state.calTab === 'gantt' ? 'gantt' : 'intake';
+  const head = `
+  <div class="page-head row">
+    <div>
+      <h1>캘린더 <span class="ws-pill ${state.workspace}">${esc(WORKSPACE_LABEL[state.workspace])}</span></h1>
+      <p>VOC 접수 시점과 작업 기간을 시간축으로 봅니다.</p>
+    </div>
+    <div class="head-actions">
+      <button class="btn" type="button" data-act="export">⤓ Export</button>
+      <button class="btn primary" type="button" data-view="cs">＋ Add VOC</button>
+    </div>
+  </div>
+  <div class="cal-tabs">
+    <button type="button" data-caltab="intake" class="${tab === 'intake' ? 'on' : ''}">접수 히트맵</button>
+    <button type="button" data-caltab="gantt" class="${tab === 'gantt' ? 'on' : ''}">작업 기간 (간트)</button>
+  </div>`;
+  return head + (tab === 'gantt' ? calGantt(recs) : calIntake(recs));
+}
+
+const DAY = 864e5;
+const dayKey = ts => { const d = new Date(ts); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
+
+function calIntake(recs) {
+  const WEEKS = 12;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const startSun = new Date(today.getTime() - ((WEEKS - 1) * 7 + today.getDay()) * DAY);
+  const counts = {};
+  recs.forEach(r => { const k = dayKey(r.createdAt); counts[k] = (counts[k] || 0) + 1; });
+  const max = Math.max(1, ...Object.values(counts));
+  const level = n => n === 0 ? 0 : Math.min(4, Math.ceil((n / max) * 4));
+  const dow = ['일', '월', '화', '수', '목', '금', '토'];
+
+  let cols = '';
+  for (let w = 0; w < WEEKS; w++) {
+    let cells = '';
+    for (let dd = 0; dd < 7; dd++) {
+      const cur = new Date(startSun.getTime() + (w * 7 + dd) * DAY);
+      const future = cur > today;
+      const n = future ? -1 : (counts[dayKey(cur)] || 0);
+      const lv = future ? 'f' : level(n);
+      const lab = `${cur.getMonth() + 1}/${cur.getDate()}${future ? '' : ` · ${n}건`}`;
+      cells += `<div class="hm-cell l${lv}" title="${lab}"></div>`;
+    }
+    cols += `<div class="hm-col">${cells}</div>`;
+  }
+  const totalIn = recs.filter(r => r.createdAt >= startSun.getTime()).length;
+  return `
+  <div class="card panel">
+    <div class="panel-h">최근 ${WEEKS}주 접수량 <span class="muted-s">기간 내 ${totalIn}건 · 진할수록 많음</span></div>
+    <div class="heatmap">
+      <div class="hm-days">${dow.map(d => `<span>${d}</span>`).join('')}</div>
+      <div class="hm-grid">${cols}</div>
+    </div>
+    <div class="hm-legend">적음 <span class="hm-cell l0"></span><span class="hm-cell l1"></span><span class="hm-cell l2"></span><span class="hm-cell l3"></span><span class="hm-cell l4"></span> 많음</div>
+  </div>`;
+}
+
+function calGantt(recs) {
+  if (!recs.length) return '<div class="card empty"><div class="big">표시할 VOC가 없습니다</div></div>';
+  const lastEntered = (r, s) => { const h = (r.statusHistory || []).filter(x => x.status === s); return h.length ? h[h.length - 1].at : null; };
+  const now = Date.now();
+  const list = recs.slice().sort((a, b) => a.createdAt - b.createdAt);
+  const min = Math.min(...list.map(r => r.createdAt));
+  const max = now;
+  const span = Math.max(DAY, max - min);
+  const pct = t => ((t - min) / span) * 100;
+
+  const rows = list.map(r => {
+    const doneAt = lastEntered(r, '완료');
+    const devAt = lastEntered(r, '개발 요청');
+    const end = doneAt || now;
+    const left = pct(r.createdAt);
+    const width = Math.max(2, pct(end) - left);
+    const cls = r.pmStatus.replace(/\s/g, '');
+    const devMark = devAt ? `<span class="gmark" style="left:${pct(devAt)}%" title="개발 요청 ${fmtDate(devAt)}"></span>` : '';
+    return `
+    <div class="gantt-row" data-open="${r.id}">
+      <div class="g-label">${avatarHTML(r.assignee, 22)}<span class="recv-no">${esc(r.id)}</span><span class="g-model">${esc(r.model)}</span></div>
+      <div class="g-track">
+        <div class="g-bar ${cls}" style="left:${left}%;width:${width}%"></div>
+        ${devMark}
+      </div>
+      <span class="status-tag ${cls}">${esc(r.pmStatus)}</span>
+    </div>`;
+  }).join('');
+
+  const months = [];
+  let cur = new Date(min); cur = new Date(cur.getFullYear(), cur.getMonth(), 1);
+  while (cur.getTime() <= max) {
+    months.push(`<span class="g-mtick" style="left:${Math.max(0, pct(cur.getTime()))}%">${cur.getMonth() + 1}월</span>`);
+    cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
+  }
+  return `
+  <div class="card panel">
+    <div class="panel-h">작업 기간 <span class="muted-s">접수 → 완료(또는 진행 중) · ◆ 개발 요청 시점</span></div>
+    <div class="gantt-axis">${months.join('')}</div>
+    <div class="gantt">${rows}</div>
+  </div>`;
+}
+
+/* ===== 셋팅 ===== */
+function renderSettings() {
+  const rows = team().map(m => `
+    <tr>
+      <td>${avatarHTML(m.id, 26)}</td>
+      <td><b>${esc(m.en)}</b> ${esc(m.ko)}</td>
+      <td>${esc(m.role)}</td>
+      <td>${DB.me === m.id ? '<span class="me-tag">나</span>' : ''}</td>
+      <td><button class="btn ghost sm" data-rm="${esc(m.id)}">삭제</button></td>
+    </tr>`).join('');
+  const meOpts = team().map(m => `<option value="${esc(m.id)}" ${DB.me === m.id ? 'selected' : ''}>${esc(m.en)} ${esc(m.ko)}</option>`).join('');
+
+  return `
+  <div class="page-head"><h1>셋팅</h1><p>담당자 명단·현재 사용자·연동을 관리합니다.</p></div>
+
+  <div class="card panel">
+    <div class="panel-h">담당자 명단</div>
+    <table class="roster"><tbody>${rows}</tbody></table>
+    <div class="add-member">
+      <input type="text" id="nm-en" placeholder="영문 (예: Olivia)">
+      <input type="text" id="nm-ko" placeholder="한글 (예: 김유나)">
+      <select id="nm-role"><option>UX</option><option>PM</option><option>개발</option><option>CS</option></select>
+      <button class="btn primary sm" id="nm-add">＋ 추가</button>
+    </div>
+    <div class="hint">아바타는 영문 첫 글자로 자동 생성됩니다.</div>
+  </div>
+
+  <div class="card panel">
+    <div class="panel-h">현재 사용자 (나)</div>
+    <label class="field" style="margin:0;max-width:320px"><span class="lab">알림 대상</span><select id="me-sel">${meOpts}</select></label>
+    <div class="hint">‘나에게 배정됨’ 알림과 상단 프로필에 사용됩니다.</div>
+  </div>
+
+  <div class="card panel">
+    <div class="panel-h">레드마인 연동</div>
+    <label class="field" style="max-width:520px;margin:0">
+      <span class="lab">티켓 원본 URL 베이스</span>
+      <input type="text" id="rm-base" value="${esc(redmineBase())}">
+    </label>
+    <div class="cs-actions" style="margin-top:12px"><button class="btn primary sm" id="rm-save">저장</button><span class="draft-note" id="rm-note"></span></div>
+  </div>
+
+  <div class="card panel">
+    <div class="panel-h">구글 계정 연동 <span class="badge-soon" style="background:var(--line-2);color:var(--muted)">준비중</span></div>
+    <p style="margin:0 0 8px;color:var(--muted);font-size:13px">현재는 백엔드 없는 정적 사이트라 데이터가 브라우저에만 저장됩니다. 여러 명이 같은 VOC를 보고 서로에게 알림이 가려면 공용 백엔드(예: Firebase Auth + Firestore)가 필요합니다.</p>
+    <ul style="margin:0;padding-left:18px;color:var(--ink-soft);font-size:13px;line-height:1.7">
+      <li>구글 로그인(GIS): 신원·프로필 사진만 — 정적 사이트에서도 가능 (OAuth 클라이언트 ID 필요)</li>
+      <li>공용 데이터 + 실시간 알림: Firebase 권장 (회사 Workspace 도메인 제한 가능)</li>
+    </ul>
+  </div>`;
+}
+
 function renderVOCCard(r) {
   const types = effTypes(r);
   const typeChips = types.map(t => `<span class="chip type">${esc(t)}</span>`).join('');
@@ -553,6 +805,7 @@ function renderVOCCard(r) {
     </div>
     <div class="col-meta">
       ${pri}${status}
+      <div class="assignee">${avatarHTML(r.assignee, 24)}</div>
     </div>
   </div>`;
 }
@@ -573,9 +826,11 @@ function renderDrawer() {
     `<button class="${r.priority === p ? 'on ' + p : ''}" data-pri="${p}">${p}</button>`).join('');
   const statusSel = ['검토중', '개발 요청', '완료'].map(s =>
     `<option value="${esc(s)}" ${r.pmStatus === s ? 'selected' : ''}>${esc(s)}</option>`).join('');
+  const assigneeSel = `<option value="">미배정</option>` + team().map(m =>
+    `<option value="${esc(m.id)}" ${r.assignee === m.id ? 'selected' : ''}>${esc(m.en)} ${esc(m.ko)} · ${esc(m.role)}</option>`).join('');
 
   const redmineLink = r.redmine
-    ? `<a href="${REDMINE_BASE}${encodeURIComponent(r.redmine)}" target="_blank" rel="noopener">레드마인 #${esc(r.redmine)} 원문 ↗</a>`
+    ? `<a href="${redmineBase()}${encodeURIComponent(r.redmine)}" target="_blank" rel="noopener">레드마인 #${esc(r.redmine)} 원문 ↗</a>`
     : '<span style="color:var(--faint)">레드마인 번호 미입력</span>';
 
   const reviewBadge = r.reviewed
@@ -641,10 +896,16 @@ function renderDrawer() {
             <span class="lab">개발 전달 메모</span>
             <textarea id="m-memo" style="min-height:90px" placeholder="개발팀에 전달할 내용을 적으세요.">${esc(r.pmMemo)}</textarea>
           </label>
-          <label class="field" style="margin:0;max-width:200px">
-            <span class="lab">상태</span>
-            <select id="m-status">${statusSel}</select>
-          </label>
+          <div class="row-2" style="max-width:420px">
+            <label class="field" style="margin:0">
+              <span class="lab">상태</span>
+              <select id="m-status">${statusSel}</select>
+            </label>
+            <label class="field" style="margin:0">
+              <span class="lab">담당자</span>
+              <select id="m-assignee">${assigneeSel}</select>
+            </label>
+          </div>
         </div>
       </div>
       <div class="save-bar">
@@ -681,7 +942,44 @@ function bind() {
   if (state.view === 'cs' && !state.submitted) bindCS();
   else if (state.view === 'cs' && state.submitted) bindConfirm();
   else if (state.view === 'board') bindBoard();
+  else if (state.view === 'calendar') bindCalendar();
+  else if (state.view === 'settings') bindSettings();
   else bindDashboard();
+}
+
+function bindCalendar() {
+  document.querySelectorAll('[data-caltab]').forEach(b =>
+    b.onclick = () => { state.calTab = b.dataset.caltab; render(); });
+  document.querySelectorAll('[data-open]').forEach(c =>
+    c.onclick = () => { state.detailId = c.dataset.open; renderDrawer(); });
+}
+
+function bindSettings() {
+  document.querySelectorAll('[data-rm]').forEach(b =>
+    b.onclick = () => {
+      const id = b.dataset.rm;
+      DB.team = team().filter(m => m.id !== id);
+      DB.records.forEach(r => { if (r.assignee === id) r.assignee = null; });
+      if (DB.me === id) DB.me = DB.team[0] ? DB.team[0].id : null;
+      save(); render();
+    });
+  const add = $('#nm-add');
+  if (add) add.onclick = () => {
+    const en = $('#nm-en').value.trim(), ko = $('#nm-ko').value.trim(), role = $('#nm-role').value;
+    if (!en) { $('#nm-en').focus(); return; }
+    const base = en.toLowerCase().replace(/[^a-z0-9]/g, '') || 'user';
+    let id = base, i = 1;
+    while (team().some(m => m.id === id)) id = base + (++i);
+    DB.team = team().concat([{ id, en, ko, role }]);
+    save(); render();
+  };
+  const meSel = $('#me-sel');
+  if (meSel) meSel.onchange = () => { DB.me = meSel.value; save(); render(); };
+  const rmSave = $('#rm-save');
+  if (rmSave) rmSave.onclick = () => {
+    DB.redmineBase = $('#rm-base').value.trim() || REDMINE_BASE;
+    save(); const n = $('#rm-note'); if (n) n.textContent = '저장됨';
+  };
 }
 
 /* 엑셀(.xlsx) raw data 내보내기 — 현재 워크스페이스 전체 */
@@ -738,7 +1036,7 @@ function bindCS() {
   const updatePreview = () => {
     const v = redmine.value.trim();
     $('#redmine-preview').innerHTML = v
-      ? `원본 링크: <a href="${REDMINE_BASE}${encodeURIComponent(v)}" target="_blank" rel="noopener">${REDMINE_BASE}${esc(v)} ↗</a>`
+      ? `원본 링크: <a href="${redmineBase()}${encodeURIComponent(v)}" target="_blank" rel="noopener">${redmineBase()}${esc(v)} ↗</a>`
       : '티켓 번호 입력 시 원본 URL이 자동 생성됩니다.';
   };
   redmine.oninput = updatePreview; updatePreview();
@@ -754,6 +1052,7 @@ function bindCS() {
     DB.seq += 1;
     const rec = makeRecord(state.workspace, text, model.value, src, redmine.value.trim(), Date.now(), DB.seq);
     DB.records.push(rec); save(); clearDraft();
+    pushNotif('new', `새 VOC ${rec.id} 생성됨 (${WORKSPACE_LABEL[rec.brand]})`, rec.id);
     state.submitted = rec; render();
   };
   function saveDraft() {
@@ -831,12 +1130,27 @@ function bindDrawer(r) {
       r.types = editTypes.slice();
       r.impact = editImpact;
       r.emotion = emo;
+      if (!r.reviewed) r.reviewedAt = Date.now();
       r.reviewed = true;
     }
     if (r._pendingPri !== undefined) r.priority = r._pendingPri;
     delete r._pendingPri;
     r.pmMemo = $('#m-memo').value;
-    r.pmStatus = $('#m-status').value;
+
+    // 상태 변경 → 이력 + 알림
+    const newStatus = $('#m-status').value;
+    if (newStatus !== r.pmStatus) {
+      r.statusHistory = r.statusHistory || [];
+      r.statusHistory.push({ status: newStatus, at: Date.now() });
+      r.pmStatus = newStatus;
+      pushNotif('status', `${r.id} 상태 변경 → ${newStatus}`, r.id);
+    }
+    // 담당자 변경 → 알림(나에게 배정 시)
+    const newAssignee = $('#m-assignee').value || null;
+    if (newAssignee !== r.assignee) {
+      r.assignee = newAssignee;
+      if (newAssignee && newAssignee === DB.me) pushNotif('assign', `${r.id}가 나에게 배정되었습니다`, r.id);
+    }
     save();
     // 기존 오버레이 제거 후 단일 렌더 (render 말미에서 detailId가 있으면 드로어 1회 재생성)
     document.getElementById('overlay')?.remove();
@@ -844,6 +1158,57 @@ function bindDrawer(r) {
     const msg = $('#saved-msg');
     if (msg) { msg.style.display = 'inline'; setTimeout(() => { const m = $('#saved-msg'); if (m) m.style.display = 'none'; }, 1400); }
   };
+}
+
+/* ---------- 알림 종 드롭다운 (정적 요소, 1회 바인딩) ---------- */
+function bindTopbar() {
+  const bell = document.getElementById('bell');
+  if (bell) bell.onclick = e => { e.stopPropagation(); toggleNotifPanel(); };
+}
+function toggleNotifPanel() {
+  const existing = document.getElementById('notif-panel');
+  if (existing) { existing.remove(); return; }
+  const ns = (DB.notifs || []);
+  const list = ns.length ? ns.map(n => `
+    <div class="notif-item ${n.read ? '' : 'unread'}" data-nopen="${esc(n.vocId || '')}">
+      <div class="notif-kind k-${esc(n.kind)}"></div>
+      <div class="notif-body"><div class="nt">${esc(n.text)}</div><div class="nd">${relTime(n.at)}</div></div>
+    </div>`).join('') : '<div class="empty-mini" style="padding:16px">새 알림이 없습니다.</div>';
+  const panel = document.createElement('div');
+  panel.id = 'notif-panel'; panel.className = 'notif-panel';
+  panel.innerHTML = `
+    <div class="notif-head"><b>알림</b><button class="btn ghost sm" id="notif-readall">모두 읽음</button></div>
+    <div class="notif-list">${list}</div>`;
+  document.body.appendChild(panel);
+  const bell = document.getElementById('bell');
+  const rect = bell.getBoundingClientRect();
+  panel.style.top = (rect.bottom + 8) + 'px';
+  panel.style.right = (window.innerWidth - rect.right) + 'px';
+
+  panel.querySelector('#notif-readall').onclick = () => {
+    (DB.notifs || []).forEach(n => n.read = true); save(); updateBell(); panel.remove();
+  };
+  panel.querySelectorAll('[data-nopen]').forEach((el, i) => {
+    el.onclick = () => {
+      if (ns[i]) ns[i].read = true;
+      const vid = el.dataset.nopen;
+      save(); updateBell(); panel.remove();
+      if (vid) {
+        const rec = DB.records.find(r => r.id === vid);
+        if (rec) { state.workspace = rec.brand || state.workspace; state.view = 'board'; state.detailId = vid; render(); }
+      }
+    };
+  });
+  setTimeout(() => document.addEventListener('click', function onDoc(ev) {
+    if (!panel.contains(ev.target)) { panel.remove(); document.removeEventListener('click', onDoc); }
+  }), 0);
+}
+function relTime(ts) {
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 60) return '방금';
+  if (s < 3600) return Math.floor(s / 60) + '분 전';
+  if (s < 86400) return Math.floor(s / 3600) + '시간 전';
+  return Math.floor(s / 86400) + '일 전';
 }
 
 /* ---------- 드래프트 ---------- */
@@ -854,3 +1219,4 @@ function clearDraft() { localStorage.removeItem(DRAFT_KEY); }
 window.addEventListener('hashchange', () => { readURL(); render(); });
 readURL();
 render();
+bindTopbar();
