@@ -43,7 +43,7 @@ const modelsFor   = ws => ['공통 / 브랜드 이슈', ...modelGroups(ws).flatM
 
 /* ---------- 팀 / 담당자 (담당자 1슬롯) ---------- */
 const DEFAULT_TEAM = [
-  { id: 'ellie',  en: 'Ellie',  ko: '',     role: 'UX' },
+  { id: 'ellie',  en: 'Ellie',  ko: '이은영', role: 'UX' },
   { id: 'marlon', en: 'Marlon', ko: '박준영', role: 'PM' },
   { id: 'ben',    en: 'Ben',    ko: '황동오', role: 'Dev' },
   { id: 'luke',   en: 'Luke',   ko: '윤태준', role: 'Dev' },
@@ -197,11 +197,13 @@ function ensureData() {
   // 프로필 기본 사용자 Olivia → Ellie 로 변경 (기존 저장 데이터)
   const ol = DB.team.find(m => m.id === 'olivia');
   if (ol) {
-    ol.id = 'ellie'; ol.en = 'Ellie'; ol.ko = '';
+    ol.id = 'ellie'; ol.en = 'Ellie'; ol.ko = '이은영';
     DB.records.forEach(r => { if (r.assignee === 'olivia') r.assignee = 'ellie'; });
     if (DB.me === 'olivia') DB.me = 'ellie';
     changed = true;
   }
+  const el = DB.team.find(m => m.id === 'ellie');
+  if (el && !el.ko) { el.ko = '이은영'; changed = true; }
   if (!DB.me) { DB.me = DB.team[0] ? DB.team[0].id : 'ellie'; changed = true; }
   DB.team.forEach(m => { if (m.role === '개발') { m.role = 'Dev'; changed = true; } });
   if (!DB.notifs) { DB.notifs = []; changed = true; }
@@ -531,17 +533,19 @@ function renderDashboard() {
   if (state.dashYear == null || !years.includes(state.dashYear)) state.dashYear = years.includes(curYear) ? curYear : years[0];
   const yearSel = `<select class="year-sel" id="dash-year">${years.map(y => `<option value="${y}" ${y === state.dashYear ? 'selected' : ''}>${y}년</option>`).join('')}</select>`;
 
-  // 상태 분포
+  // 상태 분포 (블록형 — 좁은 칼럼을 꽉 채움)
   const statuses = ['검토중', '개발 요청', '완료'];
   const statusTotal = Math.max(1, recs.length);
-  const statusRows = statuses.map(s => {
+  const statusRows = `<div class="status-blocks">` + statuses.map(s => {
+    const cls = s.replace(/\s/g, '');
     const n = recs.filter(r => r.pmStatus === s).length;
     const pct = Math.round((n / statusTotal) * 100);
-    return `<div class="srow">
-      <span class="status-tag ${s.replace(/\s/g, '')}">${esc(s)}</span>
-      <div class="track"><div class="fill ${s.replace(/\s/g, '')}" style="width:${pct}%"></div></div>
-      <b>${n}</b></div>`;
-  }).join('');
+    return `<div class="sblock">
+      <div class="sb-top"><span class="status-tag ${cls}">${esc(s)}</span><span class="sb-pct">${pct}%</span></div>
+      <div class="sb-n">${n}<span>건</span></div>
+      <div class="track lg"><div class="fill ${cls}" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('') + `</div>`;
 
   // 최근 추가된 VOC (프로필 아바타 포함)
   const recent = recs.slice().sort((a, b) => b.createdAt - a.createdAt).slice(0, 5);
@@ -583,7 +587,7 @@ function renderDashboard() {
       ${statusRows}
     </div>
     <div class="card panel">
-      <div class="panel-h">최근 추가된 VOC <span class="muted-s">클릭 시 상세</span></div>
+      <div class="panel-h">최근 추가된 VOC</div>
       ${recentBody}
     </div>
   </div>`;
@@ -822,20 +826,20 @@ function renderSettings() {
       <div class="roster-wrap"><div class="roster">${rows}</div></div>
       <div class="add-member">
         <select id="nm-role"><option>UX</option><option>PM</option><option>Dev</option><option>CS</option></select>
-        <input type="text" id="nm-en" placeholder="영문 (Ellie)">
-        <input type="text" id="nm-ko" placeholder="한글 (김유나)">
-        <button class="btn primary sm" id="nm-add">추가</button>
+        <input type="text" id="nm-en" placeholder="영문 (Hong)">
+        <input type="text" id="nm-ko" placeholder="한글 (홍길동)">
+        <button class="btn primary" id="nm-add">추가</button>
       </div>
       <div class="hint">아바타는 영문 첫 글자로 자동 생성됩니다.</div>
     </div>
 
     <div class="card panel">
       <div class="panel-h">레드마인 연동</div>
-      <label class="field" style="max-width:520px;margin:0">
-        <span class="lab">티켓 원본 URL 베이스</span>
-        <input type="text" id="rm-base" value="${esc(redmineBase())}">
-      </label>
-      <div class="cs-actions" style="margin-top:12px"><button class="btn primary sm" id="rm-save">저장</button><span class="draft-note" id="rm-note"></span></div>
+      <div class="rm-row">
+        <input type="text" id="rm-base" value="${esc(redmineBase())}" placeholder="https://redmine.example.com/issues/">
+        <button class="btn primary" id="rm-save">저장</button>
+      </div>
+      <div class="hint" id="rm-note">티켓 번호를 붙여 원본 링크를 만듭니다.</div>
     </div>
 
     <div class="card panel">
