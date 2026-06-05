@@ -277,7 +277,7 @@ const state = {
   view: 'dashboard',          // 'dashboard' | 'board' | 'calendar' | 'settings' | 'cs'
   calTab: 'intake',           // 'intake' | 'gantt'
   dashYear: null,             // 월별 차트 연도 필터
-  filters: { group: '', impact: '', source: '', model: '', assignee: '', q: '' },
+  filters: { group: '', impact: '', source: '', status: '', model: '', assignee: '', q: '' },
   sort: 'desc',               // 날짜 정렬: 'desc' 최신순 | 'asc' 오래된순
   detailId: null,
   submitted: null,
@@ -304,6 +304,7 @@ function readURL() {
   state.view = VIEWS.includes(v) ? v : 'dashboard';
   state.calTab = h.get('tab') === 'gantt' ? 'gantt' : 'intake';
   state.filters.group   = h.get('group') || '';
+  state.filters.status  = h.get('status') || '';
   state.filters.impact  = h.get('impact') || '';
   state.filters.source  = h.get('source') || '';
   state.filters.model   = h.get('model') || '';
@@ -322,6 +323,7 @@ function writeURL() {
   if (state.view === 'detail' && state.detailId) h.set('id', state.detailId);
   const f = state.filters;
   if (f.group) h.set('group', f.group);
+  if (f.status) h.set('status', f.status);
   if (f.impact) h.set('impact', f.impact);
   if (f.source) h.set('source', f.source);
   if (f.model) h.set('model', f.model);
@@ -491,6 +493,7 @@ function visibleRecords() {
   const f = state.filters;
   let list = scoped.slice().sort((a, b) => state.sort === 'asc' ? a.createdAt - b.createdAt : b.createdAt - a.createdAt);
   if (f.group)   list = list.filter(r => groupsOfRecord(r).includes(f.group));
+  if (f.status)  list = list.filter(r => r.pmStatus === f.status);
   if (f.impact)  list = list.filter(r => effImpact(r) === f.impact);
   if (f.source)  list = list.filter(r => r.source === f.source);
   if (f.model)   list = list.filter(r => r.model === f.model);
@@ -563,7 +566,7 @@ function renderDashboard() {
     const cls = s.replace(/\s/g, '');
     const n = recs.filter(r => r.pmStatus === s).length;
     const pct = Math.round((n / statusTotal) * 100);
-    return `<div class="sblock">
+    return `<div class="sblock" data-statusfilter="${esc(s)}" role="button" title="이 상태의 VOC 보드로 이동">
       <div class="sb-top"><span class="status-tag ${cls}">${esc(s)}</span><span class="sb-pct">${pct}%</span></div>
       <div class="sb-n">${n}<span>건</span></div>
       <div class="track lg"><div class="fill ${cls}" style="width:${pct}%"></div></div>
@@ -684,11 +687,12 @@ function monthlyLine(recs, year) {
 function renderBoard() {
   const list = visibleRecords();
   const f = state.filters;
-  const anyFilter = !!(f.group || f.impact || f.source || f.model || f.assignee || f.q);
+  const anyFilter = !!(f.group || f.status || f.impact || f.source || f.model || f.assignee || f.q);
 
   const toolbar = `
   <div class="card toolbar">
     <div class="grp">${selectFilter('group', f.group, TYPE_GROUPS.map(g => g.key), '묶음')}</div>
+    <div class="grp">${selectFilter('status', f.status, ['검토중', '개발 요청', '완료'], '상태')}</div>
     <div class="grp">${selectFilter('impact', f.impact, IMPACTS, '영향범위')}</div>
     <div class="grp">${selectFilter('model', f.model, modelsFor(state.workspace), '모델')}</div>
     <div class="grp"><span class="lab">담당자</span><select data-filter="assignee"><option value="">전체</option>${team().map(m => `<option value="${esc(m.id)}" ${f.assignee === m.id ? 'selected' : ''}>${esc(m.en)}${m.ko ? ' ' + esc(m.ko) : ''}</option>`).join('')}</select></div>
@@ -906,6 +910,7 @@ function renderVOCCard(r) {
   <div class="card voc" data-open="${r.id}">
     <div class="col-id">
       <div class="recv-no">${esc(r.id)}</div>
+      ${status}
     </div>
     <div class="col-body">
       <div class="ai-summary">
@@ -917,7 +922,7 @@ function renderVOCCard(r) {
       </div>
     </div>
     <div class="col-meta">
-      ${pri}${status}
+      ${pri}
       <div class="assignee">${avatarStack(r.assignees, 24)}</div>
     </div>
   </div>`;
@@ -931,7 +936,7 @@ function detailSections(r) {
   const impactChips = IMPACTS.map(i => `<button class="${effImpact(r) === i ? 'on' : ''}" data-impact="${esc(i)}">${esc(i)}</button>`).join('');
   const priBtns = ['High', 'Mid', 'Low'].map(p => `<button class="${r.priority === p ? 'on ' + p : ''}" data-pri="${p}">${p}</button>`).join('');
   const statusSel = ['검토중', '개발 요청', '완료'].map(s => `<option value="${esc(s)}" ${r.pmStatus === s ? 'selected' : ''}>${esc(s)}</option>`).join('');
-  const modelOpts = modelOptionsHTML(state.workspace, r.model);
+  const modelOpts = modelOptionsHTML(r.brand || state.workspace, r.model);
   const redmineLink = r.redmine
     ? `<a href="${redmineBase()}${encodeURIComponent(r.redmine)}" target="_blank" rel="noopener">레드마인 #${esc(r.redmine)} 원문 ↗</a>`
     : '<span style="color:var(--faint)">레드마인 번호 미입력</span>';
@@ -939,9 +944,9 @@ function detailSections(r) {
   return {
     summary: `
     <div class="sec">
-      <div class="sec-h">${warnIcon()} AI 요약 <span class="ai-badge">AI</span></div>
+      <div class="sec-h">AI 요약 <span class="ai-badge">AI</span></div>
       <div class="box ai">${esc(r.aiSummary)}</div>
-      <div class="hint" style="color:var(--ai)">${esc(AI_NOTE)}</div>
+      <div class="hint" style="color:var(--ai)">${warnIcon()} ${esc(AI_NOTE)}</div>
     </div>`,
     orig: `
     <div class="sec grow">
@@ -961,7 +966,6 @@ function detailSections(r) {
     </div>`,
     pm: `
     <div class="sec pm-block">
-      <div class="pm-title">개발 전달 &amp; 상태</div>
       <label class="field"><span class="lab">개발 전달 메모</span><textarea id="m-memo" style="min-height:90px" placeholder="개발팀에 전달할 내용을 적으세요.">${esc(r.pmMemo)}</textarea></label>
       <label class="field" style="margin:0 0 12px"><span class="lab">상태</span><select id="m-status" style="max-width:200px">${statusSel}</select></label>
       <div class="lab" style="margin-bottom:7px">담당자 <span class="muted-s">복수 선택 가능</span></div>
@@ -1242,6 +1246,11 @@ function bindConfirm() {
 function bindDashboard() {
   document.querySelectorAll('[data-open]').forEach(c =>
     c.onclick = () => { state.detailId = c.dataset.open; state.view = "detail"; render(); });
+  document.querySelectorAll('[data-statusfilter]').forEach(b =>
+    b.onclick = () => {
+      state.filters = { group: '', impact: '', source: '', model: '', assignee: '', q: '', status: b.dataset.statusfilter };
+      state.view = 'board'; render();
+    });
   const ys = document.getElementById('dash-year');
   if (ys) ys.onchange = () => { state.dashYear = +ys.value; render(); };
 }
@@ -1384,7 +1393,7 @@ function toggleWsMenu() {
     const w = b.dataset.wsx; menu.remove();
     if (w !== state.workspace) {
       state.workspace = w; state.detailId = null; state.submitted = null;
-      state.filters = { group: '', impact: '', source: '', model: '', assignee: '', q: '' };
+      state.filters = { group: '', impact: '', source: '', status: '', model: '', assignee: '', q: '' };
       render();
     }
   });
