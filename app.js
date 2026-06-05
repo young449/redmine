@@ -932,10 +932,10 @@ function detailSections(r) {
       <div class="hint" style="color:var(--ai)">${esc(AI_NOTE)}</div>
     </div>`,
     orig: `
-    <div class="sec">
+    <div class="sec grow">
       <div class="sec-h">원문 ${redmineLink}</div>
-      <textarea id="m-body" class="box orig edit" style="min-height:160px">${esc(r.body)}</textarea>
-      <label class="field" style="margin:10px 0 0;max-width:280px"><span class="lab">모델</span><select id="m-model">${modelOpts}</select></label>
+      <label class="field" style="margin:0 0 10px;max-width:280px"><span class="lab">모델</span><select id="m-model">${modelOpts}</select></label>
+      <textarea id="m-body" class="box orig edit grow-fill" style="min-height:160px">${esc(r.body)}</textarea>
     </div>`,
     classify: `
     <div class="sec">
@@ -982,11 +982,12 @@ function renderDetailPage() {
       <div class="dcol">${s.summary}${s.orig}</div>
       <div class="dcol">${s.classify}${s.pm}</div>
     </div>
+    <hr class="detail-sep">
     ${s.comments}
   </div>
   <div class="save-bar detail-savebar">
-    <button class="btn primary" id="m-save" disabled>저장</button>
     <span class="saved-msg" id="saved-msg" style="display:none">✓ 저장됨</span>
+    <button class="btn primary" id="m-save" disabled>저장</button>
     <button class="btn danger" id="m-delete">삭제</button>
   </div>`;
 }
