@@ -683,10 +683,7 @@ function renderBoard() {
     <div class="grp">${selectFilter('type', f.type, TYPES, '유형')}</div>
     <div class="grp">${selectFilter('impact', f.impact, IMPACTS, '영향범위')}</div>
     <div class="grp">${selectFilter('model', f.model, modelsFor(state.workspace), '모델')}</div>
-    <div class="grp">${selectFilter('source', f.source, SOURCES, '출처')}</div>
-    <div class="grp">${selectFilter('emotion', f.emotion, EMOTIONS, '감정')}</div>
     <div class="grp"><span class="lab">담당자</span><select data-filter="assignee"><option value="">전체</option>${team().map(m => `<option value="${esc(m.id)}" ${f.assignee === m.id ? 'selected' : ''}>${esc(m.en)}${m.ko ? ' ' + esc(m.ko) : ''}</option>`).join('')}</select></div>
-    <button class="btn sm ${f.repeat ? 'primary' : ''}" id="f-repeat">반복 이슈만</button>
     <div class="spacer"></div>
     <div class="search">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
