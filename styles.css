@@ -9,15 +9,15 @@
 
 :root {
   /* 중립 */
-  --paper:      #f6f5f1;
+  --paper:      #f7f7f5;
   --surface:    #ffffff;
-  --surface-2:  #fbfaf7;
+  --surface-2:  #fafafa;
   --ink:        #1a1d23;
   --ink-soft:   #3c4250;
   --muted:      #6b7280;
   --faint:      #9aa1ad;
-  --line:       #e6e3dc;
-  --line-2:     #efece5;
+  --line:       #e8e7e3;
+  --line-2:     #f0efeb;
 
   /* 브랜드 (무채색 베이스 — primary는 근검정) */
   --brand:      #1d2129;
@@ -79,21 +79,21 @@ a:hover { text-decoration: underline; }
 
 /* 스페이스(워크스페이스) 셀렉터 */
 .ws-select {
-  display: flex; align-items: center; gap: 11px;
-  background: rgba(255,255,255,.05); border: 1px solid #2a2e37; border-radius: 13px;
-  padding: 11px 13px; cursor: pointer; transition: .15s; text-align: left; width: 100%;
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,.05); border: 1px solid #2a2e37; border-radius: 12px;
+  padding: 9px 11px; cursor: pointer; transition: .15s; text-align: left; width: 100%;
 }
 .ws-select:hover { background: rgba(255,255,255,.09); border-color: #3a404b; }
-.ws-select:focus-visible { outline: 2px solid #2050d8; outline-offset: 1px; }
 .ws-ava {
-  width: 34px; height: 34px; flex: 0 0 34px; border-radius: 10px;
+  width: 30px; height: 30px; flex: 0 0 30px; border-radius: 9px;
   display: inline-flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 800; color: #fff; font-family: var(--mono); letter-spacing: -0.02em;
+  font-size: 11px; font-weight: 800; color: #fff; font-family: var(--mono); letter-spacing: -0.02em;
 }
 .ws-ava.AK { background: #d23b34; }
 .ws-ava.Activo { background: #2050d8; }
-.ws-name { flex: 1; font-size: 14.5px; font-weight: 800; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ws-caret { color: #8a909c; font-size: 11px; flex: 0 0 auto; }
+.ws-logo { flex: 1; min-width: 0; height: 16px; width: auto; max-width: 100%; object-fit: contain; object-position: left center; }
+.ws-caret { color: #aab0bc; flex: 0 0 auto; display: inline-flex; align-items: center; }
+.appbar-logo { height: 20px; width: auto; display: block; }
 
 .ws-menu {
   position: fixed; z-index: 200; background: #23272f; border: 1px solid #343a45;
@@ -173,6 +173,9 @@ a:hover { text-decoration: underline; }
 .btn.primary:hover { background: var(--brand-deep); border-color: var(--brand-deep); }
 .btn.ghost { background: transparent; border-color: transparent; color: var(--muted); }
 .btn.ghost:hover { color: var(--ink); background: var(--line-2); }
+.btn.danger { background: #fff; border-color: #f1c9c9; color: var(--alert); }
+.btn.danger:hover { background: var(--alert-bg); border-color: #e9b3b3; }
+.save-bar #m-delete { margin-left: auto; }
 .btn.sm { padding: 6px 11px; font-size: 12px; }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
 
@@ -358,6 +361,8 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
 }
 .box { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
 .box.orig { white-space: pre-wrap; font-size: 13.5px; line-height: 1.7; color: var(--ink-soft); }
+textarea.box.orig.edit { width: 100%; resize: vertical; font-family: var(--sans); color: var(--ink); }
+textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .box.ai { background: var(--ai-bg); border-color: var(--ai-line); font-size: 13.5px; line-height: 1.65; color: #6b4a18; }
 
 .edit-grid { display: grid; gap: 14px; }

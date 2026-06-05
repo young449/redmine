@@ -351,12 +351,13 @@ function render() {
 
 const wsCode = w => (w === 'Activo' ? 'Av' : 'AK');
 function updateWS() {
+  const isAK = state.workspace === 'AK';
   const ava = document.getElementById('ws-ava');
-  const name = document.getElementById('ws-name');
   if (ava) { ava.textContent = wsCode(state.workspace); ava.className = 'ws-ava ' + state.workspace; }
-  if (name) name.textContent = WORKSPACE_LABEL[state.workspace];
-  const ab = document.getElementById('appbar-brand');
-  if (ab) ab.textContent = WORKSPACE_LABEL[state.workspace];
+  const wsLogo = document.getElementById('ws-logo');     // 어두운 사이드바: AK 빨강 / Activo 흰색
+  if (wsLogo) wsLogo.src = isAK ? 'logo-ak.png' : 'logo-activo-light.png';
+  const abLogo = document.getElementById('appbar-logo'); // 밝은 앱바: AK 빨강 / Activo 어둠
+  if (abLogo) abLogo.src = isAK ? 'logo-ak.png' : 'logo-activo-dark.png';
 }
 
 function setNav() {
@@ -527,9 +528,10 @@ function renderDashboard() {
   const recs = wsRecords();
 
   // 연도 옵션 + 선택
-  const years = [...new Set(recs.map(r => new Date(r.createdAt).getFullYear()))].sort((a, b) => b - a);
+  const years = [...new Set(recs.map(r => new Date(r.createdAt).getFullYear()))];
   const curYear = new Date().getFullYear();
-  if (!years.includes(curYear)) years.unshift(curYear);
+  [curYear, curYear - 1].forEach(y => { if (!years.includes(y)) years.push(y); });
+  years.sort((a, b) => b - a);
   if (state.dashYear == null || !years.includes(state.dashYear)) state.dashYear = years.includes(curYear) ? curYear : years[0];
   const yearSel = `<select class="year-sel" id="dash-year">${years.map(y => `<option value="${y}" ${y === state.dashYear ? 'selected' : ''}>${y}년</option>`).join('')}</select>`;
 
@@ -823,7 +825,7 @@ function renderSettings() {
 
   <div class="set-stack">
     <div class="card panel">
-      <div class="panel-h"><span class="ph-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>담당자 명단</div>
+      <div class="panel-h">담당자 명단</div>
       <div class="roster-wrap"><div class="roster">${rows}</div></div>
       <div class="add-member">
         <select id="nm-role"><option>UX</option><option>PM</option><option>Dev</option><option>CS</option></select>
@@ -835,7 +837,7 @@ function renderSettings() {
     </div>
 
     <div class="card panel">
-      <div class="panel-h"><span class="ph-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>레드마인 연동</div>
+      <div class="panel-h">레드마인 연동</div>
       <div class="rm-row">
         <input type="text" id="rm-base" value="${esc(redmineBase())}" placeholder="https://redmine.example.com/issues/">
         <button class="btn primary" id="rm-save">저장</button>
@@ -844,7 +846,7 @@ function renderSettings() {
     </div>
 
     <div class="card panel">
-      <div class="panel-h"><span class="ph-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>구글 계정 연동 <span class="badge-soon" style="background:var(--line-2);color:var(--muted)">준비중</span></div>
+      <div class="panel-h">구글 계정 연동 <span class="badge-soon" style="background:var(--line-2);color:var(--muted)">준비중</span></div>
       <p style="margin:0 0 8px;color:var(--muted);font-size:13px">현재는 백엔드 없는 정적 사이트라 데이터가 브라우저에만 저장됩니다. 여러 명이 같은 VOC를 보고 서로에게 알림이 가려면 공용 백엔드(예: Firebase Auth + Firestore)가 필요합니다.</p>
       <ul style="margin:0;padding-left:18px;color:var(--ink-soft);font-size:13px;line-height:1.7">
         <li>구글 로그인(GIS): 신원·프로필 사진만 — 정적 사이트에서도 가능 (OAuth 클라이언트 ID 필요)</li>
@@ -910,6 +912,9 @@ function renderDrawer() {
     `<option value="${esc(s)}" ${r.pmStatus === s ? 'selected' : ''}>${esc(s)}</option>`).join('');
   const assigneeSel = `<option value="">미배정</option>` + team().map(m =>
     `<option value="${esc(m.id)}" ${r.assignee === m.id ? 'selected' : ''}>${esc(m.en)}${m.ko ? ' ' + esc(m.ko) : ''} · ${esc(m.role)}</option>`).join('');
+  const _models = modelsFor(state.workspace);
+  const modelOpts = (_models.includes(r.model) ? _models : [r.model, ..._models])
+    .map(m => `<option ${m === r.model ? 'selected' : ''}>${esc(m)}</option>`).join('');
 
   const redmineLink = r.redmine
     ? `<a href="${redmineBase()}${encodeURIComponent(r.redmine)}" target="_blank" rel="noopener">레드마인 #${esc(r.redmine)} 원문 ↗</a>`
@@ -944,7 +949,11 @@ function renderDrawer() {
 
         <div class="sec">
           <div class="sec-h">원문 ${redmineLink}</div>
-          <div class="box orig">${esc(r.body)}</div>
+          <textarea id="m-body" class="box orig edit" style="min-height:96px">${esc(r.body)}</textarea>
+          <label class="field" style="margin:10px 0 0;max-width:280px">
+            <span class="lab">모델</span>
+            <select id="m-model">${modelOpts}</select>
+          </label>
         </div>
 
         <div class="sec">
@@ -994,6 +1003,7 @@ function renderDrawer() {
         <button class="btn primary" id="m-save">저장</button>
         <button class="btn ghost" id="m-cancel">닫기</button>
         <span class="saved-msg" id="saved-msg" style="display:none">✓ 저장됨</span>
+        <button class="btn danger" id="m-delete">삭제</button>
       </div>
     </div>
   </div>`;
@@ -1211,6 +1221,9 @@ function bindDrawer(r) {
     if (r._pendingPri !== undefined) r.priority = r._pendingPri;
     delete r._pendingPri;
     r.pmMemo = $('#m-memo').value;
+    // 원문/모델 수정
+    const bodyEl = $('#m-body'); if (bodyEl) r.body = bodyEl.value.trim();
+    const modelEl = $('#m-model'); if (modelEl) r.model = modelEl.value;
 
     // 상태 변경 → 이력 + 알림
     const newStatus = $('#m-status').value;
@@ -1232,6 +1245,15 @@ function bindDrawer(r) {
     render();
     const msg = $('#saved-msg');
     if (msg) { msg.style.display = 'inline'; setTimeout(() => { const m = $('#saved-msg'); if (m) m.style.display = 'none'; }, 1400); }
+  };
+
+  $('#m-delete').onclick = () => {
+    if (!confirm(`${r.id} VOC를 삭제할까요? 되돌릴 수 없습니다.`)) return;
+    DB.records = DB.records.filter(x => x.id !== r.id);
+    save();
+    document.getElementById('overlay')?.remove();
+    state.detailId = null;
+    render();
   };
 }
 
