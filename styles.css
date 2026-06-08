@@ -266,6 +266,7 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
 }
 .toolbar .grp { display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; }
 .toolbar select { width: auto; padding: 7px 30px 7px 11px; font-size: 12.5px; background-color: #fff; }
+.toolbar select[data-filter="model"] { width: 156px; text-overflow: ellipsis; }
 .toolbar .lab { font-size: 11.5px; font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; }
 .toolbar .spacer { flex: 1; }
 .search { position: relative; }
@@ -653,9 +654,13 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .cmt-h b { font-size: 12.5px; }
 .cmt-at { font-size: 11px; color: var(--faint); font-family: var(--mono); }
 .cmt-body { font-size: 13px; color: var(--ink-soft); line-height: 1.5; padding-left: 30px; white-space: pre-wrap; }
-.cmt-add { display: flex; gap: 8px; align-items: flex-start; }
+.cmt-add { display: flex; gap: 8px; align-items: flex-start; position: relative; }
 .cmt-add textarea { flex: 1; min-height: 42px; }
 .cmt-add .btn { flex: 0 0 auto; }
+.cmt-body .mention { color: #185fa5; font-weight: 800; }
+.mention-pop { position: absolute; left: 0; bottom: calc(100% + 6px); z-index: 30; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 6px 22px rgba(0,0,0,.10); padding: 4px; min-width: 210px; max-height: 220px; overflow: auto; }
+.mention-opt { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; background: transparent; padding: 7px 9px; border-radius: 7px; cursor: pointer; font-size: 13px; text-align: left; color: var(--ink); }
+.mention-opt:hover { background: var(--surface-2); }
 
 /* 역할 커스텀 드롭다운 */
 .role-dd { flex: 0 0 120px; position: relative; }
@@ -676,12 +681,6 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .recv-no.big { font-family: var(--mono); font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
 .detail-form { display: flex; flex-direction: column; gap: 20px; }
 .detail-form .sec { background: var(--surface); border: 0.5px solid var(--line); border-radius: 14px; padding: 16px 18px; }
-
-/* 우측 칼럼 = 하나의 카드, 그 안에 상위 타이틀 + 하위 카드(섹션) */
-.dcol-card-title { font-size: 16px; font-weight: 800; color: var(--ink); letter-spacing: -.01em; margin-bottom: 16px; }
-.dcol-card .subsec + .subsec { margin-top: 16px; }
-.subsec { border: 0.5px solid var(--line); border-radius: 12px; padding: 14px 16px; background: var(--paper); }
-.subsec-h { font-size: 13.5px; font-weight: 800; color: var(--ink); margin-bottom: 12px; }
 
 /* 상단 상태 바 */
 .status-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 2px; }

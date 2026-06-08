@@ -955,6 +955,17 @@ function renderVOCCard(r) {
 
 /* ===== 상세 드로어 ===== */
 /* 상세 폼 섹션들 — 전용 페이지에서 2단 배치 (동일 ID 재사용) */
+/* 댓글 @멘션 — 본문 강조 + 멘션된 팀원 추출 */
+function renderCommentText(text) {
+  let html = esc(text);
+  const names = [...new Set(team().flatMap(m => [m.en, m.ko].filter(Boolean)))].sort((a, b) => b.length - a.length);
+  names.forEach(n => { html = html.split('@' + esc(n)).join('<span class="mention">@' + esc(n) + '</span>'); });
+  return html;
+}
+function mentionedMembers(text) {
+  return team().filter(m => [m.en, m.ko].filter(Boolean).some(n => text.includes('@' + n)));
+}
+
 function detailSections(r) {
   const types = effTypes(r);
   const typeChips = TYPES.map(t => `<button class="opt-chip ${types.includes(t) ? 'on' : ''}" data-type="${esc(t)}">${esc(t)}</button>`).join('');
@@ -979,8 +990,8 @@ function detailSections(r) {
       <textarea id="m-body" class="box orig edit grow-fill" style="min-height:160px">${esc(r.body)}</textarea>
     </div>`,
     classify: `
-    <div class="subsec">
-      <div class="subsec-h">분류 보정</div>
+    <div class="sec">
+      <div class="sec-h">분류 보정</div>
       <div class="edit-grid">
         <div><div class="sec-h" style="margin-bottom:6px">유형 (복수 선택)</div><div class="multi" id="m-types">${typeChips}</div></div>
         <div><div class="sec-h" style="margin-bottom:6px">영향 범위</div><div class="pri-pick" id="m-impact">${impactChips}</div></div>
@@ -988,8 +999,8 @@ function detailSections(r) {
       </div>
     </div>`,
     pm: `
-    <div class="subsec pm-block">
-      <div class="subsec-h">개발 전달</div>
+    <div class="sec pm-block">
+      <div class="sec-h">개발 전달</div>
       <div class="sec-h" style="margin-bottom:6px">전달 메모</div>
       <textarea id="m-memo" class="box" style="min-height:90px;width:100%;margin-bottom:14px" placeholder="개발팀에 전달할 내용을 적으세요.">${esc(r.pmMemo)}</textarea>
       <div class="sec-h" style="margin-bottom:6px">담당자 <span class="muted-s">복수 선택 가능</span></div>
@@ -998,8 +1009,8 @@ function detailSections(r) {
     comments: `
     <div class="sec">
       <div class="sec-h">댓글 <span class="muted-s">${r.comments.length}</span></div>
-      <div class="comments" id="m-comments">${r.comments.length ? r.comments.map(c => `<div class="cmt"><div class="cmt-h">${avatarHTML(c.author, 22)}<b>${(member(c.author) || {}).en || '알수없음'}</b><span class="cmt-at">${fmtDate(c.at)}</span></div><div class="cmt-body">${esc(c.text)}</div></div>`).join('') : '<div class="empty-mini">아직 댓글이 없습니다.</div>'}</div>
-      <div class="cmt-add"><textarea id="m-cmt-input" placeholder="댓글을 입력하세요..."></textarea><button class="btn sm" id="m-cmt-send">등록</button></div>
+      <div class="comments" id="m-comments">${r.comments.length ? r.comments.map(c => `<div class="cmt"><div class="cmt-h">${avatarHTML(c.author, 22)}<b>${(member(c.author) || {}).en || '알수없음'}</b><span class="cmt-at">${fmtDate(c.at)}</span></div><div class="cmt-body">${renderCommentText(c.text)}</div></div>`).join('') : '<div class="empty-mini">아직 댓글이 없습니다.</div>'}</div>
+      <div class="cmt-add"><textarea id="m-cmt-input" placeholder="댓글 입력…  @로 팀원 멘션"></textarea><button class="btn sm" id="m-cmt-send">등록</button><div class="mention-pop" id="m-mention-pop" hidden></div></div>
     </div>`
   };
 }
@@ -1026,7 +1037,7 @@ function renderDetailPage() {
     ${statusBar(r)}
     <div class="detail-2col">
       <div class="dcol">${s.summary}${s.orig}</div>
-      <div class="dcol"><div class="sec dcol-card"><div class="dcol-card-title">분류 · 전달</div>${s.classify}${s.pm}</div></div>
+      <div class="dcol">${s.classify}${s.pm}</div>
     </div>
   </div>
   <div class="save-bar detail-savebar">
@@ -1357,12 +1368,44 @@ function bindEditControls(r) {
   const _b = $('#m-body'); if (_b) _b.oninput = markDirty;
   const _m = $('#m-model'); if (_m) _m.onchange = markDirty;
 
+  const cmtInput = $('#m-cmt-input');
+  const mpop = $('#m-mention-pop');
+  const hideMpop = () => { if (mpop) { mpop.hidden = true; mpop.innerHTML = ''; } };
+  const showMentions = () => {
+    if (!cmtInput || !mpop) return;
+    const upto = cmtInput.value.slice(0, cmtInput.selectionStart ?? cmtInput.value.length);
+    const m = upto.match(/@([^\s@]*)$/);
+    if (!m) { hideMpop(); return; }
+    const q = m[1].toLowerCase();
+    const matches = team().filter(mem => (mem.en + (mem.ko || '')).toLowerCase().includes(q)).slice(0, 6);
+    if (!matches.length) { hideMpop(); return; }
+    mpop.innerHTML = matches.map(mem => `<button type="button" class="mention-opt" data-mname="${esc(mem.en)}">${avatarHTML(mem.id, 18)} <b>${esc(mem.en)}</b>${mem.ko ? ` <span class="muted-s">${esc(mem.ko)}</span>` : ''}</button>`).join('');
+    mpop.hidden = false;
+    mpop.querySelectorAll('.mention-opt').forEach(b => b.onmousedown = e => {
+      e.preventDefault();
+      const name = b.dataset.mname;
+      const start = cmtInput.selectionStart ?? cmtInput.value.length;
+      const before = cmtInput.value.slice(0, start).replace(/@([^\s@]*)$/, '@' + name + ' ');
+      cmtInput.value = before + cmtInput.value.slice(start);
+      cmtInput.focus();
+      try { cmtInput.setSelectionRange(before.length, before.length); } catch (e2) {}
+      hideMpop();
+    });
+  };
+  if (cmtInput) {
+    cmtInput.addEventListener('input', showMentions);
+    cmtInput.addEventListener('keyup', e => { if (e.key === 'Escape') hideMpop(); });
+    cmtInput.addEventListener('blur', () => setTimeout(hideMpop, 150));
+  }
+
   $('#m-cmt-send').onclick = () => {
     const ta = $('#m-cmt-input');
     const text = (ta.value || '').trim();
     if (!text) return;
     r.comments = r.comments || [];
     r.comments.push({ author: DB.me, text, at: Date.now() });
+    const mentioned = mentionedMembers(text);
+    if (mentioned.length) pushNotif('mention', `${r.id} 댓글에서 ${mentioned.map(m => m.en).join(', ')} 멘션`, r.id);
     save(); render();
   };
 
