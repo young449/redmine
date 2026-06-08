@@ -666,8 +666,12 @@ function smoothPath(pts) {
   let d = `M${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
   for (let i = 0; i < pts.length - 1; i++) {
     const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
-    const c1x = p1.x + (p2.x - p0.x) / 6, c1y = p1.y + (p2.y - p0.y) / 6;
-    const c2x = p2.x - (p3.x - p1.x) / 6, c2y = p2.y - (p3.y - p1.y) / 6;
+    const c1x = p1.x + (p2.x - p0.x) / 6, c2x = p2.x - (p3.x - p1.x) / 6;
+    // 제어점 y를 구간 두 점 사이로 제한해 곡선이 점 밖으로 튀지(오버슈트) 않게 → 0 바닥 아래로 안 처짐
+    const lo = Math.min(p1.y, p2.y), hi = Math.max(p1.y, p2.y);
+    const clampY = v => Math.max(lo, Math.min(hi, v));
+    const c1y = clampY(p1.y + (p2.y - p0.y) / 6);
+    const c2y = clampY(p2.y - (p3.y - p1.y) / 6);
     d += ` C${c1x.toFixed(1)} ${c1y.toFixed(1)} ${c2x.toFixed(1)} ${c2y.toFixed(1)} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
   }
   return d;
@@ -727,7 +731,6 @@ function renderBoard() {
   const list = visibleRecords();
   const f = state.filters;
   const anyFilter = !!(f.group || f.status || f.impact || f.source || f.model || f.assignee || f.q);
-  const bv = state.boardView === 'card' ? 'card' : 'table';
 
   const actionRow = `
   <div class="board-actions">
@@ -750,18 +753,11 @@ function renderBoard() {
     <div class="grp">${selectFilter('model', f.model, modelsFor(state.workspace), '모델')}</div>
     <div class="grp"><span class="lab">담당자</span><select data-filter="assignee"><option value="">전체</option>${team().map(m => `<option value="${esc(m.id)}" ${f.assignee === m.id ? 'selected' : ''}>${esc(m.en)}${m.ko ? ' ' + esc(m.ko) : ''}</option>`).join('')}</select></div>
     <div class="grp"><span class="lab">정렬</span><select id="f-sort"><option value="desc" ${state.sort === 'desc' ? 'selected' : ''}>최신순</option><option value="asc" ${state.sort === 'asc' ? 'selected' : ''}>오래된순</option></select></div>
-    <div class="spacer"></div>
-    <div class="view-toggle">
-      <button type="button" class="${bv === 'table' ? 'on' : ''}" data-boardview="table">표</button>
-      <button type="button" class="${bv === 'card' ? 'on' : ''}" data-boardview="card">카드</button>
-    </div>
   </div>`;
 
   const body = !list.length
     ? `<div class="card empty"><div class="big">조건에 맞는 VOC가 없습니다</div><div>필터를 변경하거나 ＋ VOC 추가로 새 VOC를 등록하세요.</div></div>`
-    : bv === 'card'
-      ? `<div class="voc-list">${list.map(renderVOCCard).join('')}</div>`
-      : renderVOCTable(list);
+    : renderVOCTable(list);
 
   return `
   ${actionRow}
