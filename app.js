@@ -561,8 +561,8 @@ function statsCards(recs) {
   <div class="dash-stats">
     <div class="card stat"><div class="l">전체 VOC</div><div class="n">${total}</div>${delta(d.total)}</div>
     <div class="card stat"><div class="l">분류 확정</div><div class="n">${confirmed}</div>${delta(d.reviewed)}</div>
-    <div class="card stat"><div class="l">처리 완료</div><div class="n">${done}</div>${delta(d.done)}</div>
     <div class="card stat"><div class="l">요청 (개발·디자인)</div><div class="n">${requested}</div>${delta(d.dev)}</div>
+    <div class="card stat"><div class="l">처리 완료</div><div class="n">${done}</div>${delta(d.done)}</div>
   </div>`;
 }
 
@@ -732,8 +732,10 @@ function renderBoard() {
       <input type="text" id="f-q" placeholder="요약·접수번호·담당자 검색" value="${esc(f.q)}">
     </div>
     <div class="spacer"></div>
-    <button class="btn" type="button" data-act="export">⤓ Export</button>
-    <button class="btn primary" type="button" data-view="cs">＋ VOC 추가</button>
+    <div class="head-actions">
+      <button class="btn" type="button" data-act="export">⤓ Export</button>
+      <button class="btn primary" type="button" data-view="cs">＋ VOC 추가</button>
+    </div>
   </div>`;
 
   const filterRow = `
@@ -976,7 +978,7 @@ function detailSections(r) {
     <div class="sec">
       <div class="sec-h sec-h-ai">AI 요약 <span class="ai-note-inline">${warnIcon()} ${esc(AI_NOTE)}</span></div>
       <div class="ai-cls-row">
-        <span class="ai-cls-lab">AI 분류(원안)</span>
+        <span class="ai-cls-lab">AI 카테고리</span>
         ${[...new Set((r.aiTypes || []).map(groupOfType))].map(g => `<span class="chip grp ${clsOfGroup(g)}">${esc(g)}</span>`).join('') || '<span class="muted-s">분류 없음</span>'}
       </div>
       <div class="box ai">${esc(r.aiSummary)}</div>
