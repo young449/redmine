@@ -37,7 +37,7 @@ function primaryGroupChip(r) {
   if (!gs.length) return '';
   const primary = GROUP_PRIORITY.find(g => gs.includes(g)) || gs[0];
   const more = gs.length - 1;
-  return `<span class="chip grp ${clsOfGroup(primary)}">${esc(primary)}</span>${more > 0 ? `<span class="chip grp-more" title="묶음 ${esc(gs.join(', '))}">+${more}</span>` : ''}`;
+  return `<span class="chip grp ${clsOfGroup(primary)}">${esc(primary)}</span>${more > 0 ? `<span class="chip grp-more" title="카테고리 ${esc(gs.join(', '))}">+${more}</span>` : ''}`;
 }
 // 워크스페이스(브랜드)별 모델 라인업
 //  - AK    : https://www.astellnkern.com/product/dap.php
@@ -99,7 +99,7 @@ function avatarStack(ids, size) {
 }
 // 레드마인 티켓 원본 URL 패턴 (운영 시 실제 레드마인 주소로 교체)
 const REDMINE_BASE = 'https://redmine.example.com/issues/';
-const STATUSES = ['AI 분류', '분류 확정', '개발 요청', '디자인 요청', '완료'];
+const STATUSES = ['AI 분류', '분류 확정', '개발 요청', '디자인 요청', '완료', '반려'];
 const statusClass = s => (s || '').replace(/\s/g, '');
 const isConfirmed = r => !!r.pmStatus && r.pmStatus !== 'AI 분류';
 const redmineBase = () => (DB && DB.redmineBase) || REDMINE_BASE;
@@ -712,7 +712,7 @@ function renderVOCTable(list) {
   }).join('');
   return `<div class="card table-wrap"><table class="voc-table">
     <colgroup><col style="width:104px"><col><col style="width:150px"><col style="width:96px"><col style="width:104px"><col style="width:92px"></colgroup>
-    <thead><tr><th>접수번호</th><th>요약</th><th>묶음</th><th>상태</th><th>담당자</th><th>날짜</th></tr></thead>
+    <thead><tr><th>접수번호</th><th>요약</th><th>카테고리</th><th>상태</th><th>담당자</th><th>날짜</th></tr></thead>
     <tbody>${rows}</tbody>
   </table></div>`;
 }
@@ -736,7 +736,7 @@ function renderBoard() {
 
   const filterRow = `
   <div class="card toolbar">
-    <div class="grp">${selectFilter('group', f.group, TYPE_GROUPS.map(g => g.key), '묶음')}</div>
+    <div class="grp">${selectFilter('group', f.group, TYPE_GROUPS.map(g => g.key), '카테고리')}</div>
     <div class="grp">${selectFilter('status', f.status, STATUSES, '상태')}</div>
     <div class="grp">${selectFilter('impact', f.impact, IMPACTS, '영향범위')}</div>
     <div class="grp">${selectFilter('model', f.model, modelsFor(state.workspace), '모델')}</div>
@@ -829,7 +829,7 @@ function calGantt(recs) {
   const pct = t => ((t - min) / span) * 100;
 
   const rows = list.map(r => {
-    const doneAt = lastEntered(r, '완료');
+    const doneAt = lastEntered(r, '완료') || lastEntered(r, '반려');
     const devAt = lastEntered(r, '개발 요청') || lastEntered(r, '디자인 요청');
     const end = doneAt || now;
     const left = pct(r.createdAt);
@@ -864,10 +864,11 @@ function calGantt(recs) {
 /* ===== 셋팅 ===== */
 function renderSettings() {
   const rows = team().map(m => `
-    <div class="roster-row">
+    <div class="roster-row" draggable="true" data-mid="${esc(m.id)}">
       <div class="rr-role"><span class="role-chip ${esc(m.role)}">${esc(m.role)}</span></div>
       <div class="rr-main">${avatarHTML(m.id, 28)}<span class="rr-name"><b>${esc(m.en)}</b>${m.ko ? ' ' + esc(m.ko) : ''}</span></div>
       <div class="rr-del"><button class="btn ghost sm" data-rm="${esc(m.id)}">삭제</button></div>
+      <div class="rr-grip" title="드래그해서 순서 변경" aria-label="순서 이동"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="8" x2="20" y2="8"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="16" x2="20" y2="16"/></svg></div>
     </div>`).join('');
 
   return `
@@ -976,11 +977,11 @@ function detailSections(r) {
     summary: `
     <div class="sec">
       <div class="sec-h">AI 요약 <span class="ai-badge">AI</span></div>
-      <div class="box ai">${esc(r.aiSummary)}</div>
       <div class="ai-cls-row">
         <span class="ai-cls-lab">AI 분류(원안)</span>
         ${[...new Set((r.aiTypes || []).map(groupOfType))].map(g => `<span class="chip grp ${clsOfGroup(g)}">${esc(g)}</span>`).join('') || '<span class="muted-s">분류 없음</span>'}
       </div>
+      <div class="box ai">${esc(r.aiSummary)}</div>
       <div class="hint" style="color:var(--ai)">${warnIcon()} ${esc(AI_NOTE)}</div>
     </div>`,
     orig: `
@@ -993,17 +994,17 @@ function detailSections(r) {
     <div class="sec">
       <div class="sec-h">분류 보정</div>
       <div class="edit-grid">
-        <div><div class="sec-h" style="margin-bottom:6px">유형 (복수 선택)</div><div class="multi" id="m-types">${typeChips}</div></div>
-        <div><div class="sec-h" style="margin-bottom:6px">영향 범위</div><div class="pri-pick" id="m-impact">${impactChips}</div></div>
-        <div><div class="sec-h" style="margin-bottom:6px">우선순위 태깅</div><div class="pri-pick" id="m-pri">${priBtns}</div></div>
+        <div><div class="sub-h">유형 (복수 선택)</div><div class="multi" id="m-types">${typeChips}</div></div>
+        <div><div class="sub-h">영향 범위</div><div class="pri-pick" id="m-impact">${impactChips}</div></div>
+        <div><div class="sub-h">우선순위 태깅</div><div class="pri-pick" id="m-pri">${priBtns}</div></div>
       </div>
     </div>`,
     pm: `
     <div class="sec pm-block">
       <div class="sec-h">개발 전달</div>
-      <div class="sec-h" style="margin-bottom:6px">전달 메모</div>
+      <div class="sub-h">전달 메모</div>
       <textarea id="m-memo" class="box" style="min-height:90px;width:100%;margin-bottom:14px" placeholder="개발팀에 전달할 내용을 적으세요.">${esc(r.pmMemo)}</textarea>
-      <div class="sec-h" style="margin-bottom:6px">담당자 <span class="muted-s">복수 선택 가능</span></div>
+      <div class="sub-h">담당자 <span class="muted-s">팀 큐 — 비워두면 처리팀이 직접 가져갑니다</span></div>
       <div class="assignee-pick" id="m-assignee">${team().map(m => `<button type="button" class="asg-chip ${(r.assignees || []).includes(m.id) ? 'on' : ''}" data-asg="${esc(m.id)}">${avatarHTML(m.id, 20)} ${esc(m.en)}</button>`).join('')}</div>
     </div>`,
     comments: `
@@ -1020,7 +1021,7 @@ function statusBar(r) {
   const opts = STATUSES.map(s => `<option value="${esc(s)}" ${r.pmStatus === s ? 'selected' : ''}>${esc(s)}</option>`).join('');
   return `
   <div class="status-bar">
-    <span class="hint" style="color:var(--ai);margin:0">${warnIcon()} 유형·영향범위를 사람이 확인·보정하면 'AI 분류'가 '분류 확정'으로 넘어갑니다.</span>
+    <span class="hint" style="color:var(--ai);margin:0;font-weight:700">${warnIcon()} 유형·영향범위를 사람이 확인·보정하면 'AI 분류'가 '분류 확정'으로 넘어갑니다.</span>
     <span class="sbar-sp"></span>
     <span class="lab">상태 변경</span>
     <select id="m-status">${opts}</select>
@@ -1087,6 +1088,37 @@ function bindSettings() {
       save(); render();
     });
 
+  // 담당자 명단 드래그 순서 변경
+  let dragId = null;
+  const clearMarks = () => document.querySelectorAll('.roster-row').forEach(r => r.classList.remove('drop-above', 'drop-below'));
+  document.querySelectorAll('.roster-row[data-mid]').forEach(row => {
+    row.addEventListener('dragstart', e => { dragId = row.dataset.mid; row.classList.add('dragging'); if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'; });
+    row.addEventListener('dragend', () => { dragId = null; row.classList.remove('dragging'); clearMarks(); });
+    row.addEventListener('dragover', e => {
+      e.preventDefault();
+      const rect = row.getBoundingClientRect();
+      const after = e.clientY > rect.top + rect.height / 2;
+      row.classList.toggle('drop-below', after);
+      row.classList.toggle('drop-above', !after);
+    });
+    row.addEventListener('dragleave', () => row.classList.remove('drop-above', 'drop-below'));
+    row.addEventListener('drop', e => {
+      e.preventDefault();
+      const targetId = row.dataset.mid;
+      if (!dragId || dragId === targetId) { clearMarks(); return; }
+      const list = team().slice();
+      const from = list.findIndex(m => m.id === dragId);
+      if (from < 0) { clearMarks(); return; }
+      const rect = row.getBoundingClientRect();
+      const after = e.clientY > rect.top + rect.height / 2;
+      const [moved] = list.splice(from, 1);
+      let insert = list.findIndex(m => m.id === targetId);
+      if (after) insert += 1;
+      list.splice(insert, 0, moved);
+      DB.team = list; save(); render();
+    });
+  });
+
   // 역할 커스텀 드롭다운
   const dd = $('#nm-role-dd');
   if (dd) {
@@ -1145,7 +1177,7 @@ function exportXlsx() {
   if (!recs.length) { alert('내보낼 VOC가 없습니다.'); return; }
 
   const header = ['접수번호', '등록일시', '브랜드', '모델', '출처', '레드마인',
-    '묶음', '유형', '영향범위', '검토여부', '우선순위', 'PM상태', 'PM메모',
+    '카테고리', '유형', '영향범위', '검토여부', '우선순위', 'PM상태', 'PM메모',
     'AI유형', 'AI영향범위', 'VOC본문'];
   const rows = recs.map(r => [
     r.id,
@@ -1427,6 +1459,10 @@ function bindEditControls(r) {
       r.statusHistory.push({ status: newStatus, at: Date.now() });
       r.pmStatus = newStatus;
       pushNotif('status', `${r.id} 상태 변경 → ${newStatus}`, r.id);
+      if (newStatus === '개발 요청' || newStatus === '디자인 요청') {
+        const pms = team().filter(m => m.role === 'PM').map(m => m.en).join(', ');
+        pushNotif('route', `${r.id} ${newStatus} — 팀 큐로 전달${pms ? ` (PM ${pms} 확인)` : ''}`, r.id);
+      }
     }
     r.reviewed = isConfirmed(r);
     const added = editAssignees.filter(id => !(r.assignees || []).includes(id));
