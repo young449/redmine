@@ -449,7 +449,7 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .ri-model { font-size: 14px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ri-sum { font-size: 12px; color: var(--muted); line-height: 1.45; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
 .recent-item .status-tag { flex: 0 0 auto; }
-.recent-item .ava-stack { flex: 0 0 auto; margin-left: auto; }
+.recent-item .ava-stack { flex: 0 0 104px; justify-content: flex-end; margin-left: 0; }
 
 /* ---------- 아바타 (담당자) ---------- */
 .avatar {
