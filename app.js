@@ -289,7 +289,7 @@ const effEmotion = r => r.emotion || r.aiEmotion;
 const state = {
   workspace: 'AK',            // 'AK' | 'Activo'
   view: 'dashboard',          // 'dashboard' | 'board' | 'report' | 'settings' | 'cs'
-  reportPeriod: 'quarter',    // 'month' | 'quarter' | 'year'
+  reportPeriod: 'h1',    // 'month' | 'quarter' | 'year'
   calTab: 'intake',           // 'intake' | 'gantt'
   dashYear: null,             // 월별 차트 연도 필터
   filters: { group: '', impact: '', source: '', status: '', model: '', assignee: '', q: '' },
@@ -774,37 +774,59 @@ function renderBoard() {
 function renderReport() {
   const recs = wsRecords();
   const now = Date.now();
-  const period = state.reportPeriod || 'quarter';
   const d = new Date(now);
-  let start, periodLabel;
-  if (period === 'month') {
-    start = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
-    periodLabel = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}`;
-  } else if (period === 'year') {
+  const period = ['h1', 'h2', 'year'].includes(state.reportPeriod) ? state.reportPeriod : (d.getMonth() < 6 ? 'h1' : 'h2');
+  const yy = d.getFullYear() % 100;
+  let start, end, periodLabel;
+  if (period === 'year') {
     start = new Date(d.getFullYear(), 0, 1).getTime();
-    periodLabel = `${d.getFullYear()}년`;
+    end = new Date(d.getFullYear() + 1, 0, 1).getTime();
+    periodLabel = `${yy}년 전체`;
+  } else if (period === 'h2') {
+    start = new Date(d.getFullYear(), 6, 1).getTime();
+    end = new Date(d.getFullYear() + 1, 0, 1).getTime();
+    periodLabel = `${yy}년 하반기`;
   } else {
-    const q = Math.floor(d.getMonth() / 3);
-    start = new Date(d.getFullYear(), q * 3, 1).getTime();
-    periodLabel = `${d.getFullYear()} Q${q + 1}`;
+    start = new Date(d.getFullYear(), 0, 1).getTime();
+    end = new Date(d.getFullYear(), 6, 1).getTime();
+    periodLabel = `${yy}년 상반기`;
   }
   const lastAt = (r, s) => { const h = (r.statusHistory || []).filter(x => x.status === s); return h.length ? h[h.length - 1].at : null; };
   const closedAt = r => lastAt(r, '완료') || lastAt(r, '반려');
 
-  const intake = recs.filter(r => r.createdAt >= start).length;
-  const completed = recs.filter(r => { const t = lastAt(r, '완료'); return t != null && t >= start; }).length;
+  const intake = recs.filter(r => r.createdAt >= start && r.createdAt < end).length;
+  const completed = recs.filter(r => { const t = lastAt(r, '완료'); return t != null && t >= start && t < end; }).length;
   const open = recs.filter(r => r.pmStatus !== '완료' && r.pmStatus !== '반려').length;
-  const closedInPeriod = recs.filter(r => { const t = closedAt(r); return t != null && t >= start; });
+  const closedInPeriod = recs.filter(r => { const t = closedAt(r); return t != null && t >= start && t < end; });
   const avgDays = closedInPeriod.length
     ? Math.round(closedInPeriod.reduce((s, r) => s + (closedAt(r) - r.createdAt) / 864e5, 0) / closedInPeriod.length)
     : null;
 
-  const periodRecs = recs.filter(r => r.createdAt >= start);
+  // 직전 기간 대비
+  let prevStart;
+  if (period === 'h2') prevStart = new Date(d.getFullYear(), 0, 1).getTime();
+  else if (period === 'year') prevStart = new Date(d.getFullYear() - 1, 0, 1).getTime();
+  else prevStart = new Date(d.getFullYear() - 1, 6, 1).getTime();
+  const intakePrev = recs.filter(r => r.createdAt >= prevStart && r.createdAt < start).length;
+  const completedPrev = recs.filter(r => { const t = lastAt(r, '완료'); return t != null && t >= prevStart && t < start; }).length;
+  const closedPrev = recs.filter(r => { const t = closedAt(r); return t != null && t >= prevStart && t < start; });
+  const avgPrev = closedPrev.length ? Math.round(closedPrev.reduce((s, r) => s + (closedAt(r) - r.createdAt) / 864e5, 0) / closedPrev.length) : null;
+  const openNet = intake - closedInPeriod.length;
+  const avgDelta = (avgDays != null && avgPrev != null) ? avgDays - avgPrev : null;
+  const pword = period === 'year' ? '전년' : '직전 반기';
+  const delta = (v, label) => {
+    const cls = v > 0 ? 'up' : v < 0 ? 'down' : 'flat';
+    const arrow = v > 0 ? '▲' : v < 0 ? '▼' : '·';
+    const sign = v > 0 ? '+' : '';
+    return `<div class="delta ${cls}"><span class="ar">${arrow}</span> ${sign}${v} <span class="dl">${label}</span></div>`;
+  };
+
+  const periodRecs = recs.filter(r => r.createdAt >= start && r.createdAt < end);
   const cats = TYPE_GROUPS.map(g => ({ key: g.key, cls: g.cls, n: periodRecs.filter(r => groupsOfRecord(r).includes(g.key)).length }));
   const maxCat = Math.max(1, ...cats.map(c => c.n));
 
   const months = [];
-  for (let i = 2; i >= 0; i--) months.push(new Date(d.getFullYear(), d.getMonth() - i, 1));
+  for (let i = 5; i >= 0; i--) months.push(new Date(d.getFullYear(), d.getMonth() - i, 1));
   const monthData = months.map(m => {
     const ms = m.getTime(), me = new Date(m.getFullYear(), m.getMonth() + 1, 1).getTime();
     return {
@@ -819,10 +841,10 @@ function renderReport() {
     .map(r => ({ r, days: Math.floor((now - r.createdAt) / 864e5) }))
     .sort((a, b) => b.days - a.days).slice(0, 5);
 
-  const periodSel = `<select id="rp-period">
-    <option value="quarter" ${period === 'quarter' ? 'selected' : ''}>이번 분기</option>
-    <option value="month" ${period === 'month' ? 'selected' : ''}>이번 달</option>
-    <option value="year" ${period === 'year' ? 'selected' : ''}>올해</option>
+  const periodSel = `<select id="rp-period" style="width:auto">
+    <option value="h1" ${period === 'h1' ? 'selected' : ''}>${yy}년 상반기</option>
+    <option value="h2" ${period === 'h2' ? 'selected' : ''}>${yy}년 하반기</option>
+    <option value="year" ${period === 'year' ? 'selected' : ''}>${yy}년 전체</option>
   </select>`;
 
   const catBars = cats.map(c => `
@@ -847,14 +869,10 @@ function renderReport() {
       <span class="rp-age-sum">${esc(r.aiSummary || r.body || '')}</span>
       <span class="status-tag ${statusClass(r.pmStatus)}">${esc(r.pmStatus)}</span>
       <span class="rp-age-days ${days >= 30 ? 'hot' : ''}">${days}일</span>
-    </div>`).join('') : '<div class="empty-mini" style="padding:14px 0">미처리 VOC가 없습니다.</div>';
+    </div>`).join('') : '<div class="empty-mini" style="padding:14px 0">미해결 VOC가 없습니다.</div>';
 
   return `
-  <div class="page-head row">
-    <div>
-      <div class="rp-title">리포트</div>
-      <div class="rp-sub">${esc(WORKSPACE_LABEL[state.workspace])} · ${periodLabel}</div>
-    </div>
+  <div class="page-head row" style="justify-content:flex-end">
     <div class="head-actions">
       ${periodSel}
       <button class="btn" type="button" data-act="export">⤓ 내보내기</button>
@@ -862,10 +880,10 @@ function renderReport() {
   </div>
 
   <div class="dash-stats">
-    <div class="card stat"><div class="l">접수</div><div class="n">${intake}</div></div>
-    <div class="card stat"><div class="l">처리 완료</div><div class="n">${completed}</div></div>
-    <div class="card stat"><div class="l">미처리</div><div class="n" style="color:var(--ai)">${open}</div></div>
-    <div class="card stat"><div class="l">평균 처리일</div><div class="n" style="color:var(--alert)">${avgDays == null ? '–' : avgDays + '일'}</div></div>
+    <div class="card stat"><div class="l">접수</div><div class="n">${intake}</div>${delta(intake - intakePrev, pword + ' 대비')}</div>
+    <div class="card stat"><div class="l">처리 완료</div><div class="n">${completed}</div>${delta(completed - completedPrev, pword + ' 대비')}</div>
+    <div class="card stat"><div class="l">미처리</div><div class="n">${open}</div>${delta(openNet, '이번 기간 순증')}</div>
+    <div class="card stat"><div class="l">평균 처리일</div><div class="n">${avgDays == null ? '–' : avgDays + '일'}</div>${avgDelta == null ? '<div class="delta flat"><span class="ar">·</span> <span class="dl">데이터 없음</span></div>' : delta(avgDelta, pword + ' 대비')}</div>
   </div>
 
   <div class="dash-grid">
@@ -880,7 +898,7 @@ function renderReport() {
   </div>
 
   <div class="card panel">
-    <div class="panel-h">오래 묵은 VOC <span class="muted-s">경과일 순</span></div>
+    <div class="panel-h">미해결 VOC <span class="muted-s">경과일 순</span></div>
     <div class="rp-age">${agingRows}</div>
   </div>`;
 }

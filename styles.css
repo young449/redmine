@@ -789,27 +789,20 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 }
 
 /* ===== 리포트 ===== */
-.rp-title { font-size: 18px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; }
-.rp-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
 .rp-bars { display: flex; flex-direction: column; gap: 12px; }
 .rp-bar-row { display: flex; align-items: center; gap: 10px; font-size: 12.5px; }
 .rp-bar-lab { flex: 0 0 84px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rp-track { flex: 1; height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
-.rp-fill { display: block; height: 100%; border-radius: 4px; background: var(--ink-soft); }
-.rp-fill.g-feat { background: #2f6ad0; }
-.rp-fill.g-ux   { background: #993556; }
-.rp-fill.g-bug  { background: var(--alert); }
-.rp-fill.g-i18n { background: #0f6e56; }
-.rp-fill.g-biz  { background: #b9701b; }
+.rp-fill { display: block; height: 100%; border-radius: 4px; background: #a6adba; }
 .rp-bar-n { flex: 0 0 20px; text-align: right; font-weight: 700; color: var(--ink); }
 .rp-legend { font-size: 11.5px; color: var(--faint); font-weight: 500; }
 .rp-legend .dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; vertical-align: middle; margin: 0 2px 0 8px; }
 .rp-legend .dot.in { background: var(--muted); }
 .rp-legend .dot.done { background: var(--human); }
-.rp-trend { display: flex; align-items: flex-end; justify-content: space-around; height: 132px; gap: 16px; padding-top: 8px; }
+.rp-trend { display: flex; align-items: flex-end; justify-content: space-around; height: 132px; gap: 8px; padding-top: 8px; }
 .rp-mcol { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.rp-mbars { display: flex; align-items: flex-end; gap: 4px; height: 100px; }
-.rp-mb { width: 16px; border-radius: 3px 3px 0 0; min-height: 2px; }
+.rp-mbars { display: flex; align-items: flex-end; gap: 3px; height: 100px; }
+.rp-mb { width: 13px; border-radius: 3px 3px 0 0; min-height: 2px; }
 .rp-mb.in { background: var(--muted); }
 .rp-mb.done { background: var(--human); }
 .rp-mlab { font-size: 12px; color: var(--faint); }
