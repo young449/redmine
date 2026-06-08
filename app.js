@@ -1722,6 +1722,12 @@ function bindEditControls(r) {
       if (editAssignees.includes(id)) editAssignees = editAssignees.filter(x => x !== id);
       else editAssignees.push(id);
       b.classList.toggle('on', editAssignees.includes(id));
+      // 담당자를 배정하면 'AI 분류'는 자동으로 '분류 확정'으로 (사람이 확인한 것으로 간주)
+      const st = $('#m-status'), bdg = $('#m-status-badge');
+      if (editAssignees.length > 0 && st && st.value === 'AI 분류') {
+        st.value = '분류 확정';
+        if (bdg) { bdg.className = 'status-tag 분류확정 status-badge'; bdg.innerHTML = '<span class="bdot"></span>분류 확정'; }
+      }
       markDirty();
     });
   $('#m-memo').oninput = markDirty;
