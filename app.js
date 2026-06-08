@@ -104,7 +104,9 @@ const statusClass = s => (s || '').replace(/\s/g, '');
 const isConfirmed = r => !!r.pmStatus && r.pmStatus !== 'AI 분류';
 const redmineBase = () => (DB && DB.redmineBase) || REDMINE_BASE;
 
-const STORE_KEY = 'voc_console_v4';
+const STORE_KEY = 'voc_console';          // 안정 저장키 (시드 교체 시에도 유지)
+const LEGACY_KEYS = ['voc_console_v4', 'voc_console_v3', 'voc_console_v2', 'voc_console_v1'];
+const SEED_VERSION = 5;                    // 시드 데이터 버전 (올리면 records만 재시드, 팀·설정은 보존)
 const DRAFT_KEY = 'voc_cs_draft_v1';
 
 /* ---------- 키워드 기반 휴리스틱 AI (대체 구현) ---------- */
@@ -174,6 +176,21 @@ function load() {
   catch { return null; }
 }
 function save() { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); }
+
+// 이전(레거시 포함) 저장 데이터에서 사용자 설정(팀·프로필·알림) 복구
+//  - 기본 팀과 다른(=사용자가 편집한) 팀을 우선 채택, 없으면 가장 최근 데이터
+function recoverSettings() {
+  const keys = [STORE_KEY, ...LEGACY_KEYS];
+  let fallback = null;
+  const defTeam = JSON.stringify(DEFAULT_TEAM);
+  for (const k of keys) {
+    let v; try { v = JSON.parse(localStorage.getItem(k)); } catch { v = null; }
+    if (!v || !Array.isArray(v.team) || !v.team.length) continue;
+    if (!fallback) fallback = v;
+    if (JSON.stringify(v.team) !== defTeam) return v;
+  }
+  return fallback;
+}
 
 let DB;
 
@@ -311,7 +328,7 @@ function seed() {
       bseq: bcount[v.brand], aiSummary: v.summary, aiTypes: v.types, aiImpact: v.impact
     });
   });
-  return { seq, records, team: DEFAULT_TEAM.slice(), me: 'ellie', notifs: [], redmineBase: REDMINE_BASE, _seededActivo: true };
+  return { seq, records, team: DEFAULT_TEAM.slice(), me: 'ellie', notifs: [], redmineBase: REDMINE_BASE, _seededActivo: true, seedVersion: SEED_VERSION };
 }
 
 // 접수번호: 브랜드 접두어 + 브랜드별 일련번호 (AK001, AC001 …)
@@ -400,7 +417,25 @@ function makeRecord(brand, body, model, source, redmine, ts, seq, opts) {
   };
 }
 
-DB = load() || seed();
+// 초기화: 시드 버전이 같으면 그대로 로드(모든 편집 유지),
+//         다르거나 없으면 records만 새 시드로 교체하고 팀·설정은 보존/복구
+(function initDB() {
+  let stored = null;
+  try { stored = JSON.parse(localStorage.getItem(STORE_KEY)); } catch { stored = null; }
+  if (stored && stored.seedVersion === SEED_VERSION) {
+    DB = stored;
+    return;
+  }
+  const prev = recoverSettings();
+  DB = seed();
+  if (prev) {
+    if (Array.isArray(prev.team) && prev.team.length) DB.team = prev.team;
+    if (prev.me) DB.me = prev.me;
+    if (Array.isArray(prev.notifs)) DB.notifs = prev.notifs;
+    if (prev.redmineBase) DB.redmineBase = prev.redmineBase;
+  }
+  save();
+})();
 ensureData();
 
 // 화면 표시에 쓰일 실효값(보정 > AI)
