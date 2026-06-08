@@ -965,8 +965,8 @@ function detailSections(r) {
       <textarea id="m-body" class="box orig edit grow-fill" style="min-height:160px">${esc(r.body)}</textarea>
     </div>`,
     classify: `
-    <div class="sec">
-      <div class="sec-h">분류 보정</div>
+    <div class="subsec">
+      <div class="subsec-h">분류 보정</div>
       <div class="edit-grid">
         <div><div class="sec-h" style="margin-bottom:6px">유형 (복수 선택)</div><div class="multi" id="m-types">${typeChips}</div></div>
         <div><div class="sec-h" style="margin-bottom:6px">영향 범위</div><div class="pri-pick" id="m-impact">${impactChips}</div></div>
@@ -974,8 +974,9 @@ function detailSections(r) {
       </div>
     </div>`,
     pm: `
-    <div class="sec pm-block">
-      <div class="sec-h">개발 전달 메모</div>
+    <div class="subsec pm-block">
+      <div class="subsec-h">개발 전달</div>
+      <div class="sec-h" style="margin-bottom:6px">전달 메모</div>
       <textarea id="m-memo" class="box" style="min-height:90px;width:100%;margin-bottom:14px" placeholder="개발팀에 전달할 내용을 적으세요.">${esc(r.pmMemo)}</textarea>
       <div class="sec-h" style="margin-bottom:6px">담당자 <span class="muted-s">복수 선택 가능</span></div>
       <div class="assignee-pick" id="m-assignee">${team().map(m => `<button type="button" class="asg-chip ${(r.assignees || []).includes(m.id) ? 'on' : ''}" data-asg="${esc(m.id)}">${avatarHTML(m.id, 20)} ${esc(m.en)}</button>`).join('')}</div>
@@ -989,23 +990,17 @@ function detailSections(r) {
   };
 }
 
-/* 상단 상태 스텝퍼 (티켓 전체 단계) + 상태 변경 select */
-function statusStepper(r) {
-  const idx = ({ 'AI 분류': 0, '분류 확정': 1, '개발 요청': 2, '디자인 요청': 2, '완료': 3 })[r.pmStatus] ?? 0;
-  const reqLabel = r.pmStatus === '디자인 요청' ? '디자인 요청' : r.pmStatus === '개발 요청' ? '개발 요청' : '요청';
-  const labels = ['AI 분류', '분류 확정', reqLabel, '완료'];
-  const steps = labels.map((lb, i) => {
-    const cls = i < idx ? 'done' : i === idx ? 'cur' : '';
-    const line = i < 3 ? `<div class="step-line ${i < idx ? 'done' : ''}" data-line="${i}"></div>` : '';
-    return `<div class="step ${cls}" data-stage="${i}"><span class="dot"></span><span class="lbl"${i === 2 ? ' id="step-req-lbl"' : ''}>${esc(lb)}</span></div>${line}`;
-  }).join('');
+/* 상단 상태 바 — 현재 상태 배지 + 변경 select */
+function statusBar(r) {
   const opts = STATUSES.map(s => `<option value="${esc(s)}" ${r.pmStatus === s ? 'selected' : ''}>${esc(s)}</option>`).join('');
   return `
-  <div class="status-stepper">
-    <div class="steps">${steps}</div>
-    <div class="status-change"><span class="lab">상태 변경</span><select id="m-status">${opts}</select></div>
+  <div class="status-bar">
+    <span class="status-tag ${statusClass(r.pmStatus)} status-badge" id="m-status-badge"><span class="bdot"></span>${esc(r.pmStatus)}</span>
+    <span class="sbar-sp"></span>
+    <span class="lab">상태 변경</span>
+    <select id="m-status">${opts}</select>
   </div>
-  <div class="hint" style="margin:0 0 18px">${warnIcon()} 유형·영향범위를 사람이 확인·보정하면 'AI 분류'가 '분류 확정'으로 넘어갑니다.</div>`;
+  <div class="hint" style="margin:10px 0 18px">${warnIcon()} 유형·영향범위를 사람이 확인·보정하면 'AI 분류'가 '분류 확정'으로 넘어갑니다.</div>`;
 }
 
 /* 전용 상세 페이지 (딥링크 가능) — 2단 + 댓글 1단 */
@@ -1015,10 +1010,10 @@ function renderDetailPage() {
   const s = detailSections(r);
   return `
   <div class="detail-form">
-    ${statusStepper(r)}
+    ${statusBar(r)}
     <div class="detail-2col">
       <div class="dcol">${s.summary}${s.orig}</div>
-      <div class="dcol"><div class="dcol-title">분류 · 전달</div>${s.classify}${s.pm}</div>
+      <div class="dcol"><div class="sec dcol-card"><div class="dcol-card-title">분류 · 전달</div>${s.classify}${s.pm}</div></div>
     </div>
   </div>
   <div class="save-bar detail-savebar">
@@ -1339,17 +1334,13 @@ function bindEditControls(r) {
       markDirty();
     });
   $('#m-memo').oninput = markDirty;
-  const stepEls = document.querySelectorAll('.status-stepper .step');
-  const lineEls = document.querySelectorAll('.status-stepper .step-line');
-  const reqLbl = $('#step-req-lbl');
-  const syncStepper = status => {
-    const idx = ({ 'AI 분류': 0, '분류 확정': 1, '개발 요청': 2, '디자인 요청': 2, '완료': 3 })[status] ?? 0;
-    stepEls.forEach(st => { const i = +st.dataset.stage; st.classList.toggle('done', i < idx); st.classList.toggle('cur', i === idx); });
-    lineEls.forEach(ln => { const i = +ln.dataset.line; ln.classList.toggle('done', i < idx); });
-    if (reqLbl) reqLbl.textContent = status === '디자인 요청' ? '디자인 요청' : status === '개발 요청' ? '개발 요청' : '요청';
-  };
+  const badge = $('#m-status-badge');
   const statusEl = $('#m-status');
-  if (statusEl) statusEl.onchange = () => { markDirty(); syncStepper(statusEl.value); };
+  if (statusEl) statusEl.onchange = () => {
+    markDirty();
+    const v = statusEl.value;
+    if (badge) { badge.className = 'status-tag ' + v.replace(/\s/g, '') + ' status-badge'; badge.innerHTML = '<span class="bdot"></span>' + v; }
+  };
   const _b = $('#m-body'); if (_b) _b.oninput = markDirty;
   const _m = $('#m-model'); if (_m) _m.onchange = markDirty;
 
