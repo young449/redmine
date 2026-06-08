@@ -811,22 +811,27 @@ function renderReport() {
   const completedPrev = recs.filter(r => { const t = lastAt(r, '완료'); return t != null && t >= prevStart && t < start; }).length;
   const closedPrev = recs.filter(r => { const t = closedAt(r); return t != null && t >= prevStart && t < start; });
   const avgPrev = closedPrev.length ? Math.round(closedPrev.reduce((s, r) => s + (closedAt(r) - r.createdAt) / 864e5, 0) / closedPrev.length) : null;
-  const openNet = intake - closedInPeriod.length;
   const avgDelta = (avgDays != null && avgPrev != null) ? avgDays - avgPrev : null;
   const pword = period === 'year' ? '전년' : '직전 반기';
-  const delta = (v, label) => {
+  const delta = (v, label, unit) => {
     const cls = v > 0 ? 'up' : v < 0 ? 'down' : 'flat';
     const arrow = v > 0 ? '▲' : v < 0 ? '▼' : '·';
     const sign = v > 0 ? '+' : '';
-    return `<div class="delta ${cls}"><span class="ar">${arrow}</span> ${sign}${v} <span class="dl">${label}</span></div>`;
+    return `<div class="delta ${cls}"><span class="ar">${arrow}</span> ${sign}${v}${unit || ''} <span class="dl">${label}</span></div>`;
   };
+  const neutral = text => `<div class="delta flat"><span class="dl">${text}</span></div>`;
 
   const periodRecs = recs.filter(r => r.createdAt >= start && r.createdAt < end);
+  const rate = periodRecs.length ? Math.round(periodRecs.filter(r => r.pmStatus === '완료').length / periodRecs.length * 100) : null;
+  const prevRecs = recs.filter(r => r.createdAt >= prevStart && r.createdAt < start);
+  const prevRate = prevRecs.length ? Math.round(prevRecs.filter(r => r.pmStatus === '완료').length / prevRecs.length * 100) : null;
+  const rateDelta = (rate != null && prevRate != null) ? rate - prevRate : null;
+  const over30 = recs.filter(r => r.pmStatus !== '완료' && r.pmStatus !== '반려' && (now - r.createdAt) / 864e5 >= 30).length;
   const cats = TYPE_GROUPS.map(g => ({ key: g.key, cls: g.cls, n: periodRecs.filter(r => groupsOfRecord(r).includes(g.key)).length }));
   const maxCat = Math.max(1, ...cats.map(c => c.n));
 
   const months = [];
-  for (let i = 11; i >= 0; i--) months.push(new Date(d.getFullYear(), d.getMonth() - i, 1));
+  for (let m = 0; m < 12; m++) months.push(new Date(d.getFullYear(), m, 1));
   const monthData = months.map(m => {
     const ms = m.getTime(), me = new Date(m.getFullYear(), m.getMonth() + 1, 1).getTime();
     return {
@@ -880,11 +885,10 @@ function renderReport() {
     </div>
   </div>
 
-  <div class="dash-stats">
-    <div class="card stat"><div class="l">접수</div><div class="n">${intake}</div>${delta(intake - intakePrev, pword + ' 대비')}</div>
-    <div class="card stat"><div class="l">처리 완료</div><div class="n">${completed}</div>${delta(completed - completedPrev, pword + ' 대비')}</div>
-    <div class="card stat"><div class="l">미처리</div><div class="n">${open}</div>${delta(openNet, '이번 기간 순증')}</div>
-    <div class="card stat"><div class="l">평균 처리일</div><div class="n">${avgDays == null ? '–' : avgDays + '일'}</div>${avgDelta == null ? '<div class="delta flat"><span class="ar">·</span> <span class="dl">데이터 없음</span></div>' : delta(avgDelta, pword + ' 대비')}</div>
+  <div class="dash-stats rp-stats">
+    <div class="card stat"><div class="l">평균 처리일</div><div class="n">${avgDays == null ? '–' : avgDays + '일'}</div>${avgDelta == null ? neutral('비교 데이터 없음') : delta(avgDelta, pword + ' 대비', '일')}</div>
+    <div class="card stat"><div class="l">완료율</div><div class="n">${rate == null ? '–' : rate + '%'}</div>${rateDelta == null ? neutral('비교 데이터 없음') : delta(rateDelta, pword + ' 대비', '%p')}</div>
+    <div class="card stat"><div class="l">30일+ 미처리</div><div class="n">${over30}</div>${neutral('미해결 ' + open + '건 중')}</div>
   </div>
 
   <div class="rp-grid">
