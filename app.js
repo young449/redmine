@@ -587,14 +587,10 @@ function renderDashboard() {
     </div>`).join('')}</div>` : '<div class="empty-mini">아직 등록된 VOC가 없습니다.</div>';
 
   return `
-  <div class="page-head row">
-    <div>
-      <h1>대시보드</h1>
-      <p>${esc(WORKSPACE_LABEL[state.workspace])} VOC를 유형·상태·우선순위 기준으로 한눈에 파악합니다.</p>
-    </div>
+  <div class="page-head row" style="justify-content:flex-end">
     <div class="head-actions">
       <button class="btn" type="button" data-act="export">⤓ Export</button>
-      <button class="btn primary" type="button" data-view="cs">＋ Add VOC</button>
+      <button class="btn primary" type="button" data-view="cs">＋ VOC 추가</button>
     </div>
   </div>
   ${statsCards(recs)}
@@ -745,7 +741,6 @@ function renderBoard() {
       : renderVOCTable(list);
 
   return `
-  <div class="page-head"><h1>VOC 보드</h1></div>
   ${actionRow}
   ${filterRow}
   <div class="result-count">${esc(WORKSPACE_LABEL[state.workspace])} · <b>${list.length}</b>건${anyFilter ? ' <span class="muted-s">(필터 적용됨)</span>' : ''}</div>
@@ -757,14 +752,10 @@ function renderCalendar() {
   const recs = wsRecords();
   const tab = state.calTab === 'gantt' ? 'gantt' : 'intake';
   const head = `
-  <div class="page-head row">
-    <div>
-      <h1>캘린더</h1>
-      <p>VOC 접수 시점과 작업 기간을 시간축으로 봅니다.</p>
-    </div>
+  <div class="page-head row" style="justify-content:flex-end">
     <div class="head-actions">
       <button class="btn" type="button" data-act="export">⤓ Export</button>
-      <button class="btn primary" type="button" data-view="cs">＋ Add VOC</button>
+      <button class="btn primary" type="button" data-view="cs">＋ VOC 추가</button>
     </div>
   </div>
   <div class="cal-tabs">
