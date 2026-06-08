@@ -13,8 +13,8 @@
 
 /* ---------- 상수 정의 (PRD 4-2) ---------- */
 const TYPES = [
-  '기능 요청', '사용성 (UXUI)', '버그·오작동', '로컬라이제이션',
-  '하드웨어', '앱 생태계', '가격·가치 인식', '성능·기술 요청'
+  '기능 요청', '성능·기술 요청', '버그·오작동', '로컬라이제이션',
+  '가격·가치 인식', '앱 생태계', '사용성 (UXUI)', '하드웨어'
 ];
 const IMPACTS = ['SW 전용', 'HW 전용', 'SW+HW 복합'];
 const EMOTIONS = ['정보 제공', '제안', '불만', '강한 불만'];
@@ -1336,9 +1336,9 @@ function detailSections(r) {
     </div>`,
     pm: `
     <div class="sec pm-block">
-      <div class="sec-h">개발 전달</div>
+      <div class="sec-h">처리 전달</div>
       <div class="sub-h">전달 메모</div>
-      <textarea id="m-memo" class="box" style="min-height:90px;width:100%;margin-bottom:14px" placeholder="개발팀에 전달할 내용을 적으세요.">${esc(r.pmMemo)}</textarea>
+      <textarea id="m-memo" class="box" style="min-height:90px;width:100%;margin-bottom:14px" placeholder="처리 담당(개발·디자인 등)에게 전달할 내용을 적으세요.">${esc(r.pmMemo)}</textarea>
       <div class="sub-h">담당자 <span class="info-ic" tabindex="0" role="button" aria-label="담당자 안내" data-tip="팀 큐 — 비워두면 처리팀이 직접 가져갑니다">i</span></div>
       <div class="assignee-pick" id="m-assignee">${team().map(m => `<button type="button" class="asg-chip ${(r.assignees || []).includes(m.id) ? 'on' : ''}" data-asg="${esc(m.id)}">${avatarHTML(m.id, 20)} ${esc(m.en)}</button>`).join('')}</div>
     </div>`,
