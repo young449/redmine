@@ -769,15 +769,11 @@ function renderCalendar() {
   const recs = wsRecords();
   const tab = state.calTab === 'gantt' ? 'gantt' : 'intake';
   const head = `
-  <div class="page-head row" style="justify-content:flex-end">
-    <div class="head-actions">
-      <button class="btn" type="button" data-act="export">⤓ Export</button>
-      <button class="btn primary" type="button" data-view="cs">＋ VOC 추가</button>
+  <div class="page-head row" style="justify-content:flex-start">
+    <div class="cal-tabs">
+      <button type="button" data-caltab="intake" class="${tab === 'intake' ? 'on' : ''}">접수 히트맵</button>
+      <button type="button" data-caltab="gantt" class="${tab === 'gantt' ? 'on' : ''}">작업 기간 (간트)</button>
     </div>
-  </div>
-  <div class="cal-tabs">
-    <button type="button" data-caltab="intake" class="${tab === 'intake' ? 'on' : ''}">접수 히트맵</button>
-    <button type="button" data-caltab="gantt" class="${tab === 'gantt' ? 'on' : ''}">작업 기간 (간트)</button>
   </div>`;
   return head + (tab === 'gantt' ? calGantt(recs) : calIntake(recs));
 }
@@ -978,13 +974,12 @@ function detailSections(r) {
   return {
     summary: `
     <div class="sec">
-      <div class="sec-h">AI 요약 <span class="ai-badge">AI</span></div>
+      <div class="sec-h sec-h-ai">AI 요약 <span class="ai-note-inline">${warnIcon()} ${esc(AI_NOTE)}</span></div>
       <div class="ai-cls-row">
-        <span class="ai-cls-lab">AI 분류 (카테고리)</span>
+        <span class="ai-cls-lab">AI 분류(원안)</span>
         ${[...new Set((r.aiTypes || []).map(groupOfType))].map(g => `<span class="chip grp ${clsOfGroup(g)}">${esc(g)}</span>`).join('') || '<span class="muted-s">분류 없음</span>'}
       </div>
       <div class="box ai">${esc(r.aiSummary)}</div>
-      <div class="hint" style="color:var(--ai)">${warnIcon()} ${esc(AI_NOTE)}</div>
     </div>`,
     orig: `
     <div class="sec grow">
@@ -1012,7 +1007,7 @@ function detailSections(r) {
     comments: `
     <div class="sec">
       <div class="sec-h">댓글 <span class="muted-s">${r.comments.length}</span></div>
-      <div class="comments" id="m-comments">${r.comments.length ? r.comments.map(c => `<div class="cmt"><div class="cmt-h">${avatarHTML(c.author, 22)}<b>${(member(c.author) || {}).en || '알수없음'}</b><span class="cmt-at">${fmtDate(c.at)}</span></div><div class="cmt-body">${renderCommentText(c.text)}</div></div>`).join('') : '<div class="empty-mini">아직 댓글이 없습니다.</div>'}</div>
+      <div class="comments" id="m-comments">${r.comments.length ? r.comments.map((c, ci) => `<div class="cmt" data-ci="${ci}"><div class="cmt-h">${avatarHTML(c.author, 22)}<b>${(member(c.author) || {}).en || '알수없음'}</b><span class="cmt-at">${fmtDate(c.at)}${c.editedAt ? ' · 수정됨' : ''}</span>${c.author === DB.me ? `<span class="cmt-actions"><button type="button" class="cmt-act" data-cmt-edit="${ci}">수정</button><button type="button" class="cmt-act" data-cmt-del="${ci}">삭제</button></span>` : ''}</div><div class="cmt-body">${renderCommentText(c.text)}</div></div>`).join('') : '<div class="empty-mini">아직 댓글이 없습니다.</div>'}</div>
       <div class="cmt-add"><textarea id="m-cmt-input" placeholder="댓글 입력…  @로 팀원 멘션"></textarea><button class="btn sm" id="m-cmt-send">등록</button><div class="mention-pop" id="m-mention-pop" hidden></div></div>
     </div>`
   };
@@ -1442,6 +1437,23 @@ function bindEditControls(r) {
     if (mentioned.length) pushNotif('mention', `${r.id} · ${mentioned.map(m => m.en).join(', ')}`, r.id);
     save(); render();
   };
+
+  document.querySelectorAll('[data-cmt-del]').forEach(b => b.onclick = () => {
+    const i = +b.dataset.cmtDel;
+    if (!confirm('이 댓글을 삭제할까요?')) return;
+    r.comments.splice(i, 1); save(); render();
+  });
+  document.querySelectorAll('[data-cmt-edit]').forEach(b => b.onclick = () => {
+    const i = +b.dataset.cmtEdit;
+    const bodyEl = b.closest('.cmt').querySelector('.cmt-body');
+    bodyEl.innerHTML = '<textarea class="cmt-edit-ta"></textarea><div class="cmt-edit-actions"><button type="button" class="btn sm" data-csave>저장</button><button type="button" class="btn ghost sm" data-ccancel>취소</button></div>';
+    const ta = bodyEl.querySelector('.cmt-edit-ta'); ta.value = r.comments[i].text; ta.focus();
+    bodyEl.querySelector('[data-csave]').onclick = () => {
+      const v = ta.value.trim(); if (!v) return;
+      r.comments[i].text = v; r.comments[i].editedAt = Date.now(); save(); render();
+    };
+    bodyEl.querySelector('[data-ccancel]').onclick = () => render();
+  });
 
   $('#m-save').onclick = () => {
     if (touched) {
