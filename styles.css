@@ -480,10 +480,11 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .recent-item:first-child { border-top: 0; }
 .recent-item:hover { background: var(--surface-2); }
 .ri-text { flex: 1; min-width: 0; }
-.ri-main { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
-.ri-main .recv-no { font-family: var(--mono); font-weight: 800; font-size: 16px; color: var(--ink); }
-.ri-model { font-size: 14px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ri-sum { font-size: 12px; color: var(--muted); line-height: 1.45; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.ri-top { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; }
+.ri-top .recv-no { font-family: var(--mono); font-weight: 800; font-size: 15px; color: var(--ink); flex: 0 0 auto; }
+.ri-top .chip { flex: 0 0 auto; }
+.ri-top .status-tag { flex: 0 0 auto; }
+.ri-sum { font-size: 12.5px; color: var(--muted); line-height: 1.45; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .recent-item .status-tag { flex: 0 0 auto; }
 .recent-item .ava-stack { flex: 0 0 104px; justify-content: flex-end; margin-left: 0; }
 
@@ -527,8 +528,11 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .notif-kind.k-new { background: var(--ink-soft); }
 .notif-kind.k-assign { background: var(--human); }
 .notif-kind.k-status { background: var(--ai); }
-.notif-item .nt { font-size: 12.5px; color: var(--ink); line-height: 1.45; }
-.notif-item .nd { font-size: 11px; color: var(--faint); margin-top: 2px; font-family: var(--mono); }
+.notif-kind.k-mention { background: #185fa5; }
+.notif-kind.k-route { background: #5a4bbf; }
+.notif-item .notif-title { font-size: 12.5px; font-weight: 800; color: var(--ink); line-height: 1.3; }
+.notif-item .notif-text { font-size: 12px; color: var(--ink-soft); line-height: 1.45; margin-top: 1px; }
+.notif-item .notif-time { font-size: 11px; color: var(--faint); margin-top: 4px; font-family: var(--mono); }
 
 /* ---------- 캘린더 ---------- */
 .cal-tabs { display: flex; gap: 4px; margin-bottom: 16px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 4px; width: fit-content; }

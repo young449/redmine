@@ -304,6 +304,8 @@ const VIEWS = ['dashboard', 'board', 'calendar', 'settings', 'cs', 'detail'];
 const wsRecords = () => DB.records.filter(r => (r.brand || 'AK') === state.workspace);
 
 /* ---------- 알림 (로컬 시뮬레이션 — 멀티유저는 추후 백엔드) ---------- */
+const NOTIF_TITLES = { new: '새 VOC', mention: '댓글 멘션', status: '상태 변경', route: '처리 전달', assign: '담당 배정' };
+const notifTitle = k => NOTIF_TITLES[k] || '알림';
 function pushNotif(kind, text, vocId) {
   DB.notifs = DB.notifs || [];
   DB.notifs.unshift({ id: 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), kind, text, vocId: vocId || null, at: Date.now(), read: false });
@@ -595,7 +597,7 @@ function renderDashboard() {
   const recentBody = recent.length ? `<div class="recent-list">${recent.map(r => `
     <div class="recent-item" data-open="${r.id}">
       <div class="ri-text">
-        <div class="ri-main"><span class="recv-no">${esc(r.id)}</span><span class="ri-model">${esc(r.model)}</span></div>
+        <div class="ri-top"><span class="recv-no">${esc(r.id)}</span>${primaryGroupChip(r)}<span class="status-tag ${statusClass(r.pmStatus)}">${esc(r.pmStatus)}</span></div>
         <div class="ri-sum">${esc(r.aiSummary)}</div>
       </div>
       ${avatarStack(r.assignees, 32)}
@@ -1306,7 +1308,7 @@ function bindCS() {
     DB.seq += 1;
     const rec = makeRecord(state.workspace, text, model.value, src, redmine.value.trim(), Date.now(), DB.seq);
     DB.records.push(rec); save(); clearDraft();
-    pushNotif('new', `새 VOC ${rec.id} 생성됨 (${WORKSPACE_LABEL[rec.brand]})`, rec.id);
+    pushNotif('new', `${rec.id} · ${WORKSPACE_LABEL[rec.brand]}`, rec.id);
     state.submitted = rec; render();
   };
   function saveDraft() {
@@ -1437,7 +1439,7 @@ function bindEditControls(r) {
     r.comments = r.comments || [];
     r.comments.push({ author: DB.me, text, at: Date.now() });
     const mentioned = mentionedMembers(text);
-    if (mentioned.length) pushNotif('mention', `${r.id} 댓글에서 ${mentioned.map(m => m.en).join(', ')} 멘션`, r.id);
+    if (mentioned.length) pushNotif('mention', `${r.id} · ${mentioned.map(m => m.en).join(', ')}`, r.id);
     save(); render();
   };
 
@@ -1458,17 +1460,17 @@ function bindEditControls(r) {
       r.statusHistory = r.statusHistory || [];
       r.statusHistory.push({ status: newStatus, at: Date.now() });
       r.pmStatus = newStatus;
-      pushNotif('status', `${r.id} 상태 변경 → ${newStatus}`, r.id);
+      pushNotif('status', `${r.id} → ${newStatus}`, r.id);
       if (newStatus === '개발 요청' || newStatus === '디자인 요청') {
         const pms = team().filter(m => m.role === 'PM').map(m => m.en).join(', ');
-        pushNotif('route', `${r.id} ${newStatus} — 팀 큐로 전달${pms ? ` (PM ${pms} 확인)` : ''}`, r.id);
+        pushNotif('route', `${r.id} ${newStatus} · 팀 큐${pms ? ` (PM ${pms})` : ''}`, r.id);
       }
     }
     r.reviewed = isConfirmed(r);
     const added = editAssignees.filter(id => !(r.assignees || []).includes(id));
     r.assignees = editAssignees.slice();
     r.assignee = editAssignees[0] || null;
-    if (added.includes(DB.me)) pushNotif('assign', `${r.id}가 나에게 배정되었습니다`, r.id);
+    if (added.includes(DB.me)) pushNotif('assign', `${r.id} · 나에게 배정`, r.id);
     save(); render();
     const msg = $('#saved-msg');
     if (msg) { msg.style.display = 'inline'; setTimeout(() => { const m = $('#saved-msg'); if (m) m.style.display = 'none'; }, 1400); }
@@ -1533,7 +1535,7 @@ function toggleNotifPanel() {
   const list = ns.length ? ns.map(n => `
     <div class="notif-item ${n.read ? '' : 'unread'}" data-nopen="${esc(n.vocId || '')}">
       <div class="notif-kind k-${esc(n.kind)}"></div>
-      <div class="notif-body"><div class="nt">${esc(n.text)}</div><div class="nd">${relTime(n.at)}</div></div>
+      <div class="notif-body"><div class="notif-title">${esc(notifTitle(n.kind))}</div><div class="notif-text">${esc(n.text)}</div><div class="notif-time">${relTime(n.at)}</div></div>
     </div>`).join('') : '<div class="empty-mini" style="padding:16px">새 알림이 없습니다.</div>';
   const panel = document.createElement('div');
   panel.id = 'notif-panel'; panel.className = 'notif-panel';
