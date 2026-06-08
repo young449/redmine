@@ -104,7 +104,7 @@ const statusClass = s => (s || '').replace(/\s/g, '');
 const isConfirmed = r => !!r.pmStatus && r.pmStatus !== 'AI 분류';
 const redmineBase = () => (DB && DB.redmineBase) || REDMINE_BASE;
 
-const STORE_KEY = 'voc_console_v2';
+const STORE_KEY = 'voc_console_v4';
 const DRAFT_KEY = 'voc_cs_draft_v1';
 
 /* ---------- 키워드 기반 휴리스틱 AI (대체 구현) ---------- */
@@ -302,14 +302,26 @@ const REAL_VOC = [
 ];
 function seed() {
   let seq = 0;
+  const bcount = { AK: 0, Activo: 0 };
   const records = REAL_VOC.map(v => {
     seq += 1;
     const ts = new Date(v.date + 'T09:00:00').getTime() + seq * 60000;
+    bcount[v.brand] = (bcount[v.brand] || 0) + 1;
     return makeRecord(v.brand, v.body, v.model, v.source, v.redmine, ts, seq, {
-      status: v.st, aiSummary: v.summary, aiTypes: v.types, aiImpact: v.impact
+      bseq: bcount[v.brand], aiSummary: v.summary, aiTypes: v.types, aiImpact: v.impact
     });
   });
   return { seq, records, team: DEFAULT_TEAM.slice(), me: 'ellie', notifs: [], redmineBase: REDMINE_BASE, _seededActivo: true };
+}
+
+// 접수번호: 브랜드 접두어 + 브랜드별 일련번호 (AK001, AC001 …)
+const BRAND_PREFIX = { AK: 'AK', Activo: 'AC' };
+const recvId = (brand, n) => (BRAND_PREFIX[brand] || 'AK') + String(n).padStart(3, '0');
+// 해당 브랜드의 다음 일련번호 (기존 최대값 + 1, 삭제가 있어도 충돌 없음)
+function nextBrandSeq(brand) {
+  const recs = (DB && DB.records) ? DB.records.filter(r => r.brand === brand) : [];
+  const max = recs.reduce((m, r) => Math.max(m, r.bseq || 0), 0);
+  return max + 1;
 }
 
 
@@ -346,19 +358,32 @@ function ensureData() {
       changed = true;
     }
   });
+  // 접수번호 브랜드별 일련번호(bseq) 부여 + id 재생성 (구버전 데이터 마이그레이션)
+  if (DB.records.some(r => !r.bseq)) {
+    const byBrand = {};
+    DB.records.slice().sort((a, b) => a.createdAt - b.createdAt).forEach(r => {
+      byBrand[r.brand] = (byBrand[r.brand] || 0) + 1;
+      r.bseq = byBrand[r.brand];
+      r.id = recvId(r.brand, r.bseq);
+    });
+    changed = true;
+  }
   if (changed) save();
 }
 
 function makeRecord(brand, body, model, source, redmine, ts, seq, opts) {
   opts = opts || {};
+  brand = brand || 'AK';
   const ai = heuristicClassify(body);
   const createdAt = ts || Date.now();
   const status = opts.status || 'AI 분류';
   const history = [{ status: 'AI 분류', at: createdAt }];
   if (status !== 'AI 분류') history.push({ status, at: createdAt + 6e6 });
+  // 접수번호: 브랜드별 1부터, 접두어로 브랜드 구분 (AK001 / AC001)
+  const bseq = opts.bseq || nextBrandSeq(brand);
   return {
-    id: 'V' + String(seq).padStart(4, '0'),
-    seq, brand: brand || 'AK', createdAt,
+    id: recvId(brand, bseq), bseq,
+    seq, brand, createdAt,
     body, model: model || '공통', source: source || '국내',
     redmine: redmine || '',
     aiSummary: opts.aiSummary || heuristicSummary(body),
