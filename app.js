@@ -543,7 +543,7 @@ function statsCards(recs) {
   return `
   <div class="dash-stats">
     <div class="card stat"><div class="l">전체 VOC</div><div class="n">${total}</div>${delta(d.total)}</div>
-    <div class="card stat"><div class="l">분류 검토 완료</div><div class="n">${reviewed}</div>${delta(d.reviewed)}</div>
+    <div class="card stat"><div class="l">분류 확정</div><div class="n">${reviewed}</div>${delta(d.reviewed)}</div>
     <div class="card stat"><div class="l">처리 완료</div><div class="n">${done}</div>${delta(d.done)}</div>
     <div class="card stat"><div class="l">개발 요청 VOC</div><div class="n">${devReq}</div>${delta(d.dev)}</div>
   </div>`;
@@ -687,7 +687,7 @@ function renderVOCTable(list) {
     const cls = r.pmStatus.replace(/\s/g, '');
     const groups = groupsOfRecord(r).map(g => `<span class="chip grp ${clsOfGroup(g)}">${esc(g)}</span>`).join('');
     return `<tr data-open="${r.id}">
-      <td class="t-id">${esc(r.id)}${r.reviewed ? ' <span class="rev-dot" title="검토 완료">✓</span>' : ''}</td>
+      <td class="t-id">${esc(r.id)}${r.reviewed ? ' <span class="rev-dot" title="분류 확정 (사람 검토)">✓</span>' : ''}</td>
       <td class="t-sum">${esc(r.aiSummary)}</td>
       <td>${groups}</td>
       <td><span class="status-tag ${cls}">${esc(r.pmStatus)}</span></td>
@@ -912,7 +912,7 @@ function renderVOCCard(r) {
   const groupChips = groupsOfRecord(r).map(g => `<span class="chip grp ${clsOfGroup(g)}">${esc(g)}</span>`).join('');
   const typeChips = types.map(t => `<span class="chip type">${esc(t)}</span>`).join('');
   const reviewChip = r.reviewed
-    ? `<span class="chip human">✓ 검토 완료</span>`
+    ? `<span class="chip human">✓ 분류 확정</span>`
     : `<span class="chip ai-cls">AI 분류</span>`;
   const pri = r.priority
     ? `<span class="pri ${r.priority}">${r.priority}</span>`
@@ -953,7 +953,7 @@ function detailSections(r) {
   const redmineLink = r.redmine
     ? `<a href="${redmineBase()}${encodeURIComponent(r.redmine)}" target="_blank" rel="noopener">레드마인 #${esc(r.redmine)} 원문 ↗</a>`
     : '<span style="color:var(--faint)">레드마인 번호 미입력</span>';
-  const reviewBadge = r.reviewed ? '<span class="human-badge">✓ 검토 완료 (사람)</span>' : '<span class="ai-badge">AI 분류</span>';
+  const reviewBadge = r.reviewed ? '<span class="human-badge">✓ 분류 확정 (사람 검토)</span>' : '<span class="ai-badge">AI 분류</span>';
   return {
     summary: `
     <div class="sec">
@@ -971,7 +971,7 @@ function detailSections(r) {
     classify: `
     <div class="sec">
       <div class="sec-h">분류 보정 ${reviewBadge}</div>
-      <div class="disclaimer" style="margin-bottom:12px">${warnIcon()}<div>아래는 AI 1차 분류입니다. 수정하면 <b>검토 완료(사람)</b>로 전환됩니다.</div></div>
+      <div class="disclaimer" style="margin-bottom:12px">${warnIcon()}<div>아래는 AI가 1차로 찍은 분류입니다. 유형·영향범위를 수정하면 <b>분류 확정(사람 검토)</b>으로 바뀝니다.</div></div>
       <div class="edit-grid">
         <div><div class="sec-h" style="margin-bottom:6px">유형 (복수 선택)</div><div class="multi" id="m-types">${typeChips}</div></div>
         <div><div class="sec-h" style="margin-bottom:6px">영향 범위</div><div class="pri-pick" id="m-impact">${impactChips}</div></div>
@@ -1121,7 +1121,7 @@ function exportXlsx() {
     WORKSPACE_LABEL[r.brand] || r.brand || 'AK',
     r.model, r.source, r.redmine || '',
     groupsOfRecord(r).join(', '), effTypes(r).join(', '), effImpact(r),
-    r.reviewed ? '분류 검토 완료' : 'AI 분류',
+    r.reviewed ? '분류 확정(사람)' : 'AI 분류',
     r.priority || '', r.pmStatus, r.pmMemo || '',
     (r.aiTypes || []).join(', '), r.aiImpact, r.body
   ]);
