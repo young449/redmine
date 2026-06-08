@@ -279,6 +279,7 @@ const state = {
   dashYear: null,             // 월별 차트 연도 필터
   filters: { group: '', impact: '', source: '', status: '', model: '', assignee: '', q: '' },
   sort: 'desc',               // 날짜 정렬: 'desc' 최신순 | 'asc' 오래된순
+  boardView: 'table',         // 보드 표시: 'table' | 'card'
   detailId: null,
   submitted: null,
 };
@@ -684,13 +685,45 @@ function monthlyLine(recs, year) {
   </svg></div>`;
 }
 
-/* ===== VOC 보드 (지라형 — 티켓 워크플로우) ===== */
+/* ===== VOC 보드 ===== */
+function renderVOCTable(list) {
+  const rows = list.map(r => {
+    const cls = r.pmStatus.replace(/\s/g, '');
+    const groups = groupsOfRecord(r).map(g => `<span class="chip grp ${clsOfGroup(g)}">${esc(g)}</span>`).join('');
+    return `<tr data-open="${r.id}">
+      <td class="t-id">${esc(r.id)}${r.reviewed ? ' <span class="rev-dot" title="검토 완료">✓</span>' : ''}</td>
+      <td class="t-sum">${esc(r.aiSummary)}</td>
+      <td>${groups}</td>
+      <td><span class="status-tag ${cls}">${esc(r.pmStatus)}</span></td>
+      <td>${avatarStack(r.assignees, 24)}</td>
+      <td class="t-date">${fmtDate(r.createdAt)}</td>
+    </tr>`;
+  }).join('');
+  return `<div class="card table-wrap"><table class="voc-table">
+    <colgroup><col style="width:104px"><col><col style="width:150px"><col style="width:96px"><col style="width:104px"><col style="width:92px"></colgroup>
+    <thead><tr><th>접수번호</th><th>요약</th><th>묶음</th><th>상태</th><th>담당자</th><th>날짜</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
 function renderBoard() {
   const list = visibleRecords();
   const f = state.filters;
   const anyFilter = !!(f.group || f.status || f.impact || f.source || f.model || f.assignee || f.q);
+  const bv = state.boardView === 'card' ? 'card' : 'table';
 
-  const toolbar = `
+  const actionRow = `
+  <div class="board-actions">
+    <div class="search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" id="f-q" placeholder="요약·접수번호·담당자 검색" value="${esc(f.q)}">
+    </div>
+    <div class="spacer"></div>
+    <button class="btn" type="button" data-act="export">⤓ Export</button>
+    <button class="btn primary" type="button" data-view="cs">＋ VOC 추가</button>
+  </div>`;
+
+  const filterRow = `
   <div class="card toolbar">
     <div class="grp">${selectFilter('group', f.group, TYPE_GROUPS.map(g => g.key), '묶음')}</div>
     <div class="grp">${selectFilter('status', f.status, ['검토중', '개발 요청', '완료'], '상태')}</div>
@@ -699,36 +732,24 @@ function renderBoard() {
     <div class="grp"><span class="lab">담당자</span><select data-filter="assignee"><option value="">전체</option>${team().map(m => `<option value="${esc(m.id)}" ${f.assignee === m.id ? 'selected' : ''}>${esc(m.en)}${m.ko ? ' ' + esc(m.ko) : ''}</option>`).join('')}</select></div>
     <div class="grp"><span class="lab">정렬</span><select id="f-sort"><option value="desc" ${state.sort === 'desc' ? 'selected' : ''}>최신순</option><option value="asc" ${state.sort === 'asc' ? 'selected' : ''}>오래된순</option></select></div>
     <div class="spacer"></div>
-    <div class="search">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-      <input type="text" id="f-q" placeholder="본문·접수번호·담당자 검색" value="${esc(f.q)}">
+    <div class="view-toggle">
+      <button type="button" class="${bv === 'table' ? 'on' : ''}" data-boardview="table">표</button>
+      <button type="button" class="${bv === 'card' ? 'on' : ''}" data-boardview="card">카드</button>
     </div>
   </div>`;
 
-  const disclaimer = `
-  <div class="disclaimer" style="margin-bottom:14px">
-    ${warnIcon()}
-    <div><b>AI 요약·분류 안내.</b> 목록의 요약과 분류는 AI가 1차 생성한 결과입니다. ${esc(AI_NOTE)} UX가 보정한 항목은 <b>검토 완료</b>로 표시됩니다.</div>
-  </div>`;
-
-  const items = list.length
-    ? list.map(renderVOCCard).join('')
-    : `<div class="card empty"><div class="big">조건에 맞는 VOC가 없습니다</div><div>필터를 변경하거나 ＋ Add VOC로 새 VOC를 등록하세요.</div></div>`;
+  const body = !list.length
+    ? `<div class="card empty"><div class="big">조건에 맞는 VOC가 없습니다</div><div>필터를 변경하거나 ＋ VOC 추가로 새 VOC를 등록하세요.</div></div>`
+    : bv === 'card'
+      ? `<div class="voc-list">${list.map(renderVOCCard).join('')}</div>`
+      : renderVOCTable(list);
 
   return `
-  <div class="page-head row">
-    <div>
-      <h1>VOC 보드</h1>
-      <p>티켓처럼 VOC를 상태(검토중 · 개발 요청 · 완료)와 우선순위로 관리합니다. 카드를 열어 분류를 보정하고 PM 상태를 변경하세요.</p>
-    </div>
-    <div class="head-actions">
-      <button class="btn" type="button" data-act="export">⤓ Export</button>
-      <button class="btn primary" type="button" data-view="cs">＋ Add VOC</button>
-    </div>
-  </div>
-  <div class="result-count">${esc(WORKSPACE_LABEL[state.workspace])} · <b>${list.length}</b>건 표시${anyFilter ? ' <span class="muted-s">(필터 적용됨)</span>' : ''}</div>
-  ${toolbar}${disclaimer}
-  <div class="voc-list">${items}</div>`;
+  <div class="page-head"><h1>VOC 보드</h1></div>
+  ${actionRow}
+  ${filterRow}
+  <div class="result-count">${esc(WORKSPACE_LABEL[state.workspace])} · <b>${list.length}</b>건${anyFilter ? ' <span class="muted-s">(필터 적용됨)</span>' : ''}</div>
+  ${body}`;
 }
 
 /* ===== 캘린더 (접수 히트맵 / 작업 기간 간트) ===== */
@@ -1264,6 +1285,8 @@ function bindBoard() {
     sel.onchange = () => { state.filters[sel.dataset.filter] = sel.value; render(); });
   const sortSel = $('#f-sort');
   if (sortSel) sortSel.onchange = () => { state.sort = sortSel.value === 'asc' ? 'asc' : 'desc'; render(); };
+  document.querySelectorAll('[data-boardview]').forEach(b =>
+    b.onclick = () => { state.boardView = b.dataset.boardview === 'card' ? 'card' : 'table'; render(); });
   const q = $('#f-q');
   if (q) {
     let t;
