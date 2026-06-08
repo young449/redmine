@@ -978,7 +978,7 @@ function detailSections(r) {
     <div class="sec">
       <div class="sec-h">AI 요약 <span class="ai-badge">AI</span></div>
       <div class="ai-cls-row">
-        <span class="ai-cls-lab">AI 분류(원안)</span>
+        <span class="ai-cls-lab">AI 분류 (카테고리)</span>
         ${[...new Set((r.aiTypes || []).map(groupOfType))].map(g => `<span class="chip grp ${clsOfGroup(g)}">${esc(g)}</span>`).join('') || '<span class="muted-s">분류 없음</span>'}
       </div>
       <div class="box ai">${esc(r.aiSummary)}</div>
@@ -1004,7 +1004,7 @@ function detailSections(r) {
       <div class="sec-h">개발 전달</div>
       <div class="sub-h">전달 메모</div>
       <textarea id="m-memo" class="box" style="min-height:90px;width:100%;margin-bottom:14px" placeholder="개발팀에 전달할 내용을 적으세요.">${esc(r.pmMemo)}</textarea>
-      <div class="sub-h">담당자 <span class="muted-s">팀 큐 — 비워두면 처리팀이 직접 가져갑니다</span></div>
+      <div class="sub-h">담당자 <span class="info-ic" tabindex="0" role="button" aria-label="담당자 안내" data-tip="팀 큐 — 비워두면 처리팀이 직접 가져갑니다">i</span></div>
       <div class="assignee-pick" id="m-assignee">${team().map(m => `<button type="button" class="asg-chip ${(r.assignees || []).includes(m.id) ? 'on' : ''}" data-asg="${esc(m.id)}">${avatarHTML(m.id, 20)} ${esc(m.en)}</button>`).join('')}</div>
     </div>`,
     comments: `

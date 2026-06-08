@@ -98,7 +98,7 @@ a:hover { text-decoration: underline; }
 .appbar-brand { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; }
 .appbar-back { border: 0; background: transparent; color: var(--muted); font-size: 13px; font-weight: 700; cursor: pointer; padding: 4px 0; }
 .appbar-back:hover { color: var(--ink); }
-.appbar-voc { font-family: var(--mono); font-size: 22px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; }
+.appbar-voc { font-family: var(--mono); font-size: 24px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; }
 .notif-actions { display: flex; gap: 2px; }
 
 .ws-menu {
@@ -395,6 +395,9 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
   text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px;
 }
 .sub-h { font-size: 11px; font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
+.info-ic { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%; border: 1px solid var(--line); color: var(--faint); font-size: 10px; font-weight: 800; font-style: normal; text-transform: none; letter-spacing: 0; cursor: help; position: relative; vertical-align: middle; margin-left: 2px; }
+.info-ic:hover, .info-ic:focus { color: var(--ink-soft); border-color: var(--ink-soft); outline: none; }
+.info-ic[data-tip]:hover::after, .info-ic[data-tip]:focus::after { content: attr(data-tip); position: absolute; top: calc(100% + 7px); left: 0; background: var(--ink); color: #fff; font-size: 11.5px; font-weight: 500; white-space: nowrap; padding: 6px 10px; border-radius: 8px; z-index: 50; box-shadow: 0 4px 16px rgba(0,0,0,.16); pointer-events: none; }
 .sec .sec-h .ai-badge {
   font-size: 9.5px; color: var(--ai); background: var(--ai-bg);
   border: 1px solid var(--ai-line); padding: 1px 7px; border-radius: 99px; letter-spacing: .02em;
@@ -690,6 +693,14 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .recv-no.big { font-family: var(--mono); font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
 .detail-form { display: flex; flex-direction: column; gap: 20px; }
 .detail-form .sec { background: var(--surface); border: 0.5px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+
+/* 상세 타입 스케일 — 타이틀>본문>라벨 위계 */
+.detail-form .sec > .sec-h { font-size: 15px; font-weight: 800; color: var(--ink); text-transform: none; letter-spacing: 0; margin-bottom: 13px; }
+.detail-form .box.ai, .detail-form .box.orig, .detail-form textarea.box { font-size: 14px; line-height: 1.6; }
+.detail-form .cmt-body { font-size: 14px; line-height: 1.55; }
+.detail-form .sub-h, .detail-form .ai-cls-lab { font-size: 12px; }
+.detail-form .hint { font-size: 12px; }
+.detail-form .chip { font-size: 11.5px; }
 
 /* 상단 상태 바 */
 .status-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 2px; }
