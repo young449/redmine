@@ -21,15 +21,24 @@ const EMOTIONS = ['정보 제공', '제안', '불만', '강한 불만'];
 const SOURCES = ['국내', '해외'];
 // VOC 유형 → 성격 기준 묶음
 const TYPE_GROUPS = [
-  { key: '기능·확장', cls: 'g-feat', types: ['기능 요청', '앱 생태계', '성능·기술 요청'] },
-  { key: '사용성',   cls: 'g-ux',   types: ['UX 불만', '디자인 (HW/UXUI)'] },
-  { key: '결함',     cls: 'g-bug',  types: ['버그·오작동'] },
-  { key: '글로벌',   cls: 'g-i18n', types: ['로컬라이제이션'] },
-  { key: '비즈니스', cls: 'g-biz',  types: ['가격·가치 인식'] }
+  { key: '기능·개선',     cls: 'g-feat', types: ['기능 요청', '앱 생태계', '성능·기술 요청'] },
+  { key: '사용성·디자인', cls: 'g-ux',   types: ['UX 불만', '디자인 (HW/UXUI)'] },
+  { key: '버그·결함',     cls: 'g-bug',  types: ['버그·오작동'] },
+  { key: '글로벌',        cls: 'g-i18n', types: ['로컬라이제이션'] },
+  { key: '비즈니스',      cls: 'g-biz',  types: ['가격·가치 인식'] }
 ];
 const groupOfType = t => (TYPE_GROUPS.find(g => g.types.includes(t)) || {}).key || '기타';
 const clsOfGroup = k => (TYPE_GROUPS.find(g => g.key === k) || {}).cls || 'g-etc';
 const groupsOfRecord = r => [...new Set(effTypes(r).map(groupOfType))];
+// 보드 목록에서 대표로 보여줄 묶음 우선순위 (버그가 가장 급함, 비즈니스는 기록형이라 마지막)
+const GROUP_PRIORITY = ['버그·결함', '사용성·디자인', '기능·개선', '글로벌', '비즈니스'];
+function primaryGroupChip(r) {
+  const gs = groupsOfRecord(r);
+  if (!gs.length) return '';
+  const primary = GROUP_PRIORITY.find(g => gs.includes(g)) || gs[0];
+  const more = gs.length - 1;
+  return `<span class="chip grp ${clsOfGroup(primary)}">${esc(primary)}</span>${more > 0 ? `<span class="chip grp-more" title="묶음 ${esc(gs.join(', '))}">+${more}</span>` : ''}`;
+}
 // 워크스페이스(브랜드)별 모델 라인업
 //  - AK    : https://www.astellnkern.com/product/dap.php
 //  - Activo: https://www.activostyle.com/ko/product  (AK가 튜닝한 자매 브랜드)
@@ -383,7 +392,8 @@ function updateWS() {
   if (!brand) return;
   if (state.view === 'detail') {
     const r = DB.records.find(x => x.id === state.detailId);
-    brand.innerHTML = `<span class="appbar-voc">${r ? esc(r.id) : ''}</span>`;
+    const badge = r ? `<span class="status-tag ${statusClass(r.pmStatus)} status-badge" id="m-status-badge"><span class="bdot"></span>${esc(r.pmStatus)}</span>` : '';
+    brand.innerHTML = `<span class="appbar-voc">${r ? esc(r.id) : ''}</span>${badge}`;
   } else {
     brand.innerHTML = `<img id="appbar-logo" class="appbar-logo" alt="대시보드로 이동" title="대시보드">`;
     const abLogo = document.getElementById('appbar-logo');
@@ -690,7 +700,7 @@ function monthlyLine(recs, year) {
 function renderVOCTable(list) {
   const rows = list.map(r => {
     const cls = r.pmStatus.replace(/\s/g, '');
-    const groups = groupsOfRecord(r).map(g => `<span class="chip grp ${clsOfGroup(g)}">${esc(g)}</span>`).join('');
+    const groups = primaryGroupChip(r);
     return `<tr data-open="${r.id}">
       <td class="t-id">${esc(r.id)}</td>
       <td class="t-sum">${esc(r.aiSummary)}</td>
@@ -914,7 +924,7 @@ function renderSettings() {
 
 function renderVOCCard(r) {
   const types = effTypes(r);
-  const groupChips = groupsOfRecord(r).map(g => `<span class="chip grp ${clsOfGroup(g)}">${esc(g)}</span>`).join('');
+  const groupChips = primaryGroupChip(r);
   const typeChips = types.map(t => `<span class="chip type">${esc(t)}</span>`).join('');
   const pri = r.priority
     ? `<span class="pri ${r.priority}">${r.priority}</span>`
@@ -956,6 +966,10 @@ function detailSections(r) {
     <div class="sec">
       <div class="sec-h">AI 요약 <span class="ai-badge">AI</span></div>
       <div class="box ai">${esc(r.aiSummary)}</div>
+      <div class="ai-cls-row">
+        <span class="ai-cls-lab">AI 분류(원안)</span>
+        ${[...new Set((r.aiTypes || []).map(groupOfType))].map(g => `<span class="chip grp ${clsOfGroup(g)}">${esc(g)}</span>`).join('') || '<span class="muted-s">분류 없음</span>'}
+      </div>
       <div class="hint" style="color:var(--ai)">${warnIcon()} ${esc(AI_NOTE)}</div>
     </div>`,
     orig: `
@@ -990,17 +1004,16 @@ function detailSections(r) {
   };
 }
 
-/* 상단 상태 바 — 현재 상태 배지 + 변경 select */
+/* 상단 상태 바 — 안내문(좌) + 상태 변경 select(우). 현재 상태 배지는 앱바 제목 옆에 표시 */
 function statusBar(r) {
   const opts = STATUSES.map(s => `<option value="${esc(s)}" ${r.pmStatus === s ? 'selected' : ''}>${esc(s)}</option>`).join('');
   return `
   <div class="status-bar">
-    <span class="status-tag ${statusClass(r.pmStatus)} status-badge" id="m-status-badge"><span class="bdot"></span>${esc(r.pmStatus)}</span>
+    <span class="hint" style="color:var(--ai);margin:0">${warnIcon()} 유형·영향범위를 사람이 확인·보정하면 'AI 분류'가 '분류 확정'으로 넘어갑니다.</span>
     <span class="sbar-sp"></span>
     <span class="lab">상태 변경</span>
     <select id="m-status">${opts}</select>
-  </div>
-  <div class="hint" style="margin:10px 0 18px">${warnIcon()} 유형·영향범위를 사람이 확인·보정하면 'AI 분류'가 '분류 확정'으로 넘어갑니다.</div>`;
+  </div>`;
 }
 
 /* 전용 상세 페이지 (딥링크 가능) — 2단 + 댓글 1단 */
