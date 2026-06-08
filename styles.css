@@ -221,9 +221,11 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
 .cs-side ul { margin: 0; padding-left: 20px; color: var(--muted); font-size: 12.5px; line-height: 1.85; }
 .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
-.seg { display: flex; gap: 8px; }
+/* 모델명 드롭다운과 국내/해외 토글 높이 통일 */
+.row-2 .field select { height: 44px; }
+.seg { display: flex; gap: 8px; height: 44px; }
 .seg button {
-  flex: 1; padding: 8px; border: 1px solid var(--line); background: var(--surface-2);
+  flex: 1; height: 100%; padding: 0 8px; border: 1px solid var(--line); background: var(--surface-2);
   border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink-soft);
   transition: .15s;
 }
