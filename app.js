@@ -13,8 +13,8 @@
 
 /* ---------- 상수 정의 (PRD 4-2) ---------- */
 const TYPES = [
-  '기능 요청', 'UX 불만', '버그·오작동', '로컬라이제이션',
-  '디자인 (HW/UXUI)', '앱 생태계', '가격·가치 인식', '성능·기술 요청'
+  '기능 요청', '사용성 (UXUI)', '버그·오작동', '로컬라이제이션',
+  '하드웨어', '앱 생태계', '가격·가치 인식', '성능·기술 요청'
 ];
 const IMPACTS = ['SW 전용', 'HW 전용', 'SW+HW 복합'];
 const EMOTIONS = ['정보 제공', '제안', '불만', '강한 불만'];
@@ -22,7 +22,7 @@ const SOURCES = ['국내', '해외'];
 // VOC 유형 → 성격 기준 묶음
 const TYPE_GROUPS = [
   { key: '기능·개선',     cls: 'g-feat', types: ['기능 요청', '앱 생태계', '성능·기술 요청'] },
-  { key: '사용성·디자인', cls: 'g-ux',   types: ['UX 불만', '디자인 (HW/UXUI)'] },
+  { key: '사용성·디자인', cls: 'g-ux',   types: ['사용성 (UXUI)', '하드웨어'] },
   { key: '버그·결함',     cls: 'g-bug',  types: ['버그·오작동'] },
   { key: '글로벌',        cls: 'g-i18n', types: ['로컬라이제이션'] },
   { key: '비즈니스',      cls: 'g-biz',  types: ['가격·가치 인식'] }
@@ -112,10 +112,10 @@ const DRAFT_KEY = 'voc_cs_draft_v1';
 /* ---------- 키워드 기반 휴리스틱 AI (대체 구현) ---------- */
 const TYPE_KEYWORDS = {
   '기능 요청':        ['추가', '기능', '됐으면', '있으면', '지원해', '넣어', '바라', '요청', '원해', '필요'],
-  'UX 불만':          ['불편', '어렵', '헷갈', '복잡', '찾기', '못 찾', '직관', '조작', '사용성', '번거'],
+  '사용성 (UXUI)':          ['불편', '어렵', '헷갈', '복잡', '찾기', '못 찾', '직관', '조작', '사용성', '번거', '글씨', '레이아웃', '화면', '메뉴', '버튼', 'ui', '아이콘', '폰트'],
   '버그·오작동':      ['안 됨', '안됨', '안돼', '안 나', '안나', '안 들', '안 켜', '인식 안', '연결 안', '재연결', '오류', '에러', '버그', '튕', '먹통', '작동', '멈춤', '끊', 'crash', '꺼짐'],
   '로컬라이제이션':   ['언어', '번역', '한국어', '영어', '날짜', '시간대', '지역', '단위', '통화', '현지'],
-  '디자인 (HW/UXUI)': ['디자인', '색상', '글씨', '예쁘', '못생', '레이아웃', '재질', '마감', '외관'],
+  '하드웨어': ['외관', '재질', '마감', '모서리', '크기', '두께', '무게', '케이스', '색상', '질감', '그립', '디자인'],
   '앱 생태계':        ['서드파티', '연동', '호환', '플레이스토어', '앱스토어', '설치'],
   '가격·가치 인식':   ['비싸', '가격', '가성비', '구독', '결제', '아깝', '값이'],
   '성능·기술 요청':   ['느리', '성능', '배터리', '발열', '사양', '속도', '버벅', '용량', '메모리']
@@ -141,7 +141,7 @@ function heuristicClassify(body) {
   // 유형: 히트 1개 이상인 유형 모두 선택, 없으면 최다 후보 1개
   const scored = TYPES.map(type => ({ type, score: countHits(raw, TYPE_KEYWORDS[type]) }));
   let types = scored.filter(s => s.score > 0).sort((a, b) => b.score - a.score).map(s => s.type);
-  if (types.length === 0) types = ['UX 불만'];
+  if (types.length === 0) types = ['사용성 (UXUI)'];
   types = types.slice(0, 3);
 
   // 영향 범위
@@ -192,6 +192,15 @@ function recoverSettings() {
   return fallback;
 }
 
+// 레거시 키 중 records가 있는 가장 최근 데이터 (안정키 이전 버전에서 통째로 인계용)
+function latestLegacyDB() {
+  for (const k of LEGACY_KEYS) {
+    let v; try { v = JSON.parse(localStorage.getItem(k)); } catch { v = null; }
+    if (v && Array.isArray(v.records) && v.records.length) return v;
+  }
+  return null;
+}
+
 let DB;
 
 // VOC 시드 데이터 (Redmine VoC 2026 분석 자료)
@@ -233,8 +242,8 @@ const REAL_VOC = [
     "st": "완료",
     "summary": "반품 발생 — 케이스 모서리 날카로움, 소형 화면으로 슬라이더 조작 어려움, 확대 기능 부재, SoundCloud 미지원, 경쟁사 대비 가격 대비 기능 열위 지적",
     "types": [
-      "UX 불만",
-      "디자인 (HW/UXUI)",
+      "사용성 (UXUI)",
+      "하드웨어",
       "앱 생태계",
       "가격·가치 인식"
     ],
@@ -265,7 +274,7 @@ const REAL_VOC = [
     "summary": "① 하단 Android 버튼 커스터마이징 ② 배터리 보호 충전 상한선 세분화(85/90/95/100%) ③ 기본 앱 숨기기·삭제 ④ Parametric EQ 고도화 요청",
     "types": [
       "기능 요청",
-      "UX 불만"
+      "사용성 (UXUI)"
     ],
     "impact": "SW 전용",
     "body": "펌웨어 업데이트시 개선 요청 사항\n\n번역본:\n해외 고객으로부터 추후 펌웨어 대해 몇 가지 제안 사항이 있어 내용 공유드립니다.\n\n- 설정에서 하단 Android 제어 버튼(앱 전환, 홈, VU, 뒤로 가기)을 사용자 지정할 수 있는 기능. VU 버튼을 앱 서랍으로 바꿀 수 있으면 좋을 것 같습니다. 앱 서랍 자체는 카드 형태가 아니므로 앱 전환 시 불필요한 터치를 줄일 수 있을 것입니다.\n\n- 배터리 보호 모드 설정을 더욱 세밀하게 조정할 수 있는 기능. 현재는 배터리 보호 기능을 사용하지 않거나 85%까지 충전하는 두 가지 옵션만 있습니다. 85%, 90%, 95%, 100%와 같은 옵션이 추가되면 좋을 것 같습니다. HDMI와 DAR을 활성화하면 배터리 소모가 매우 빠른 플레이어에서 80%에서 10%를 더 절약할 수 있다면 더욱 유용할 것입니다.\n\n- Android Auto, Tidal과 같은 기본 앱을 숨기거나 완전히 제거할 수 있는 기능\n\n- EQ 개선. parametric EQ는 매우 기본적인 기능만 제공하며, 전체 주파수 응답을 확인하고 원하는 곡선을 만들 수 없습니다. 타사에서 개발한 안드로이드 앱 중에는 더욱 세밀한 튜닝을 지원하는 앱들이 있지만, A&K 팀에서 직접 개발한 앱이 나온다면 정말 좋을 것 같습니다."
@@ -294,7 +303,7 @@ const REAL_VOC = [
     "st": "분류 확정",
     "summary": "재생목록에 곡 추가 시 기본값이 '맨 아래'이며, '맨 위에 추가' 옵션 선택 기능이 없음 — 장기 사용자(SP2000~SP4000)의 지속 불편 사항",
     "types": [
-      "UX 불만",
+      "사용성 (UXUI)",
       "기능 요청"
     ],
     "impact": "SW 전용",
@@ -310,8 +319,8 @@ const REAL_VOC = [
     "summary": "가사 없음 상태에서 'Lyrics is empty' 문법 오류 + 빨간색 텍스트 표시로 오류처럼 인식됨 — 메시지 제거 또는 교정 요청",
     "types": [
       "로컬라이제이션",
-      "UX 불만",
-      "디자인 (HW/UXUI)"
+      "사용성 (UXUI)",
+      "하드웨어"
     ],
     "impact": "SW 전용",
     "body": "AK DAP - 사용자 인터페이스(UI)의 문법 수정 제안\n\n해외 고객으로부터 접수된 UI 문구 및 디자인 개선 제안 내용을 공유드립니다.\n\n고객은 현재 가사 부재 시 출력되는 메시지의 문법적 오류와 시각적 부정적 인상을 지적하며 개선 방향을 제시했습니다.\n아래 내용 참고 바랍니다.\n\n번역본:\n\"지금 재생 중\" 화면에서 앨범 아트를 클릭하면, 아트와 함께 다음과 같은 메시지가 표시됩니다.\n\n\"Lyrics is empty\"\n이는 문법적으로 틀린 표현이며, *\"Lyrics are empty\"*가 올바른 표현입니다.\n\n더 중요한 점은, 이 메시지가 빨간색 텍스트로 표시되어 마치 오류처럼 보인다는 것입니다. 이는 사용자에게 유용하지도 않고 미관상 좋지도 않습니다.\n가장 우아한 해결 방법은 이 시점에 아무런 메시지도 띄우지 않는 것입니다. 그저 앨범 페이지만 깔끔하게 보여주는 것이 훨씬 보기 좋습니다."
@@ -385,6 +394,19 @@ function ensureData() {
     });
     changed = true;
   }
+  // 유형 명칭 정리: UX 불만 → 사용성 (UXUI), 디자인 (HW/UXUI) → 하드웨어 (기존 저장 레코드 보정)
+  const TYPE_RENAME = {
+    'UX 불만': '사용성 (UXUI)', 'UX/UI': '사용성 (UXUI)',
+    '디자인 (HW/UXUI)': '하드웨어', '하드웨어 디자인': '하드웨어'
+  };
+  DB.records.forEach(r => {
+    ['types', 'aiTypes'].forEach(f => {
+      if (Array.isArray(r[f])) {
+        const mapped = [...new Set(r[f].map(t => TYPE_RENAME[t] || t))];
+        if (JSON.stringify(mapped) !== JSON.stringify(r[f])) { r[f] = mapped; changed = true; }
+      }
+    });
+  });
   if (changed) save();
 }
 
@@ -417,15 +439,26 @@ function makeRecord(brand, body, model, source, redmine, ts, seq, opts) {
   };
 }
 
-// 초기화: 시드 버전이 같으면 그대로 로드(모든 편집 유지),
-//         다르거나 없으면 records만 새 시드로 교체하고 팀·설정은 보존/복구
+// 초기화 원칙: 한번 만들어진 데이터(메모·댓글·상태·담당자·팀 등 모든 편집)는 절대 자동 폐기하지 않는다.
+//  - 안정키에 데이터가 있으면 그대로 로드
+//  - 없으면 레거시 데이터를 통째로 인계
+//  - 아무것도 없을 때만 최초 1회 시드
+//  데이터 보정이 필요하면 ensureData()의 인플레이스 마이그레이션으로만 처리한다.
 (function initDB() {
   let stored = null;
   try { stored = JSON.parse(localStorage.getItem(STORE_KEY)); } catch { stored = null; }
-  if (stored && stored.seedVersion === SEED_VERSION) {
-    DB = stored;
+  if (stored && Array.isArray(stored.records)) { DB = stored; return; }
+
+  const legacy = latestLegacyDB();
+  if (legacy) {
+    DB = legacy;                       // 이전 데이터 전체 인계 (편집 보존)
+    const cust = recoverSettings();
+    if (cust && Array.isArray(cust.team) && cust.team.length) DB.team = cust.team;
+    save();
     return;
   }
+
+  // 완전 신규 브라우저에서만 최초 시드
   const prev = recoverSettings();
   DB = seed();
   if (prev) {
