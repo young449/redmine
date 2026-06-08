@@ -288,7 +288,8 @@ const effEmotion = r => r.emotion || r.aiEmotion;
 /* ---------- 라우팅 (해시 + 필터 URL 동기화, PRD 8-2) ---------- */
 const state = {
   workspace: 'AK',            // 'AK' | 'Activo'
-  view: 'dashboard',          // 'dashboard' | 'board' | 'calendar' | 'settings' | 'cs'
+  view: 'dashboard',          // 'dashboard' | 'board' | 'report' | 'settings' | 'cs'
+  reportPeriod: 'quarter',    // 'month' | 'quarter' | 'year'
   calTab: 'intake',           // 'intake' | 'gantt'
   dashYear: null,             // 월별 차트 연도 필터
   filters: { group: '', impact: '', source: '', status: '', model: '', assignee: '', q: '' },
@@ -298,7 +299,7 @@ const state = {
   submitted: null,
 };
 const WS_KEY = 'voc_console_ws';
-const VIEWS = ['dashboard', 'board', 'calendar', 'settings', 'cs', 'detail'];
+const VIEWS = ['dashboard', 'board', 'report', 'settings', 'cs', 'detail'];
 
 // 현재 워크스페이스(브랜드)에 속한 레코드만
 const wsRecords = () => DB.records.filter(r => (r.brand || 'AK') === state.workspace);
@@ -371,7 +372,7 @@ function render() {
   if (state.view === 'detail') root.innerHTML = renderDetailPage();
   else if (state.view === 'cs') root.innerHTML = state.submitted ? renderConfirm() : renderCS();
   else if (state.view === 'board') root.innerHTML = renderBoard();
-  else if (state.view === 'calendar') root.innerHTML = renderCalendar();
+  else if (state.view === 'report') root.innerHTML = renderReport();
   else if (state.view === 'settings') root.innerHTML = renderSettings();
   else root.innerHTML = renderDashboard();
   bind();
@@ -541,13 +542,16 @@ function statsCards(recs) {
     return cur - prev;
   };
   const total = recs.length;
-  const confirmed = recs.filter(isConfirmed).length;
+  const open = recs.filter(r => r.pmStatus !== '완료' && r.pmStatus !== '반려').length;
   const done = recs.filter(r => r.pmStatus === '완료').length;
   const requested = recs.filter(r => r.pmStatus === '개발 요청' || r.pmStatus === '디자인 요청').length;
 
+  const closedTs = r => lastEntered(r, '완료') || lastEntered(r, '반려');
+  const opened30 = recs.filter(r => r.createdAt >= now - D).length;
+  const closed30 = recs.filter(r => { const t = closedTs(r); return t != null && t >= now - D; }).length;
   const d = {
     total: deltaBy(r => r.createdAt),
-    reviewed: deltaBy(r => r.reviewedAt),
+    open: opened30 - closed30,
     done: deltaBy(r => lastEntered(r, '완료')),
     dev: deltaBy(r => lastEntered(r, '개발 요청') || lastEntered(r, '디자인 요청')),
   };
@@ -560,9 +564,9 @@ function statsCards(recs) {
   return `
   <div class="dash-stats">
     <div class="card stat"><div class="l">전체 VOC</div><div class="n">${total}</div>${delta(d.total)}</div>
-    <div class="card stat"><div class="l">분류 확정</div><div class="n">${confirmed}</div>${delta(d.reviewed)}</div>
     <div class="card stat"><div class="l">요청 (개발·디자인)</div><div class="n">${requested}</div>${delta(d.dev)}</div>
     <div class="card stat"><div class="l">처리 완료</div><div class="n">${done}</div>${delta(d.done)}</div>
+    <div class="card stat"><div class="l">미처리</div><div class="n">${open}</div>${delta(d.open)}</div>
   </div>`;
 }
 
@@ -764,6 +768,128 @@ function renderBoard() {
   ${filterRow}
   <div class="result-count">${esc(WORKSPACE_LABEL[state.workspace])} · <b>${list.length}</b>건${anyFilter ? ' <span class="muted-s">(필터 적용됨)</span>' : ''}</div>
   ${body}`;
+}
+
+/* ===== 리포트 (기간 요약 · 카테고리 · 처리 추이 · 오래 묵은 VOC) ===== */
+function renderReport() {
+  const recs = wsRecords();
+  const now = Date.now();
+  const period = state.reportPeriod || 'quarter';
+  const d = new Date(now);
+  let start, periodLabel;
+  if (period === 'month') {
+    start = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+    periodLabel = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}`;
+  } else if (period === 'year') {
+    start = new Date(d.getFullYear(), 0, 1).getTime();
+    periodLabel = `${d.getFullYear()}년`;
+  } else {
+    const q = Math.floor(d.getMonth() / 3);
+    start = new Date(d.getFullYear(), q * 3, 1).getTime();
+    periodLabel = `${d.getFullYear()} Q${q + 1}`;
+  }
+  const lastAt = (r, s) => { const h = (r.statusHistory || []).filter(x => x.status === s); return h.length ? h[h.length - 1].at : null; };
+  const closedAt = r => lastAt(r, '완료') || lastAt(r, '반려');
+
+  const intake = recs.filter(r => r.createdAt >= start).length;
+  const completed = recs.filter(r => { const t = lastAt(r, '완료'); return t != null && t >= start; }).length;
+  const open = recs.filter(r => r.pmStatus !== '완료' && r.pmStatus !== '반려').length;
+  const closedInPeriod = recs.filter(r => { const t = closedAt(r); return t != null && t >= start; });
+  const avgDays = closedInPeriod.length
+    ? Math.round(closedInPeriod.reduce((s, r) => s + (closedAt(r) - r.createdAt) / 864e5, 0) / closedInPeriod.length)
+    : null;
+
+  const periodRecs = recs.filter(r => r.createdAt >= start);
+  const cats = TYPE_GROUPS.map(g => ({ key: g.key, cls: g.cls, n: periodRecs.filter(r => groupsOfRecord(r).includes(g.key)).length }));
+  const maxCat = Math.max(1, ...cats.map(c => c.n));
+
+  const months = [];
+  for (let i = 2; i >= 0; i--) months.push(new Date(d.getFullYear(), d.getMonth() - i, 1));
+  const monthData = months.map(m => {
+    const ms = m.getTime(), me = new Date(m.getFullYear(), m.getMonth() + 1, 1).getTime();
+    return {
+      label: (m.getMonth() + 1) + '월',
+      inN: recs.filter(r => r.createdAt >= ms && r.createdAt < me).length,
+      doneN: recs.filter(r => { const t = lastAt(r, '완료'); return t != null && t >= ms && t < me; }).length,
+    };
+  });
+  const maxM = Math.max(1, ...monthData.flatMap(x => [x.inN, x.doneN]));
+
+  const aging = recs.filter(r => r.pmStatus !== '완료' && r.pmStatus !== '반려')
+    .map(r => ({ r, days: Math.floor((now - r.createdAt) / 864e5) }))
+    .sort((a, b) => b.days - a.days).slice(0, 5);
+
+  const periodSel = `<select id="rp-period">
+    <option value="quarter" ${period === 'quarter' ? 'selected' : ''}>이번 분기</option>
+    <option value="month" ${period === 'month' ? 'selected' : ''}>이번 달</option>
+    <option value="year" ${period === 'year' ? 'selected' : ''}>올해</option>
+  </select>`;
+
+  const catBars = cats.map(c => `
+    <div class="rp-bar-row">
+      <span class="rp-bar-lab">${esc(c.key)}</span>
+      <span class="rp-track"><span class="rp-fill ${c.cls}" style="width:${Math.round(c.n / maxCat * 100)}%"></span></span>
+      <span class="rp-bar-n">${c.n}</span>
+    </div>`).join('');
+
+  const trendBars = monthData.map(m => `
+    <div class="rp-mcol">
+      <div class="rp-mbars">
+        <span class="rp-mb in" style="height:${Math.round(m.inN / maxM * 100)}%" title="접수 ${m.inN}"></span>
+        <span class="rp-mb done" style="height:${Math.round(m.doneN / maxM * 100)}%" title="완료 ${m.doneN}"></span>
+      </div>
+      <span class="rp-mlab">${m.label}</span>
+    </div>`).join('');
+
+  const agingRows = aging.length ? aging.map(({ r, days }) => `
+    <div class="rp-age-row" data-open="${esc(r.id)}">
+      <span class="rp-age-id">${esc(r.id)}</span>
+      <span class="rp-age-sum">${esc(r.aiSummary || r.body || '')}</span>
+      <span class="status-tag ${statusClass(r.pmStatus)}">${esc(r.pmStatus)}</span>
+      <span class="rp-age-days ${days >= 30 ? 'hot' : ''}">${days}일</span>
+    </div>`).join('') : '<div class="empty-mini" style="padding:14px 0">미처리 VOC가 없습니다.</div>';
+
+  return `
+  <div class="page-head row">
+    <div>
+      <div class="rp-title">리포트</div>
+      <div class="rp-sub">${esc(WORKSPACE_LABEL[state.workspace])} · ${periodLabel}</div>
+    </div>
+    <div class="head-actions">
+      ${periodSel}
+      <button class="btn" type="button" data-act="export">⤓ 내보내기</button>
+    </div>
+  </div>
+
+  <div class="dash-stats">
+    <div class="card stat"><div class="l">접수</div><div class="n">${intake}</div></div>
+    <div class="card stat"><div class="l">처리 완료</div><div class="n">${completed}</div></div>
+    <div class="card stat"><div class="l">미처리</div><div class="n" style="color:var(--ai)">${open}</div></div>
+    <div class="card stat"><div class="l">평균 처리일</div><div class="n" style="color:var(--alert)">${avgDays == null ? '–' : avgDays + '일'}</div></div>
+  </div>
+
+  <div class="dash-grid">
+    <div class="card panel">
+      <div class="panel-h">카테고리 분포 <span class="muted-s">${periodLabel} 접수 기준</span></div>
+      <div class="rp-bars">${catBars}</div>
+    </div>
+    <div class="card panel">
+      <div class="panel-h">접수 vs 완료 <span class="rp-legend"><span class="dot in"></span>접수 <span class="dot done"></span>완료</span></div>
+      <div class="rp-trend">${trendBars}</div>
+    </div>
+  </div>
+
+  <div class="card panel">
+    <div class="panel-h">오래 묵은 VOC <span class="muted-s">경과일 순</span></div>
+    <div class="rp-age">${agingRows}</div>
+  </div>`;
+}
+
+function bindReport() {
+  const sel = document.getElementById('rp-period');
+  if (sel) sel.onchange = () => { state.reportPeriod = sel.value; render(); };
+  document.querySelectorAll('.rp-age-row[data-open]').forEach(row =>
+    row.onclick = () => { state.detailId = row.dataset.open; state.view = 'detail'; render(); });
 }
 
 /* ===== 캘린더 (접수 히트맵 / 작업 기간 간트) ===== */
@@ -1062,7 +1188,7 @@ function bind() {
   if (state.view === 'cs' && !state.submitted) bindCS();
   else if (state.view === 'cs' && state.submitted) bindConfirm();
   else if (state.view === 'board') bindBoard();
-  else if (state.view === 'calendar') bindCalendar();
+  else if (state.view === 'report') bindReport();
   else if (state.view === 'settings') bindSettings();
   else bindDashboard();
 }
