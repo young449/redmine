@@ -678,6 +678,25 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .recv-no.big { font-family: var(--mono); font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
 .detail-form { display: flex; flex-direction: column; gap: 20px; }
 .detail-form .sec { background: var(--surface); border: 0.5px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+
+/* 우측 칼럼 상위 타이틀 */
+.dcol-title { font-size: 14px; font-weight: 800; color: var(--ink); letter-spacing: -.01em; padding-bottom: 2px; margin-bottom: -4px; }
+
+/* 상단 상태 스텝퍼 */
+.status-stepper { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
+.status-stepper .steps { display: flex; align-items: center; flex: 1 1 320px; min-width: 280px; }
+.status-stepper .step { display: flex; align-items: center; gap: 7px; }
+.status-stepper .step .dot { width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--line-2); background: var(--surface); flex: 0 0 auto; }
+.status-stepper .step.done .dot { background: #c2c6cf; border-color: #c2c6cf; }
+.status-stepper .step.cur .dot { background: var(--ink); border-color: var(--ink); }
+.status-stepper .step .lbl { font-size: 12.5px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.status-stepper .step.done .lbl { color: var(--ink-soft); }
+.status-stepper .step.cur .lbl { color: var(--ink); }
+.status-stepper .step-line { flex: 1 1 auto; height: 2px; background: var(--line-2); margin: 0 8px; min-width: 16px; border-radius: 2px; }
+.status-stepper .step-line.done { background: #c2c6cf; }
+.status-stepper .status-change { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.status-stepper .status-change .lab { font-size: 11.5px; font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; }
+.status-stepper .status-change select { width: auto; min-width: 130px; }
 .detail-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: stretch; }
 .detail-2col .dcol { display: flex; flex-direction: column; gap: 20px; }
 .detail-2col .dcol .sec.grow { flex: 1 1 auto; display: flex; flex-direction: column; }
