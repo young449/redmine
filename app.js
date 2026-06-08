@@ -90,6 +90,9 @@ function avatarStack(ids, size) {
 }
 // 레드마인 티켓 원본 URL 패턴 (운영 시 실제 레드마인 주소로 교체)
 const REDMINE_BASE = 'https://redmine.example.com/issues/';
+const STATUSES = ['AI 분류', '분류 확정', '개발 요청', '디자인 요청', '완료'];
+const statusClass = s => (s || '').replace(/\s/g, '');
+const isConfirmed = r => !!r.pmStatus && r.pmStatus !== 'AI 분류';
 const redmineBase = () => (DB && DB.redmineBase) || REDMINE_BASE;
 
 const STORE_KEY = 'voc_console_v1';
@@ -168,15 +171,15 @@ let DB;
 // 워크스페이스별 샘플 (데모/초기 데이터)  st: 상태, as: 담당자, rv: 검토완료
 const SAMPLES = {
   AK: [
-    { body: 'SP3000에서 EQ 설정 화면을 찾기가 너무 어려워요. 메뉴가 너무 깊게 들어가 있어서 매번 헤맵니다. 자주 쓰는 기능은 첫 화면에 두면 좋겠어요.', model: 'SP3000', source: '국내', redmine: '10421', st: '검토중', as: 'ellie' },
+    { body: 'SP3000에서 EQ 설정 화면을 찾기가 너무 어려워요. 메뉴가 너무 깊게 들어가 있어서 매번 헤맵니다. 자주 쓰는 기능은 첫 화면에 두면 좋겠어요.', model: 'SP3000', source: '국내', redmine: '10421', st: 'AI 분류', as: 'ellie' },
     { body: '블루투스로 이어폰 연결하면 자꾸 한쪽만 소리가 안 나옵니다. 재연결해도 똑같고 펌웨어 업데이트 후로 더 심해졌어요. 환불하고 싶을 정도로 짜증납니다.', model: 'PD10', source: '국내', redmine: '10455', st: '개발 요청', as: 'ben', rv: true },
     { body: '해외에서 쓰는데 날짜 표기가 한국식으로만 나와서 불편합니다. 현지 언어와 시간대 설정을 지원해주세요.', model: '공통', source: '해외', redmine: '', st: '완료', as: 'etna', rv: true },
-    { body: 'The price is too high compared to competitors. 가격 대비 기능이 아쉽고 스트리밍 구독료까지 따로 내야 해서 가성비가 별로입니다.', model: 'SP4000', source: '해외', redmine: '10470', st: '검토중' },
+    { body: 'The price is too high compared to competitors. 가격 대비 기능이 아쉽고 스트리밍 구독료까지 따로 내야 해서 가성비가 별로입니다.', model: 'SP4000', source: '해외', redmine: '10470', st: '분류 확정' },
     { body: '재생 중 배터리가 너무 빨리 닳고 충전 단자 접촉이 안 좋은지 충전이 안 될 때가 있어요. 발열도 좀 있는 것 같습니다.', model: 'KANN MAX', source: '국내', redmine: '10488', st: '개발 요청', as: 'luke' },
     { body: '재생 목록을 넘기다 보면 가끔 멈추고 앱이 튕깁니다. 업데이트 후 오류가 더 자주 발생해요.', model: 'SR35', source: '국내', redmine: '10492', st: '완료', as: 'ben', rv: true },
   ],
   Activo: [
-    { body: 'P1 화면이 작아서 재생 목록 글씨가 잘 안 보입니다. 글씨 크기를 키우는 옵션이 있으면 좋겠어요.', model: 'P1', source: '국내', redmine: '10510', st: '검토중', as: 'ellie' },
+    { body: 'P1 화면이 작아서 재생 목록 글씨가 잘 안 보입니다. 글씨 크기를 키우는 옵션이 있으면 좋겠어요.', model: 'P1', source: '국내', redmine: '10510', st: '디자인 요청', as: 'ellie' },
     { body: 'CT10에서 와이파이가 자꾸 끊기고 스트리밍 재생이 멈춥니다. 재연결해도 같은 증상이 반복돼요.', model: 'CT10', source: '해외', redmine: '10515', st: '개발 요청', as: 'luke', rv: true },
     { body: 'Q1 이어폰 한쪽 소리가 작게 나오고 케이블 마감이 좀 아쉽습니다. 디자인은 마음에 들어요.', model: 'Q1', source: '국내', redmine: '', st: '완료', rv: true },
   ]
@@ -219,9 +222,11 @@ function ensureData() {
     if (!Array.isArray(r.comments)) { r.comments = []; changed = true; }
     if (r.model === '공통 / 브랜드 이슈') { r.model = '공통'; changed = true; }
     if (!('reviewedAt' in r)) { r.reviewedAt = r.reviewed ? r.createdAt : null; changed = true; }
+    if (r.pmStatus === '검토중') { r.pmStatus = r.reviewed ? '분류 확정' : 'AI 분류'; changed = true; }
+    r.reviewed = isConfirmed(r);
     if (!Array.isArray(r.statusHistory)) {
-      r.statusHistory = [{ status: '검토중', at: r.createdAt }];
-      if (r.pmStatus && r.pmStatus !== '검토중') r.statusHistory.push({ status: r.pmStatus, at: r.createdAt + 6e6 });
+      r.statusHistory = [{ status: 'AI 분류', at: r.createdAt }];
+      if (r.pmStatus && r.pmStatus !== 'AI 분류') r.statusHistory.push({ status: r.pmStatus, at: r.createdAt + 6e6 });
       changed = true;
     }
   });
@@ -241,9 +246,9 @@ function makeRecord(brand, body, model, source, redmine, ts, seq, opts) {
   opts = opts || {};
   const ai = heuristicClassify(body);
   const createdAt = ts || Date.now();
-  const status = opts.status || '검토중';
-  const history = [{ status: '검토중', at: createdAt }];
-  if (status !== '검토중') history.push({ status, at: createdAt + 6e6 });
+  const status = opts.status || 'AI 분류';
+  const history = [{ status: 'AI 분류', at: createdAt }];
+  if (status !== 'AI 분류') history.push({ status, at: createdAt + 6e6 });
   return {
     id: 'V' + String(seq).padStart(4, '0'),
     seq, brand: brand || 'AK', createdAt,
@@ -253,7 +258,7 @@ function makeRecord(brand, body, model, source, redmine, ts, seq, opts) {
     aiTypes: opts.aiTypes || ai.types, aiImpact: opts.aiImpact || ai.impact, aiEmotion: ai.emotion,
     // 사람 보정 값 (없으면 AI값 사용)
     types: null, impact: null, emotion: null,
-    reviewed: !!opts.reviewed, reviewedAt: opts.reviewed ? createdAt + 3e6 : null,
+    reviewed: status !== 'AI 분류', reviewedAt: status !== 'AI 분류' ? createdAt + 3e6 : null,
     priority: opts.priority || null,
     assignee: opts.assignee || null,
     assignees: opts.assignee ? [opts.assignee] : [],
@@ -524,15 +529,15 @@ function statsCards(recs) {
     return cur - prev;
   };
   const total = recs.length;
-  const reviewed = recs.filter(r => r.reviewed).length;
+  const confirmed = recs.filter(isConfirmed).length;
   const done = recs.filter(r => r.pmStatus === '완료').length;
-  const devReq = recs.filter(r => r.pmStatus === '개발 요청').length;
+  const requested = recs.filter(r => r.pmStatus === '개발 요청' || r.pmStatus === '디자인 요청').length;
 
   const d = {
     total: deltaBy(r => r.createdAt),
     reviewed: deltaBy(r => r.reviewedAt),
     done: deltaBy(r => lastEntered(r, '완료')),
-    dev: deltaBy(r => lastEntered(r, '개발 요청')),
+    dev: deltaBy(r => lastEntered(r, '개발 요청') || lastEntered(r, '디자인 요청')),
   };
   const delta = v => {
     const cls = v > 0 ? 'up' : v < 0 ? 'down' : 'flat';
@@ -543,9 +548,9 @@ function statsCards(recs) {
   return `
   <div class="dash-stats">
     <div class="card stat"><div class="l">전체 VOC</div><div class="n">${total}</div>${delta(d.total)}</div>
-    <div class="card stat"><div class="l">분류 확정</div><div class="n">${reviewed}</div>${delta(d.reviewed)}</div>
+    <div class="card stat"><div class="l">분류 확정</div><div class="n">${confirmed}</div>${delta(d.reviewed)}</div>
     <div class="card stat"><div class="l">처리 완료</div><div class="n">${done}</div>${delta(d.done)}</div>
-    <div class="card stat"><div class="l">개발 요청 VOC</div><div class="n">${devReq}</div>${delta(d.dev)}</div>
+    <div class="card stat"><div class="l">요청 (개발·디자인)</div><div class="n">${requested}</div>${delta(d.dev)}</div>
   </div>`;
 }
 
@@ -562,7 +567,7 @@ function renderDashboard() {
   const yearSel = `<select class="year-sel" id="dash-year">${years.map(y => `<option value="${y}" ${y === state.dashYear ? 'selected' : ''}>${y}년</option>`).join('')}</select>`;
 
   // 상태 분포 (블록형 — 좁은 칼럼을 꽉 채움)
-  const statuses = ['검토중', '개발 요청', '완료'];
+  const statuses = STATUSES;
   const statusTotal = Math.max(1, recs.length);
   const statusRows = `<div class="status-blocks">` + statuses.map(s => {
     const cls = s.replace(/\s/g, '');
@@ -687,7 +692,7 @@ function renderVOCTable(list) {
     const cls = r.pmStatus.replace(/\s/g, '');
     const groups = groupsOfRecord(r).map(g => `<span class="chip grp ${clsOfGroup(g)}">${esc(g)}</span>`).join('');
     return `<tr data-open="${r.id}">
-      <td class="t-id">${esc(r.id)}${r.reviewed ? ' <span class="rev-dot" title="분류 확정 (사람 검토)">✓</span>' : ''}</td>
+      <td class="t-id">${esc(r.id)}</td>
       <td class="t-sum">${esc(r.aiSummary)}</td>
       <td>${groups}</td>
       <td><span class="status-tag ${cls}">${esc(r.pmStatus)}</span></td>
@@ -722,7 +727,7 @@ function renderBoard() {
   const filterRow = `
   <div class="card toolbar">
     <div class="grp">${selectFilter('group', f.group, TYPE_GROUPS.map(g => g.key), '묶음')}</div>
-    <div class="grp">${selectFilter('status', f.status, ['검토중', '개발 요청', '완료'], '상태')}</div>
+    <div class="grp">${selectFilter('status', f.status, STATUSES, '상태')}</div>
     <div class="grp">${selectFilter('impact', f.impact, IMPACTS, '영향범위')}</div>
     <div class="grp">${selectFilter('model', f.model, modelsFor(state.workspace), '모델')}</div>
     <div class="grp"><span class="lab">담당자</span><select data-filter="assignee"><option value="">전체</option>${team().map(m => `<option value="${esc(m.id)}" ${f.assignee === m.id ? 'selected' : ''}>${esc(m.en)}${m.ko ? ' ' + esc(m.ko) : ''}</option>`).join('')}</select></div>
@@ -815,12 +820,12 @@ function calGantt(recs) {
 
   const rows = list.map(r => {
     const doneAt = lastEntered(r, '완료');
-    const devAt = lastEntered(r, '개발 요청');
+    const devAt = lastEntered(r, '개발 요청') || lastEntered(r, '디자인 요청');
     const end = doneAt || now;
     const left = pct(r.createdAt);
     const width = Math.max(2, pct(end) - left);
     const cls = r.pmStatus.replace(/\s/g, '');
-    const devMark = devAt ? `<span class="gmark" style="left:${pct(devAt)}%" title="개발 요청 ${fmtDate(devAt)}"></span>` : '';
+    const devMark = devAt ? `<span class="gmark" style="left:${pct(devAt)}%" title="요청 ${fmtDate(devAt)}"></span>` : '';
     return `
     <div class="gantt-row" data-open="${r.id}">
       <div class="g-label">${avatarHTML(r.assignee, 22)}<span class="recv-no">${esc(r.id)}</span><span class="g-model">${esc(r.model)}</span></div>
@@ -911,9 +916,6 @@ function renderVOCCard(r) {
   const types = effTypes(r);
   const groupChips = groupsOfRecord(r).map(g => `<span class="chip grp ${clsOfGroup(g)}">${esc(g)}</span>`).join('');
   const typeChips = types.map(t => `<span class="chip type">${esc(t)}</span>`).join('');
-  const reviewChip = r.reviewed
-    ? `<span class="chip human">✓ 분류 확정</span>`
-    : `<span class="chip ai-cls">AI 분류</span>`;
   const pri = r.priority
     ? `<span class="pri ${r.priority}">${r.priority}</span>`
     : `<span class="pri none">우선순위 −</span>`;
@@ -931,7 +933,7 @@ function renderVOCCard(r) {
         ${esc(r.aiSummary)}
       </div>
       <div class="chips">
-        ${groupChips}${typeChips}${reviewChip}
+        ${groupChips}${typeChips}
       </div>
     </div>
     <div class="col-meta">
@@ -948,12 +950,12 @@ function detailSections(r) {
   const typeChips = TYPES.map(t => `<button class="opt-chip ${types.includes(t) ? 'on' : ''}" data-type="${esc(t)}">${esc(t)}</button>`).join('');
   const impactChips = IMPACTS.map(i => `<button class="${effImpact(r) === i ? 'on' : ''}" data-impact="${esc(i)}">${esc(i)}</button>`).join('');
   const priBtns = ['High', 'Mid', 'Low'].map(p => `<button class="${r.priority === p ? 'on ' + p : ''}" data-pri="${p}">${p}</button>`).join('');
-  const statusSel = ['검토중', '개발 요청', '완료'].map(s => `<option value="${esc(s)}" ${r.pmStatus === s ? 'selected' : ''}>${esc(s)}</option>`).join('');
+  const statusSel = STATUSES.map(s => `<option value="${esc(s)}" ${r.pmStatus === s ? 'selected' : ''}>${esc(s)}</option>`).join('');
   const modelOpts = modelOptionsHTML(r.brand || state.workspace, r.model);
   const redmineLink = r.redmine
     ? `<a href="${redmineBase()}${encodeURIComponent(r.redmine)}" target="_blank" rel="noopener">레드마인 #${esc(r.redmine)} 원문 ↗</a>`
     : '<span style="color:var(--faint)">레드마인 번호 미입력</span>';
-  const reviewBadge = r.reviewed ? '<span class="human-badge">✓ 분류 확정 (사람 검토)</span>' : '<span class="ai-badge">AI 분류</span>';
+  const reviewBadge = isConfirmed(r) ? '<span class="human-badge">✓ 분류 확정 (사람 검토)</span>' : '<span class="ai-badge">AI 분류</span>';
   return {
     summary: `
     <div class="sec">
@@ -1121,7 +1123,7 @@ function exportXlsx() {
     WORKSPACE_LABEL[r.brand] || r.brand || 'AK',
     r.model, r.source, r.redmine || '',
     groupsOfRecord(r).join(', '), effTypes(r).join(', '), effImpact(r),
-    r.reviewed ? '분류 확정(사람)' : 'AI 분류',
+    isConfirmed(r) ? '분류 확정(사람)' : 'AI 분류',
     r.priority || '', r.pmStatus, r.pmMemo || '',
     (r.aiTypes || []).join(', '), r.aiImpact, r.body
   ]);
@@ -1343,21 +1345,22 @@ function bindEditControls(r) {
     if (touched) {
       r.types = editTypes.slice();
       r.impact = editImpact;
-      if (!r.reviewed) r.reviewedAt = Date.now();
-      r.reviewed = true;
+      r.reviewedAt = r.reviewedAt || Date.now();
     }
     if (r._pendingPri !== undefined) r.priority = r._pendingPri;
     delete r._pendingPri;
     r.pmMemo = $('#m-memo').value;
     const bodyEl = $('#m-body'); if (bodyEl) r.body = bodyEl.value.trim();
     const modelEl = $('#m-model'); if (modelEl) r.model = modelEl.value;
-    const newStatus = $('#m-status').value;
+    let newStatus = $('#m-status').value;
+    if (touched && newStatus === 'AI 분류') newStatus = '분류 확정';
     if (newStatus !== r.pmStatus) {
       r.statusHistory = r.statusHistory || [];
       r.statusHistory.push({ status: newStatus, at: Date.now() });
       r.pmStatus = newStatus;
       pushNotif('status', `${r.id} 상태 변경 → ${newStatus}`, r.id);
     }
+    r.reviewed = isConfirmed(r);
     const added = editAssignees.filter(id => !(r.assignees || []).includes(id));
     r.assignees = editAssignees.slice();
     r.assignee = editAssignees[0] || null;

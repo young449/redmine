@@ -345,7 +345,10 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
 
 .status-tag { font-size: 10.5px; font-weight: 800; padding: 3px 9px; border-radius: 7px; }
 .status-tag.검토중   { background: #eef1f6; color: #5a6678; }
+.status-tag.AI분류    { background: #eef1f6; color: #5a6678; }
+.status-tag.분류확정  { background: #e6f1fb; color: #185fa5; }
 .status-tag.개발요청 { background: var(--ai-bg); color: var(--ai); }
+.status-tag.디자인요청 { background: #f1eefb; color: #5a4bbf; }
 .status-tag.완료     { background: var(--human-bg); color: var(--human); }
 
 .empty { text-align: center; padding: 60px 20px; color: var(--faint); }
@@ -460,7 +463,10 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .track .fill { height: 100%; border-radius: 99px; background: var(--faint); }
 .track .fill.brand { background: var(--brand); }
 .track .fill.검토중 { background: #9aa1ad; }
+.track .fill.AI분류 { background: #9aa1ad; }
+.track .fill.분류확정 { background: #378add; }
 .track .fill.개발요청 { background: var(--ai); }
+.track .fill.디자인요청 { background: #7f77dd; }
 .track .fill.완료 { background: var(--human); }
 .empty-mini { font-size: 12.5px; color: var(--faint); padding: 6px 2px; }
 
@@ -550,7 +556,10 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .g-track { position: relative; height: 16px; background: var(--line-2); border-radius: 99px; }
 .g-bar { position: absolute; top: 0; height: 16px; border-radius: 99px; background: var(--faint); min-width: 8px; }
 .g-bar.검토중 { background: #9aa1ad; }
+.g-bar.AI분류 { background: #9aa1ad; }
+.g-bar.분류확정 { background: #378add; }
 .g-bar.개발요청 { background: var(--ai); }
+.g-bar.디자인요청 { background: #7f77dd; }
 .g-bar.완료 { background: var(--human); }
 .gmark { position: absolute; top: 50%; width: 9px; height: 9px; background: var(--ai); transform: translate(-50%, -50%) rotate(45deg); border: 1.5px solid var(--surface); }
 
