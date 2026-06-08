@@ -826,7 +826,7 @@ function renderReport() {
   const maxCat = Math.max(1, ...cats.map(c => c.n));
 
   const months = [];
-  for (let i = 5; i >= 0; i--) months.push(new Date(d.getFullYear(), d.getMonth() - i, 1));
+  for (let i = 11; i >= 0; i--) months.push(new Date(d.getFullYear(), d.getMonth() - i, 1));
   const monthData = months.map(m => {
     const ms = m.getTime(), me = new Date(m.getFullYear(), m.getMonth() + 1, 1).getTime();
     return {
@@ -847,10 +847,11 @@ function renderReport() {
     <option value="year" ${period === 'year' ? 'selected' : ''}>${yy}년 전체</option>
   </select>`;
 
-  const catBars = cats.map(c => `
+  const CAT_PAL = ['#1F47CD', '#00BEC9', '#00B17D', '#FFBB00', '#4389B9', '#008FFF', '#00AD2C', '#94C2DA'];
+  const catBars = cats.map((c, i) => `
     <div class="rp-bar-row">
       <span class="rp-bar-lab">${esc(c.key)}</span>
-      <span class="rp-track"><span class="rp-fill ${c.cls}" style="width:${Math.round(c.n / maxCat * 100)}%"></span></span>
+      <span class="rp-track"><span class="rp-fill" style="width:${Math.round(c.n / maxCat * 100)}%;background:${CAT_PAL[i % CAT_PAL.length]}"></span></span>
       <span class="rp-bar-n">${c.n}</span>
     </div>`).join('');
 
@@ -886,13 +887,13 @@ function renderReport() {
     <div class="card stat"><div class="l">평균 처리일</div><div class="n">${avgDays == null ? '–' : avgDays + '일'}</div>${avgDelta == null ? '<div class="delta flat"><span class="ar">·</span> <span class="dl">데이터 없음</span></div>' : delta(avgDelta, pword + ' 대비')}</div>
   </div>
 
-  <div class="dash-grid">
+  <div class="rp-grid">
     <div class="card panel">
       <div class="panel-h">카테고리 분포 <span class="muted-s">${periodLabel} 접수 기준</span></div>
       <div class="rp-bars">${catBars}</div>
     </div>
     <div class="card panel">
-      <div class="panel-h">접수 vs 완료 <span class="rp-legend"><span class="dot in"></span>접수 <span class="dot done"></span>완료</span></div>
+      <div class="panel-h">월별 접수·완료 <span class="rp-legend"><span class="dot in"></span>접수 <span class="dot done"></span>완료</span></div>
       <div class="rp-trend">${trendBars}</div>
     </div>
   </div>
