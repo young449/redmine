@@ -1373,14 +1373,14 @@ function detailSections(r) {
         <div><div class="sub-h">우선순위 태깅</div><div class="pri-pick" id="m-pri">${priBtns}</div></div>
       </div>
     </div>`,
-    pm: `
-      <div class="sec-h">처리 전달</div>
+    memo: `
       <div class="sub-h">전달 메모</div>
-      <textarea id="m-memo" class="box" style="min-height:120px;width:100%;margin-bottom:14px" placeholder="처리 담당(개발·디자인 등)에게 전달할 내용을 적으세요.">${esc(r.pmMemo)}</textarea>
+      <textarea id="m-memo" class="box" style="width:100%" placeholder="처리 담당(개발·디자인 등)에게 전달할 내용을 적으세요.">${esc(r.pmMemo)}</textarea>`,
+    assignee: `
       <div class="sub-h">담당자 <span class="info-ic" tabindex="0" role="button" aria-label="담당자 안내" data-pop="이 VOC를 처리할 담당자를 지정해 주세요. 비워두면 미배정 상태로 남습니다.">i</span></div>
       <div class="assignee-pick" id="m-assignee">${team().map(m => `<button type="button" class="asg-chip ${(r.assignees || []).includes(m.id) ? 'on' : ''}" data-asg="${esc(m.id)}">${avatarHTML(m.id, 20)} ${esc(m.en)}</button>`).join('')}</div>`,
     checklist: `
-      <div class="sec-h">처리 항목 ${(() => { const c = checklistStat(r); return c.total ? `<span class="muted-s">${c.done}/${c.total} 완료</span>` : ''; })()}</div>
+      <div class="sub-h">처리 항목 ${(() => { const c = checklistStat(r); return c.total ? `<span class="muted-s">${c.done}/${c.total} 완료</span>` : ''; })()}</div>
       <div class="checklist" id="m-checklist">${(r.checklist || []).length ? (r.checklist || []).map((it, ci) => `
         <div class="ck-item ${it.done ? 'done' : ''}">
           <button type="button" class="ck-box" data-ck-toggle="${ci}" aria-label="완료 토글">${it.done ? '✓' : ''}</button>
@@ -1422,9 +1422,10 @@ function renderDetailPage() {
       <div class="dcol">${s.orig}</div>
     </div>
     <div class="sec work-merge">
+      <div class="sec-h">처리</div>
       <div class="work-merge-grid">
-        <div class="wm-col">${s.checklist}</div>
-        <div class="wm-col">${s.pm}</div>
+        <div class="wm-col wm-left">${s.assignee}${s.checklist}</div>
+        <div class="wm-col wm-right">${s.memo}</div>
       </div>
     </div>
   </div>
