@@ -1351,7 +1351,11 @@ function detailSections(r) {
     orig: `
     <div class="sec grow">
       <div class="sec-h">원문</div>
-      <div class="model-row"><span class="lab">모델</span><select id="m-model" class="model-sel">${modelOpts}</select></div>
+      <div class="orig-meta">
+        <label class="meta-field"><span class="lab">모델</span><select id="m-model" class="model-sel">${modelOpts}</select></label>
+        <label class="meta-field"><span class="lab">출처</span><select id="m-source">${SOURCES.map(sc => `<option ${r.source === sc ? 'selected' : ''}>${esc(sc)}</option>`).join('')}</select></label>
+        <label class="meta-field grow"><span class="lab">레드마인</span><input type="text" id="m-redmine" placeholder="티켓 번호" value="${esc(r.redmine || '')}"><a id="m-redmine-link" class="rm-link" target="_blank" rel="noopener" ${r.redmine ? `href="${redmineBase()}${encodeURIComponent(r.redmine)}"` : 'hidden'}>원문 열기 ↗</a></label>
+      </div>
       <textarea id="m-body" class="box orig edit grow-fill" style="min-height:160px">${esc(r.body)}</textarea>
     </div>`,
     classify: `
@@ -1364,17 +1368,17 @@ function detailSections(r) {
       </div>
     </div>`,
     pm: `
-    <div class="sec pm-block">
+    <div class="sec pm-block grow">
       <div class="sec-h">처리 전달</div>
       <div class="sub-h">전달 메모</div>
-      <textarea id="m-memo" class="box" style="min-height:90px;width:100%;margin-bottom:14px" placeholder="처리 담당(개발·디자인 등)에게 전달할 내용을 적으세요.">${esc(r.pmMemo)}</textarea>
+      <textarea id="m-memo" class="box grow-fill" style="min-height:120px;width:100%;margin-bottom:14px" placeholder="처리 담당(개발·디자인 등)에게 전달할 내용을 적으세요.">${esc(r.pmMemo)}</textarea>
       <div class="sub-h">담당자 <span class="info-ic" tabindex="0" role="button" aria-label="담당자 안내" data-pop="팀 큐 — 비워두면 처리팀이 직접 가져갑니다">i</span></div>
       <div class="assignee-pick" id="m-assignee">${team().map(m => `<button type="button" class="asg-chip ${(r.assignees || []).includes(m.id) ? 'on' : ''}" data-asg="${esc(m.id)}">${avatarHTML(m.id, 20)} ${esc(m.en)}</button>`).join('')}</div>
     </div>`,
     checklist: `
-    <div class="sec">
+    <div class="sec grow">
       <div class="sec-h">처리 항목 ${(() => { const c = checklistStat(r); return c.total ? `<span class="muted-s">${c.done}/${c.total} 완료</span>` : ''; })()}</div>
-      <div class="checklist" id="m-checklist">${(r.checklist || []).length ? (r.checklist || []).map((it, ci) => `
+      <div class="checklist grow-fill" id="m-checklist">${(r.checklist || []).length ? (r.checklist || []).map((it, ci) => `
         <div class="ck-item ${it.done ? 'done' : ''}">
           <button type="button" class="ck-box" data-ck-toggle="${ci}" aria-label="완료 토글">${it.done ? '✓' : ''}</button>
           <span class="ck-text">${esc(it.text)}</span>
@@ -1415,7 +1419,7 @@ function renderDetailPage() {
       <div class="dcol">${s.summary}${s.classify}</div>
       <div class="dcol">${s.orig}</div>
     </div>
-    <div class="detail-2col">
+    <div class="detail-2col work-row">
       <div class="dcol">${s.pm}</div>
       <div class="dcol">${s.checklist}</div>
     </div>
@@ -1784,6 +1788,14 @@ function bindEditControls(r) {
   };
   const _b = $('#m-body'); if (_b) _b.oninput = markDirty;
   const _m = $('#m-model'); if (_m) _m.onchange = markDirty;
+  const _s = $('#m-source'); if (_s) _s.onchange = markDirty;
+  const _rm = $('#m-redmine');
+  if (_rm) _rm.oninput = () => {
+    markDirty();
+    const v = _rm.value.trim();
+    const lk = $('#m-redmine-link');
+    if (lk) { if (v) { lk.href = redmineBase() + encodeURIComponent(v); lk.hidden = false; } else lk.hidden = true; }
+  };
 
   const cmtInput = $('#m-cmt-input');
   const mpop = $('#m-mention-pop');
@@ -1871,6 +1883,8 @@ function bindEditControls(r) {
     r.pmMemo = $('#m-memo').value;
     const bodyEl = $('#m-body'); if (bodyEl) r.body = bodyEl.value.trim();
     const modelEl = $('#m-model'); if (modelEl) r.model = modelEl.value;
+    const srcEl = $('#m-source'); if (srcEl) r.source = srcEl.value;
+    const rmEl = $('#m-redmine'); if (rmEl) r.redmine = rmEl.value.trim();
     let newStatus = $('#m-status').value;
     if (touched && newStatus === 'AI 분류') newStatus = '분류 확정';
     if (newStatus !== r.pmStatus) {

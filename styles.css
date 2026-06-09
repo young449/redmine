@@ -750,12 +750,25 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .detail-2col .dcol { display: flex; flex-direction: column; gap: 20px; }
 .detail-2col .dcol .sec.grow { flex: 1 1 auto; display: flex; flex-direction: column; }
 .detail-2col .dcol .sec.grow .grow-fill { flex: 1 1 auto; }
+.work-row .sec { min-height: 360px; }
+.work-row .checklist.grow-fill { overflow-y: auto; }
 .detail-sep { border: 0; border-top: 1px solid var(--line); margin: 28px 0; }
 .detail-savebar { display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin-top: 16px; padding: 0; border: 0; position: static; background: transparent; backdrop-filter: none; }
 .detail-savebar #m-delete { margin-left: 0; }
 .model-row { display: flex; align-items: center; justify-content: flex-start; gap: 12px; margin: 0 0 12px; }
 .model-row .lab { margin: 0; font-size: 13px; font-weight: 700; color: var(--ink-soft); white-space: nowrap; }
 .model-row select.model-sel { width: auto; min-width: 150px; max-width: 240px; }
+.orig-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 0 0 12px; }
+.orig-meta .meta-field { display: flex; align-items: center; gap: 8px; margin: 0; }
+.orig-meta .meta-field.grow { flex: 1 1 200px; min-width: 200px; }
+.orig-meta .lab { margin: 0; font-size: 13px; font-weight: 700; color: var(--ink-soft); white-space: nowrap; }
+.orig-meta select { width: auto; min-width: 120px; }
+.orig-meta select.model-sel { min-width: 150px; max-width: 220px; }
+.orig-meta #m-source { min-width: 84px; }
+.orig-meta #m-redmine { width: auto; flex: 1 1 90px; min-width: 90px; }
+.orig-meta .rm-link { font-size: 12px; font-weight: 600; color: var(--brand); white-space: nowrap; text-decoration: none; }
+.orig-meta .rm-link:hover { text-decoration: underline; }
+.orig-meta .rm-link[hidden] { display: none; }
 #m-cmt-send, .detail-savebar #m-save, .detail-savebar #m-delete { flex: 0 0 auto; min-width: 80px; padding: 8px 16px; font-size: 13px; font-weight: 600; }
 @media (max-width: 900px) { .detail-2col { grid-template-columns: 1fr; } }
 .box.orig.clamp { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
