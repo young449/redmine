@@ -805,7 +805,7 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .status-bar .status-note { display: inline-flex; align-items: center; gap: var(--sp-6); margin: 0; font-size: var(--fs-12); font-weight: 700; color: var(--notice-strong); background: var(--notice-bg); border: 1px solid var(--notice-line); border-radius: 99px; padding: var(--sp-6) var(--sp-12); }
 .status-bar .status-note svg { color: var(--notice); flex: 0 0 auto; }
 .status-bar select { width: auto; min-width: 140px; }
-.status-badge { font-size: var(--fs-13); font-weight: 800; padding: var(--sp-8) var(--sp-16); border-radius: 999px; display: inline-flex; align-items: center; }
+.status-badge { font-size: var(--fs-13); font-weight: 800; padding: var(--sp-8) var(--sp-16); border-radius: 8px; display: inline-flex; align-items: center; }
 .detail-2col { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-20); align-items: stretch; }
 .detail-2col .dcol { display: flex; flex-direction: column; gap: var(--sp-20); min-width: 0; }
 .detail-2col .dcol .sec.grow { flex: 1 1 auto; display: flex; flex-direction: column; }
