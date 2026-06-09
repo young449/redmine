@@ -454,6 +454,17 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
 .info-pop-x { flex: 0 0 auto; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 0; color: #fff; opacity: .6; cursor: pointer; font-size: var(--fs-11); line-height: 1; border-radius: 5px; padding: 0; }
 .info-pop-x:hover { opacity: 1; background: rgba(255,255,255,.14); }
 .info-pop-arrow { position: absolute; bottom: 100%; width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 7px solid var(--ink); transform: translateX(-6px); }
+.info-pop.flip-up .info-pop-arrow { bottom: auto; top: 100%; border-bottom: 0; border-top: 7px solid var(--ink); }
+/* 흰 카드형 — VOC 유형 안내(8개 정의) */
+.info-pop.info-pop-rich { display: block; max-width: 340px; width: max-content; background: var(--surface); color: var(--ink); border: 1px solid var(--line); padding: var(--sp-12) var(--sp-14); box-shadow: 0 12px 32px rgba(0,0,0,.16); }
+.info-pop-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-16); margin-bottom: var(--sp-12); }
+.info-pop-head b { font-size: var(--fs-13); font-weight: 800; color: var(--ink); }
+.info-pop-rich .info-pop-x { color: var(--muted); opacity: .8; }
+.info-pop-rich .info-pop-x:hover { opacity: 1; background: var(--line-2); color: var(--ink); }
+.ipt-list { display: flex; flex-direction: column; gap: var(--sp-10); max-height: 56vh; overflow-y: auto; }
+.ipt-row { display: flex; flex-direction: column; gap: 1px; }
+.ipt-term { font-size: var(--fs-12); font-weight: 800; color: var(--ink); }
+.ipt-desc { font-size: var(--fs-11); color: var(--muted); line-height: 1.4; }
 .sec .sec-h .ai-badge {
   font-size: var(--fs-9); color: var(--ai); background: var(--ai-bg);
   border: 1px solid var(--ai-line); padding: 0 var(--sp-8); border-radius: 99px; letter-spacing: .02em;

@@ -19,6 +19,17 @@ const TYPES = [
 const IMPACTS = ['SW 전용', 'HW 전용', 'SW+HW 복합'];
 const EMOTIONS = ['정보 제공', '제안', '불만', '강한 불만'];
 const SOURCES = ['국내', '해외'];
+// 분류 보정 유형 안내 문구 (i 툴팁용)
+const TYPE_DESC = {
+  '기능 요청':      '새 기능 추가·기존 기능 개선 요청',
+  '성능·기술 요청': '속도·배터리·발열·사양 등 성능 개선',
+  '버그·오작동':    '작동 불가·오류·튕김 등 결함',
+  '로컬라이제이션': '언어·번역·날짜/단위·지역 등 현지화',
+  '가격·가치 인식': '가격·가성비·구독·결제 등 가치 평가',
+  '앱 생태계':      '서드파티 앱·연동·호환·스토어 등',
+  '사용성 (UXUI)':  '화면·메뉴·조작 등 사용 편의·UI',
+  '하드웨어':       '외관·재질·마감·크기·그립 등 물리 요소'
+};
 // VOC 유형 → 성격 기준 묶음
 const TYPE_GROUPS = [
   { key: '기능·개선',     cls: 'g-feat', types: ['기능 요청', '앱 생태계', '성능·기술 요청'] },
@@ -1368,7 +1379,7 @@ function detailSections(r) {
     <div class="sec">
       <div class="sec-h">분류 보정</div>
       <div class="edit-grid">
-        <div><div class="sub-h">유형 (복수 선택)</div><div class="multi" id="m-types">${typeChips}</div></div>
+        <div><div class="sub-h">유형 (복수 선택) <span class="info-ic" data-pop-types="1" tabindex="0" role="button" aria-label="VOC 유형 안내">i</span></div><div class="multi" id="m-types">${typeChips}</div></div>
         <div><div class="sub-h">영향 범위</div><div class="pri-pick" id="m-impact">${impactChips}</div></div>
         <div><div class="sub-h">우선순위 태깅</div><div class="pri-pick" id="m-pri">${priBtns}</div></div>
       </div>
@@ -1949,7 +1960,10 @@ function positionInfoPop(pop, ic) {
   const w = pop.offsetWidth || 240;
   let left = r.left + r.width / 2 - w / 2;
   left = Math.max(10, Math.min(left, window.innerWidth - w - 10));
-  pop.style.top = (r.bottom + 9) + 'px';
+  const h = pop.offsetHeight || 0;
+  const flip = (r.bottom + 9 + h > window.innerHeight - 10) && (r.top - 9 - h > 10);
+  pop.classList.toggle('flip-up', flip);
+  pop.style.top = (flip ? r.top - 9 - h : r.bottom + 9) + 'px';
   pop.style.left = left + 'px';
   const arrow = pop.querySelector('.info-pop-arrow');
   if (arrow) arrow.style.left = (r.left + r.width / 2 - left) + 'px';
@@ -1957,8 +1971,15 @@ function positionInfoPop(pop, ic) {
 function openInfoPop(ic) {
   closeInfoPop();
   const pop = document.createElement('div');
-  pop.id = 'info-pop'; pop.className = 'info-pop';
-  pop.innerHTML = `<div class="info-pop-body">${esc(ic.getAttribute('data-pop') || '')}</div><button type="button" class="info-pop-x" aria-label="닫기">✕</button><span class="info-pop-arrow"></span>`;
+  pop.id = 'info-pop';
+  if (ic.hasAttribute('data-pop-types')) {
+    pop.className = 'info-pop info-pop-rich';
+    const rows = TYPES.map(t => `<div class="ipt-row"><span class="ipt-term">${esc(t)}</span><span class="ipt-desc">${esc(TYPE_DESC[t] || '')}</span></div>`).join('');
+    pop.innerHTML = `<div class="info-pop-head"><b>VOC 유형 안내</b><button type="button" class="info-pop-x" aria-label="닫기">✕</button></div><div class="ipt-list">${rows}</div>`;
+  } else {
+    pop.className = 'info-pop';
+    pop.innerHTML = `<div class="info-pop-body">${esc(ic.getAttribute('data-pop') || '')}</div><button type="button" class="info-pop-x" aria-label="닫기">✕</button><span class="info-pop-arrow"></span>`;
+  }
   document.body.appendChild(pop);
   positionInfoPop(pop, ic);
   infoIcEl = ic;
@@ -1974,7 +1995,7 @@ function bindTopbar() {
   if (wsSel) wsSel.onclick = e => { e.stopPropagation(); toggleWsMenu(); };
   document.addEventListener('click', e => {
     if (e.target.closest && e.target.closest('.info-pop-x')) { closeInfoPop(); return; }
-    const ic = e.target.closest ? e.target.closest('.info-ic[data-pop]') : null;
+    const ic = e.target.closest ? e.target.closest('.info-ic[data-pop], .info-ic[data-pop-types]') : null;
     const pop = document.getElementById('info-pop');
     if (ic) { (pop && infoIcEl === ic) ? closeInfoPop() : openInfoPop(ic); return; }
     if (pop && !pop.contains(e.target)) closeInfoPop();
