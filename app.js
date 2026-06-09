@@ -1387,7 +1387,7 @@ function detailSections(r) {
           <span class="ck-text">${esc(it.text)}</span>
           <button type="button" class="ck-del" data-ck-del="${ci}" aria-label="항목 삭제">✕</button>
         </div>`).join('') : '<div class="empty-mini">처리 항목이 없습니다. 요청을 항목으로 나눠 추가하세요.</div>'}</div>
-      <div class="ck-add"><span class="ck-add-box" aria-hidden="true"></span><input type="text" id="m-ck-input" placeholder="처리 항목 추가 (예: 영국식 날짜 형식 지원)" /><button type="button" class="btn sm" id="m-ck-add">추가</button></div>`,
+      <div class="ck-add"><input type="text" id="m-ck-input" placeholder="처리 항목 추가 (예: 영국식 날짜 형식 지원)" /><button type="button" class="btn sm" id="m-ck-add">추가</button></div>`,
     comments: `
     <div class="sec">
       <div class="sec-h">댓글 <span class="muted-s">${r.comments.length}</span></div>
@@ -1422,7 +1422,7 @@ function renderDetailPage() {
       <div class="dcol">${s.orig}</div>
     </div>
     <div class="sec work-merge">
-      <div class="sec-h">처리</div>
+      <div class="sec-h">처리 작업</div>
       <div class="work-merge-grid">
         <div class="wm-col wm-left">${s.assignee}${s.checklist}</div>
         <div class="wm-col wm-right">${s.memo}</div>

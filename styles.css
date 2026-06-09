@@ -397,7 +397,7 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
 .status-tag.검토중   { background: #eef1f6; color: #5a6678; }
 .status-tag.AI분류    { background: #eef1f6; color: #5a6678; }
 .status-tag.분류확정  { background: #e6f1fb; color: #185fa5; }
-.status-tag.개발요청 { background: var(--ai-bg); color: var(--ai); }
+.status-tag.개발요청 { background: #DCF6F8; color: #00858C; }
 .status-tag.디자인요청 { background: #f1eefb; color: #5a4bbf; }
 .status-tag.완료     { background: var(--human-bg); color: var(--human); }
 .status-tag.반려     { background: #ece9e6; color: #7a6f63; }
@@ -529,7 +529,7 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .track .fill.검토중 { background: #9aa1ad; }
 .track .fill.AI분류 { background: #9aa1ad; }
 .track .fill.분류확정 { background: #378add; }
-.track .fill.개발요청 { background: var(--ai); }
+.track .fill.개발요청 { background: #00BEC9; }
 .track .fill.디자인요청 { background: #7f77dd; }
 .track .fill.완료 { background: var(--human); }
 .track .fill.반려 { background: #b4ab9e; }
@@ -597,16 +597,15 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .notif-item .notif-time { font-size: var(--fs-11); color: var(--faint); flex: 0 0 auto; }
 .notif-item .notif-text { font-size: var(--fs-14); color: var(--ink); line-height: 1.45; margin-top: var(--sp-4); word-break: break-word; }
 .notif-item .notif-code { font-weight: 600; }
-.checklist { display: flex; flex-direction: column; gap: var(--sp-6); margin-bottom: var(--sp-10); }
-.ck-item { display: flex; align-items: center; gap: var(--sp-10); padding: var(--sp-8) var(--sp-10); border: 1px solid var(--line-2); border-radius: 9px; }
+.checklist { display: flex; flex-direction: column; gap: var(--sp-8); margin-bottom: var(--sp-10); }
+.ck-item { display: flex; align-items: center; gap: var(--sp-10); padding: var(--sp-10) var(--sp-14); border: 1px solid var(--line-2); border-radius: 9px; }
 .ck-item.done .ck-text { color: var(--faint); text-decoration: line-through; }
 .ck-box { flex: 0 0 auto; width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid var(--line); background: var(--surface); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: var(--fs-12); cursor: pointer; padding: 0; }
 .ck-item.done .ck-box { background: var(--human); border-color: var(--human); }
 .ck-text { flex: 1; font-size: var(--fs-13); color: var(--ink); line-height: 1.4; word-break: break-word; }
 .ck-del { flex: 0 0 auto; background: transparent; border: 0; color: var(--faint); cursor: pointer; font-size: var(--fs-12); padding: var(--sp-2) var(--sp-4); border-radius: 4px; }
 .ck-del:hover { color: var(--alert); }
-.ck-add { display: flex; align-items: center; gap: var(--sp-8); }
-.ck-add-box { flex: 0 0 auto; width: 20px; height: 20px; border-radius: 6px; border: 1.5px dashed var(--line); background: var(--surface); }
+.ck-add { display: flex; align-items: stretch; gap: var(--sp-8); }
 .ck-add input { flex: 1; padding: var(--sp-10) var(--sp-12); border: 1px solid var(--line); border-radius: 8px; font-family: var(--sans); font-size: var(--fs-13); color: var(--ink); }
 .ck-add input:focus { outline: none; border-color: var(--ink-soft); }
 .partial-badge { display: inline-flex; align-items: center; font-size: var(--fs-11); font-weight: 600; color: var(--ai); background: var(--ai-bg); border: 1px solid var(--ai-line); border-radius: 6px; padding: var(--sp-2) var(--sp-8); margin-left: var(--sp-6); white-space: nowrap; }
@@ -644,7 +643,7 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .g-bar.검토중 { background: #9aa1ad; }
 .g-bar.AI분류 { background: #9aa1ad; }
 .g-bar.분류확정 { background: #378add; }
-.g-bar.개발요청 { background: var(--ai); }
+.g-bar.개발요청 { background: #00BEC9; }
 .g-bar.디자인요청 { background: #7f77dd; }
 .g-bar.완료 { background: var(--human); }
 .g-bar.반려 { background: #b4ab9e; }
@@ -688,7 +687,7 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .srow-pct { font-size: var(--fs-11); color: var(--faint); margin-left: var(--sp-6); }
 .srow-fill.AI분류 { background: #9aa1ad; }
 .srow-fill.분류확정 { background: #378add; }
-.srow-fill.개발요청 { background: var(--ai); }
+.srow-fill.개발요청 { background: #00BEC9; }
 .srow-fill.디자인요청 { background: #7f77dd; }
 .srow-fill.완료 { background: var(--human); }
 .srow-fill.반려 { background: #b4ab9e; }
