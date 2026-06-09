@@ -980,7 +980,7 @@ function renderBoard() {
   return `
   ${actionRow}
   ${filterRow}
-  <div class="result-count">${esc(WORKSPACE_LABEL[state.workspace])} · <b>${list.length}</b>건${anyFilter ? ' <span class="muted-s">(필터 적용됨)</span>' : ''}</div>
+  <div class="result-count">${esc(WORKSPACE_LABEL[state.workspace])} · <b>${list.length}</b>건</div>
   ${body}`;
 }
 
@@ -1374,24 +1374,20 @@ function detailSections(r) {
       </div>
     </div>`,
     pm: `
-    <div class="sec pm-block grow">
       <div class="sec-h">처리 전달</div>
       <div class="sub-h">전달 메모</div>
-      <textarea id="m-memo" class="box grow-fill" style="min-height:120px;width:100%;margin-bottom:14px" placeholder="처리 담당(개발·디자인 등)에게 전달할 내용을 적으세요.">${esc(r.pmMemo)}</textarea>
+      <textarea id="m-memo" class="box" style="min-height:120px;width:100%;margin-bottom:14px" placeholder="처리 담당(개발·디자인 등)에게 전달할 내용을 적으세요.">${esc(r.pmMemo)}</textarea>
       <div class="sub-h">담당자 <span class="info-ic" tabindex="0" role="button" aria-label="담당자 안내" data-pop="이 VOC를 처리할 담당자를 지정해 주세요. 비워두면 미배정 상태로 남습니다.">i</span></div>
-      <div class="assignee-pick" id="m-assignee">${team().map(m => `<button type="button" class="asg-chip ${(r.assignees || []).includes(m.id) ? 'on' : ''}" data-asg="${esc(m.id)}">${avatarHTML(m.id, 20)} ${esc(m.en)}</button>`).join('')}</div>
-    </div>`,
+      <div class="assignee-pick" id="m-assignee">${team().map(m => `<button type="button" class="asg-chip ${(r.assignees || []).includes(m.id) ? 'on' : ''}" data-asg="${esc(m.id)}">${avatarHTML(m.id, 20)} ${esc(m.en)}</button>`).join('')}</div>`,
     checklist: `
-    <div class="sec grow">
       <div class="sec-h">처리 항목 ${(() => { const c = checklistStat(r); return c.total ? `<span class="muted-s">${c.done}/${c.total} 완료</span>` : ''; })()}</div>
-      <div class="checklist grow-fill" id="m-checklist">${(r.checklist || []).length ? (r.checklist || []).map((it, ci) => `
+      <div class="checklist" id="m-checklist">${(r.checklist || []).length ? (r.checklist || []).map((it, ci) => `
         <div class="ck-item ${it.done ? 'done' : ''}">
           <button type="button" class="ck-box" data-ck-toggle="${ci}" aria-label="완료 토글">${it.done ? '✓' : ''}</button>
           <span class="ck-text">${esc(it.text)}</span>
           <button type="button" class="ck-del" data-ck-del="${ci}" aria-label="항목 삭제">✕</button>
         </div>`).join('') : '<div class="empty-mini">처리 항목이 없습니다. 요청을 항목으로 나눠 추가하세요.</div>'}</div>
-      <div class="ck-add"><span class="ck-add-box" aria-hidden="true"></span><input type="text" id="m-ck-input" placeholder="처리 항목 추가 (예: 영국식 날짜 형식 지원)" /><button type="button" class="btn sm" id="m-ck-add">추가</button></div>
-    </div>`,
+      <div class="ck-add"><span class="ck-add-box" aria-hidden="true"></span><input type="text" id="m-ck-input" placeholder="처리 항목 추가 (예: 영국식 날짜 형식 지원)" /><button type="button" class="btn sm" id="m-ck-add">추가</button></div>`,
     comments: `
     <div class="sec">
       <div class="sec-h">댓글 <span class="muted-s">${r.comments.length}</span></div>
@@ -1425,9 +1421,11 @@ function renderDetailPage() {
       <div class="dcol">${s.summary}${s.classify}</div>
       <div class="dcol">${s.orig}</div>
     </div>
-    <div class="detail-2col work-row">
-      <div class="dcol">${s.checklist}</div>
-      <div class="dcol">${s.pm}</div>
+    <div class="sec work-merge">
+      <div class="work-merge-grid">
+        <div class="wm-col">${s.checklist}</div>
+        <div class="wm-col">${s.pm}</div>
+      </div>
     </div>
   </div>
   <div class="save-bar detail-savebar">

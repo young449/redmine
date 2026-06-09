@@ -809,8 +809,15 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .detail-2col .dcol { display: flex; flex-direction: column; gap: var(--sp-20); min-width: 0; }
 .detail-2col .dcol .sec.grow { flex: 1 1 auto; display: flex; flex-direction: column; }
 .detail-2col .dcol .sec.grow .grow-fill { flex: 1 1 auto; }
-.work-row .sec { min-height: 360px; }
-.work-row .checklist.grow-fill { overflow-y: auto; }
+.work-merge .work-merge-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-24); align-items: stretch; min-height: 320px; }
+.work-merge .wm-col { display: flex; flex-direction: column; min-width: 0; }
+.work-merge .wm-col:first-child { border-right: 1px solid var(--line-2); padding-right: var(--sp-24); }
+.work-merge #m-checklist { flex: 1 1 auto; overflow-y: auto; margin-bottom: var(--sp-10); }
+.work-merge #m-memo { flex: 1 1 auto; }
+@media (max-width: 900px) {
+  .work-merge .work-merge-grid { grid-template-columns: 1fr; gap: var(--sp-16); min-height: 0; }
+  .work-merge .wm-col:first-child { border-right: 0; padding-right: 0; padding-bottom: var(--sp-16); border-bottom: 1px solid var(--line-2); margin-bottom: var(--sp-4); }
+}
 .detail-sep { border: 0; border-top: 1px solid var(--line); margin: var(--sp-28) 0; }
 .detail-savebar { display: flex; gap: var(--sp-8); align-items: center; justify-content: flex-end; margin-top: var(--sp-16); padding: 0; border: 0; position: static; background: transparent; backdrop-filter: none; }
 .detail-savebar #m-delete { margin-left: 0; }
@@ -819,7 +826,7 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .model-row select.model-sel { width: auto; min-width: 150px; max-width: 240px; }
 .orig-meta { display: flex; flex-wrap: nowrap; align-items: center; gap: var(--sp-8) var(--sp-18); margin: 0 0 var(--sp-12); }
 .orig-meta .meta-field { display: flex; align-items: center; gap: var(--sp-6); margin: 0; min-width: 0; }
-.orig-meta .lab { margin: 0; font-size: var(--fs-13); font-weight: 700; color: var(--ink-soft); white-space: nowrap; }
+.orig-meta .lab { margin: 0; font-size: var(--fs-12); font-weight: 700; color: var(--faint); white-space: nowrap; }
 .orig-meta select { width: auto; min-width: 0; }
 .orig-meta select.model-sel { min-width: 96px; max-width: 150px; }
 .orig-meta #m-source { min-width: 58px; }
@@ -835,8 +842,8 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 /* 묶음(그룹) 칩 */
 .chip.grp { font-weight: 800; border: 1px solid transparent; }
 .chip.grp.g-feat { background: #e8f0fe; color: #2f6ad0; border-color: #cfe0fb; }
-.chip.grp.g-ux   { background: #fbeaf0; color: #993556; border-color: #f3d2de; }
-.chip.grp.g-bug  { background: var(--alert-bg); color: var(--alert); border-color: #f3cccc; }
+.chip.grp.g-ux   { background: #DCFBFB; color: #0093A0; border-color: #B5EFF2; }
+.chip.grp.g-bug  { background: #E3F0F5; color: #265C8A; border-color: #BBD9E8; }
 .chip.grp.g-i18n { background: #e3f5ee; color: #0f6e56; border-color: #c6e8da; }
 .chip.grp.g-biz  { background: #fdeede; color: #b9701b; border-color: #f6dcb8; }
 .chip.grp.g-etc  { background: var(--line-2); color: var(--muted); }
