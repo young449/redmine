@@ -930,7 +930,7 @@ function renderVOCTable(list) {
     const groups = primaryGroupChip(r);
     return `<tr data-open="${r.id}">
       <td class="t-id">${esc(r.id)}</td>
-      <td class="t-sum">${esc(r.aiSummary)}</td>
+      <td class="t-sum"><span class="t-sum-txt">${esc(r.aiSummary)}</span>${commentBadge(r)}</td>
       <td>${groups}</td>
       <td><span class="status-tag ${cls}">${esc(r.pmStatus)}</span>${partialBadge(r)}</td>
       <td>${avatarStack(r.assignees, 24)}</td>
@@ -1331,6 +1331,11 @@ function mentionedMembers(text) {
 
 function checklistStat(r) { const l = r.checklist || []; const done = l.filter(x => x.done).length; return { done, total: l.length, partial: l.length > 0 && done > 0 && done < l.length }; }
 function partialBadge(r) { const c = checklistStat(r); return c.partial ? `<span class="partial-badge" title="처리 항목 ${c.done}/${c.total} 완료">부분 완료 ${c.done}/${c.total}</span>` : ''; }
+function commentBadge(r) {
+  const n = (r.comments || []).length;
+  if (!n) return '';
+  return `<span class="cmt-badge" title="댓글 ${n}개"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>${n}</span>`;
+}
 
 function detailSections(r) {
   const types = effTypes(r);
