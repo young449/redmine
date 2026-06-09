@@ -632,14 +632,21 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .rm-row .btn { flex: 0 0 100px; }
 
 /* 상태 분포 — 블록형 */
-.status-blocks { display: flex; flex-direction: column; justify-content: space-around; flex: 1; gap: 16px; }
-.sblock[data-statusfilter] { cursor: pointer; border-radius: 8px; padding: 4px; margin: -4px; transition: background .12s; }
-.sblock[data-statusfilter]:hover { background: var(--surface-2); }
-.sb-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.sb-pct { font-size: 12px; color: var(--faint); font-family: var(--mono); }
-.sb-n { font-size: 24px; font-weight: 800; font-family: var(--mono); letter-spacing: -1px; margin-bottom: 8px; }
-.sb-n span { font-size: 12px; font-weight: 600; color: var(--faint); margin-left: 4px; font-family: var(--sans); }
-.track.lg { height: 8px; }
+.status-rows { display: flex; flex-direction: column; gap: 6px; }
+.srow { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; border-radius: 8px; overflow: hidden; cursor: pointer; background: var(--surface-2); transition: background .12s; }
+.srow:hover { background: var(--line-2); }
+.srow > * { position: relative; z-index: 1; }
+.srow-fill { position: absolute; z-index: 0; inset: 0 auto 0 0; height: 100%; opacity: .2; }
+.srow-meta { display: inline-flex; align-items: baseline; gap: 3px; font-family: var(--mono); }
+.srow-meta b { font-size: 15px; font-weight: 800; letter-spacing: -.5px; }
+.srow-unit { font-size: 11px; font-weight: 600; color: var(--faint); font-family: var(--sans); }
+.srow-pct { font-size: 11px; color: var(--faint); margin-left: 6px; }
+.srow-fill.AI분류 { background: #9aa1ad; }
+.srow-fill.분류확정 { background: #378add; }
+.srow-fill.개발요청 { background: var(--ai); }
+.srow-fill.디자인요청 { background: #7f77dd; }
+.srow-fill.완료 { background: var(--human); }
+.srow-fill.반려 { background: #b4ab9e; }
 
 /* ---------- 대시보드 그리드 ---------- */
 .monthly-card { margin-bottom: 0; }

@@ -801,14 +801,14 @@ function renderDashboard() {
   // 상태 분포 (블록형 — 좁은 칼럼을 꽉 채움)
   const statuses = STATUSES;
   const statusTotal = Math.max(1, recs.length);
-  const statusRows = `<div class="status-blocks">` + statuses.map(s => {
+  const statusRows = `<div class="status-rows">` + statuses.map(s => {
     const cls = s.replace(/\s/g, '');
     const n = recs.filter(r => r.pmStatus === s).length;
     const pct = Math.round((n / statusTotal) * 100);
-    return `<div class="sblock" data-statusfilter="${esc(s)}" role="button" title="이 상태의 VOC 보드로 이동">
-      <div class="sb-top"><span class="status-tag ${cls}">${esc(s)}</span><span class="sb-pct">${pct}%</span></div>
-      <div class="sb-n">${n}<span>건</span></div>
-      <div class="track lg"><div class="fill ${cls}" style="width:${pct}%"></div></div>
+    return `<div class="srow" data-statusfilter="${esc(s)}" role="button" title="이 상태의 VOC 보드로 이동">
+      <div class="srow-fill ${cls}" style="width:${pct}%"></div>
+      <span class="status-tag ${cls}">${esc(s)}</span>
+      <span class="srow-meta"><b>${n}</b><span class="srow-unit">건</span><span class="srow-pct">${pct}%</span></span>
     </div>`;
   }).join('') + `</div>`;
 
@@ -1377,7 +1377,7 @@ function detailSections(r) {
       <div class="sec-h">처리 전달</div>
       <div class="sub-h">전달 메모</div>
       <textarea id="m-memo" class="box grow-fill" style="min-height:120px;width:100%;margin-bottom:14px" placeholder="처리 담당(개발·디자인 등)에게 전달할 내용을 적으세요.">${esc(r.pmMemo)}</textarea>
-      <div class="sub-h">담당자 <span class="info-ic" tabindex="0" role="button" aria-label="담당자 안내" data-pop="팀 큐 — 비워두면 처리팀이 직접 가져갑니다">i</span></div>
+      <div class="sub-h">담당자 <span class="info-ic" tabindex="0" role="button" aria-label="담당자 안내" data-pop="이 VOC를 처리할 담당자를 지정해 주세요. 비워두면 미배정 상태로 남습니다.">i</span></div>
       <div class="assignee-pick" id="m-assignee">${team().map(m => `<button type="button" class="asg-chip ${(r.assignees || []).includes(m.id) ? 'on' : ''}" data-asg="${esc(m.id)}">${avatarHTML(m.id, 20)} ${esc(m.en)}</button>`).join('')}</div>
     </div>`,
     checklist: `
