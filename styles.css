@@ -449,7 +449,7 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
 .ai-note-inline svg { width: 14px; height: 14px; flex: 0 0 auto; color: var(--notice); }
 .info-ic { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--muted); color: var(--muted); font-size: var(--fs-11); font-weight: 800; font-style: normal; text-transform: none; letter-spacing: 0; cursor: pointer; position: relative; vertical-align: middle; margin-left: var(--sp-4); }
 .info-ic:hover, .info-ic:focus { color: var(--ink-soft); border-color: var(--ink-soft); outline: none; }
-.info-pop { position: fixed; z-index: 300; max-width: 260px; background: var(--ink); color: #fff; border-radius: 10px; padding: var(--sp-8) var(--sp-10) var(--sp-8) var(--sp-12); box-shadow: 0 8px 28px rgba(0,0,0,.22); font-size: var(--fs-12); line-height: 1.45; display: flex; align-items: center; gap: var(--sp-8); }
+.info-pop { position: fixed; z-index: 300; max-width: 260px; background: var(--ink); color: #fff; border-radius: 10px; padding: var(--sp-8) var(--sp-10) var(--sp-8) var(--sp-12); box-shadow: 0 8px 28px rgba(0,0,0,.22); font-size: var(--fs-12); line-height: 1.45; display: flex; align-items: flex-start; gap: var(--sp-8); }
 .info-pop-body { white-space: normal; word-break: keep-all; }
 .info-pop-x { flex: 0 0 auto; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 0; color: #fff; opacity: .6; cursor: pointer; font-size: var(--fs-11); line-height: 1; border-radius: 5px; padding: 0; }
 .info-pop-x:hover { opacity: 1; background: rgba(255,255,255,.14); }
@@ -559,6 +559,9 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 
 /* ---------- KPI 카드 델타 ---------- */
 .stat { display: flex; flex-direction: column; gap: var(--sp-4); }
+.stat.clickable { cursor: pointer; transition: border-color .15s, background .15s, transform .15s; }
+.stat.clickable:hover { border-color: var(--faint); background: var(--surface-2); }
+.stat.clickable:active { transform: translateY(1px); }
 .stat .l { margin-top: 0; }
 .stat .n { color: var(--ink); }
 .delta { font-size: var(--fs-11); color: var(--muted); font-family: var(--mono); display: flex; align-items: baseline; gap: var(--sp-4); }
@@ -597,7 +600,7 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .notif-item .notif-time { font-size: var(--fs-11); color: var(--faint); flex: 0 0 auto; }
 .notif-item .notif-text { font-size: var(--fs-14); color: var(--ink); line-height: 1.45; margin-top: var(--sp-4); word-break: break-word; }
 .notif-item .notif-code { font-weight: 600; }
-.checklist { display: flex; flex-direction: column; gap: var(--sp-8); margin-bottom: var(--sp-10); }
+.checklist { display: flex; flex-direction: column; gap: var(--sp-10); margin-bottom: var(--sp-10); }
 .ck-item { display: flex; align-items: center; gap: var(--sp-10); padding: var(--sp-10) var(--sp-14); border: 1px solid var(--line-2); border-radius: 9px; }
 .ck-item.done .ck-text { color: var(--faint); text-decoration: line-through; }
 .ck-box { flex: 0 0 auto; width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid var(--line); background: var(--surface); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: var(--fs-12); cursor: pointer; padding: 0; }
@@ -802,8 +805,7 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .status-bar .status-note { display: inline-flex; align-items: center; gap: var(--sp-6); margin: 0; font-size: var(--fs-12); font-weight: 700; color: var(--notice-strong); background: var(--notice-bg); border: 1px solid var(--notice-line); border-radius: 99px; padding: var(--sp-6) var(--sp-12); }
 .status-bar .status-note svg { color: var(--notice); flex: 0 0 auto; }
 .status-bar select { width: auto; min-width: 140px; }
-.status-badge { font-size: var(--fs-13); font-weight: 800; padding: var(--sp-8) var(--sp-16); border-radius: 999px; display: inline-flex; align-items: center; gap: var(--sp-8); }
-.status-badge .bdot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: 0 0 auto; }
+.status-badge { font-size: var(--fs-13); font-weight: 800; padding: var(--sp-8) var(--sp-16); border-radius: 999px; display: inline-flex; align-items: center; }
 .detail-2col { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-20); align-items: stretch; }
 .detail-2col .dcol { display: flex; flex-direction: column; gap: var(--sp-20); min-width: 0; }
 .detail-2col .dcol .sec.grow { flex: 1 1 auto; display: flex; flex-direction: column; }

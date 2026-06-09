@@ -611,7 +611,7 @@ function updateWS() {
   if (!brand) return;
   if (state.view === 'detail') {
     const r = DB.records.find(x => x.id === state.detailId);
-    const badge = r ? `<span class="status-tag ${statusClass(r.pmStatus)} status-badge" id="m-status-badge"><span class="bdot"></span>${esc(r.pmStatus)}</span>` : '';
+    const badge = r ? `<span class="status-tag ${statusClass(r.pmStatus)} status-badge" id="m-status-badge">${esc(r.pmStatus)}</span>` : '';
     brand.innerHTML = `<span class="appbar-voc">${r ? esc(r.id) : ''}</span>${badge}`;
   } else {
     brand.innerHTML = `<img id="appbar-logo" class="appbar-logo" alt="대시보드로 이동" title="대시보드">`;
@@ -779,9 +779,9 @@ function statsCards(recs) {
   };
   return `
   <div class="dash-stats">
-    <div class="card stat"><div class="l">전체 VOC</div><div class="n">${total}</div>${delta(d.total)}</div>
+    <div class="card stat clickable" data-kpi="all" role="button" title="전체 VOC 보드로 이동"><div class="l">전체 VOC</div><div class="n">${total}</div>${delta(d.total)}</div>
     <div class="card stat"><div class="l">요청 (개발·디자인)</div><div class="n">${requested}</div>${delta(d.dev)}</div>
-    <div class="card stat"><div class="l">처리 완료</div><div class="n">${done}</div>${delta(d.done)}</div>
+    <div class="card stat clickable" data-kpi="done" role="button" title="완료 상태 보드로 이동"><div class="l">처리 완료</div><div class="n">${done}</div>${delta(d.done)}</div>
     <div class="card stat"><div class="l">미처리</div><div class="n">${open}</div>${delta(d.open)}</div>
   </div>`;
 }
@@ -1719,6 +1719,12 @@ function bindDashboard() {
       state.filters = { group: '', impact: '', source: '', model: '', assignee: '', q: '', status: b.dataset.statusfilter };
       state.view = 'board'; render();
     });
+  document.querySelectorAll('[data-kpi]').forEach(c =>
+    c.onclick = () => {
+      const k = c.dataset.kpi;
+      state.filters = { group: '', impact: '', source: '', model: '', assignee: '', q: '', status: k === 'done' ? '완료' : '' };
+      state.view = 'board'; render();
+    });
   const ys = document.getElementById('dash-year');
   if (ys) ys.onchange = () => { state.dashYear = +ys.value; render(); };
 }
@@ -1781,7 +1787,7 @@ function bindEditControls(r) {
       const st = $('#m-status'), bdg = $('#m-status-badge');
       if (editAssignees.length > 0 && st && st.value === 'AI 분류') {
         st.value = '분류 확정';
-        if (bdg) { bdg.className = 'status-tag 분류확정 status-badge'; bdg.innerHTML = '<span class="bdot"></span>분류 확정'; }
+        if (bdg) { bdg.className = 'status-tag 분류확정 status-badge'; bdg.innerHTML = '분류 확정'; }
       }
       markDirty();
     });
@@ -1791,7 +1797,7 @@ function bindEditControls(r) {
   if (statusEl) statusEl.onchange = () => {
     markDirty();
     const v = statusEl.value;
-    if (badge) { badge.className = 'status-tag ' + v.replace(/\s/g, '') + ' status-badge'; badge.innerHTML = '<span class="bdot"></span>' + v; }
+    if (badge) { badge.className = 'status-tag ' + v.replace(/\s/g, '') + ' status-badge'; badge.innerHTML = v; }
   };
   const _b = $('#m-body'); if (_b) _b.oninput = markDirty;
   const _m = $('#m-model'); if (_m) _m.onchange = markDirty;
