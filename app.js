@@ -970,6 +970,7 @@ function renderBoard() {
     <div class="grp">${selectFilter('model', f.model, modelsFor(state.workspace), '모델')}</div>
     <div class="grp"><span class="lab">담당자</span><select data-filter="assignee"><option value="">전체</option>${team().map(m => `<option value="${esc(m.id)}" ${f.assignee === m.id ? 'selected' : ''}>${esc(m.en)}${m.ko ? ' ' + esc(m.ko) : ''}</option>`).join('')}</select></div>
     <div class="grp"><span class="lab">정렬</span><select id="f-sort"><option value="desc" ${state.sort === 'desc' ? 'selected' : ''}>최신순</option><option value="asc" ${state.sort === 'asc' ? 'selected' : ''}>오래된순</option></select></div>
+    <div class="grp tb-reset"><button type="button" class="linkbtn" id="f-reset" ${anyFilter ? '' : 'disabled'}>필터 초기화</button></div>
   </div>`;
 
   const body = !list.length
@@ -979,7 +980,7 @@ function renderBoard() {
   return `
   ${actionRow}
   ${filterRow}
-  <div class="result-count">${esc(WORKSPACE_LABEL[state.workspace])} · <b>${list.length}</b>건${anyFilter ? ' <span class="muted-s">(필터 적용됨)</span> <button type="button" class="linkbtn" id="f-reset">필터 초기화</button>' : ''}</div>
+  <div class="result-count">${esc(WORKSPACE_LABEL[state.workspace])} · <b>${list.length}</b>건${anyFilter ? ' <span class="muted-s">(필터 적용됨)</span>' : ''}</div>
   ${body}`;
 }
 
@@ -1256,7 +1257,7 @@ function renderSettings() {
 
     <div class="card panel">
       <div class="panel-h">분석 데이터 가져오기</div>
-      <p style="margin:0 0 10px;color:var(--muted);font-size:13px">ChatGPT·Claude로 분류·요약한 VOC 엑셀(.xlsx)을 불러옵니다. <b>요약·유형·영향범위·출처</b>를 그대로 AI 결과로 사용하고, 레드마인 번호가 같은 건은 건너뜁니다.<br>빈 양식을 내려받아 같은 형식으로 채운 뒤 올리세요. (유형은 “ / ”로 복수 입력)</p>
+      <p style="margin:0 0 10px;color:var(--muted);font-size:var(--fs-13)">ChatGPT·Claude로 분류·요약한 VOC 엑셀(.xlsx)을 불러옵니다. <b>요약·유형·영향범위·출처</b>를 그대로 AI 결과로 사용하고, 레드마인 번호가 같은 건은 건너뜁니다.<br>빈 양식을 내려받아 같은 형식으로 채운 뒤 올리세요. (유형은 “ / ”로 복수 입력)</p>
       <div class="rm-row">
         <input type="file" id="imp-file" accept=".xlsx,.xls">
         <button class="btn" id="imp-tpl">양식</button>
@@ -1276,8 +1277,8 @@ function renderSettings() {
 
     <div class="card panel">
       <div class="panel-h">구글 계정 연동 <span class="badge-soon" style="background:var(--line-2);color:var(--muted)">준비중</span></div>
-      <p style="margin:0 0 8px;color:var(--muted);font-size:13px">현재는 백엔드 없는 정적 사이트라 데이터가 브라우저에만 저장됩니다. 여러 명이 같은 VOC를 보고 서로에게 알림이 가려면 공용 백엔드(예: Firebase Auth + Firestore)가 필요합니다.</p>
-      <ul style="margin:0;padding-left:18px;color:var(--ink-soft);font-size:13px;line-height:1.7">
+      <p style="margin:0 0 8px;color:var(--muted);font-size:var(--fs-13)">현재는 백엔드 없는 정적 사이트라 데이터가 브라우저에만 저장됩니다. 여러 명이 같은 VOC를 보고 서로에게 알림이 가려면 공용 백엔드(예: Firebase Auth + Firestore)가 필요합니다.</p>
+      <ul style="margin:0;padding-left:18px;color:var(--ink-soft);font-size:var(--fs-13);line-height:1.7">
         <li>구글 로그인(GIS): 신원·프로필 사진만 — 정적 사이트에서도 가능 (OAuth 클라이언트 ID 필요)</li>
         <li>공용 데이터 + 실시간 알림: Firebase 권장 (회사 Workspace 도메인 제한 가능)</li>
       </ul>
@@ -1359,7 +1360,7 @@ function detailSections(r) {
       <div class="orig-meta">
         <label class="meta-field"><span class="lab">모델</span><select id="m-model" class="model-sel">${modelOpts}</select></label>
         <label class="meta-field"><span class="lab">출처</span><select id="m-source">${SOURCES.map(sc => `<option ${r.source === sc ? 'selected' : ''}>${esc(sc)}</option>`).join('')}</select></label>
-        <label class="meta-field grow"><span class="lab">레드마인</span><input type="text" id="m-redmine" placeholder="티켓 번호" value="${esc(r.redmine || '')}"><a id="m-redmine-link" class="rm-link" target="_blank" rel="noopener" title="레드마인 원문 열기" ${r.redmine ? `href="${redmineBase()}${encodeURIComponent(r.redmine)}"` : 'hidden'}>열기 ↗</a></label>
+        <label class="meta-field"><span class="lab">레드마인</span><input type="text" id="m-redmine" placeholder="티켓 번호" value="${esc(r.redmine || '')}"><a id="m-redmine-link" class="rm-link" target="_blank" rel="noopener" title="레드마인 원문 열기" ${r.redmine ? `href="${redmineBase()}${encodeURIComponent(r.redmine)}"` : 'hidden'}>열기 ↗</a></label>
       </div>
       <textarea id="m-body" class="box orig edit grow-fill" style="min-height:160px">${esc(r.body)}</textarea>
     </div>`,
@@ -1389,7 +1390,7 @@ function detailSections(r) {
           <span class="ck-text">${esc(it.text)}</span>
           <button type="button" class="ck-del" data-ck-del="${ci}" aria-label="항목 삭제">✕</button>
         </div>`).join('') : '<div class="empty-mini">처리 항목이 없습니다. 요청을 항목으로 나눠 추가하세요.</div>'}</div>
-      <div class="ck-add"><input type="text" id="m-ck-input" placeholder="처리 항목 추가" /><button type="button" class="btn sm" id="m-ck-add">추가</button></div>
+      <div class="ck-add"><span class="ck-add-box" aria-hidden="true"></span><input type="text" id="m-ck-input" placeholder="처리 항목 추가 (예: 영국식 날짜 형식 지원)" /><button type="button" class="btn sm" id="m-ck-add">추가</button></div>
     </div>`,
     comments: `
     <div class="sec">
@@ -1425,8 +1426,8 @@ function renderDetailPage() {
       <div class="dcol">${s.orig}</div>
     </div>
     <div class="detail-2col work-row">
-      <div class="dcol">${s.pm}</div>
       <div class="dcol">${s.checklist}</div>
+      <div class="dcol">${s.pm}</div>
     </div>
   </div>
   <div class="save-bar detail-savebar">
