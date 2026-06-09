@@ -592,7 +592,7 @@ function updateWS() {
     brand.innerHTML = `<img id="appbar-logo" class="appbar-logo" alt="대시보드로 이동" title="대시보드">`;
     const abLogo = document.getElementById('appbar-logo');
     if (abLogo) {
-      abLogo.src = isAK ? 'logo-ak.png' : 'logo-activo-dark.png';
+      abLogo.src = isAK ? 'images/logo/logo-ak.png' : 'images/logo/logo-activo-dark.png';
       abLogo.onclick = () => { state.view = 'dashboard'; state.detailId = null; render(); };
     }
   }
