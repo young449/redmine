@@ -498,6 +498,17 @@ const wsRecords = () => DB.records.filter(r => (r.brand || 'AK') === state.works
 /* ---------- 알림 (로컬 시뮬레이션 — 멀티유저는 추후 백엔드) ---------- */
 const NOTIF_TITLES = { new: '새 VOC', mention: '댓글 멘션', status: '상태 변경', route: '처리 전달', assign: '담당 배정' };
 const notifTitle = k => NOTIF_TITLES[k] || '알림';
+const capFirst = s => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+function notifIcon(kind) {
+  const p = {
+    new:     '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+    status:  '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>',
+    route:   '<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>',
+    assign:  '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/>',
+    mention: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>'
+  };
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${p[kind] || ''}</svg>`;
+}
 function pushNotif(kind, text, vocId) {
   DB.notifs = DB.notifs || [];
   DB.notifs.unshift({ id: 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), kind, text, vocId: vocId || null, at: Date.now(), read: false });
@@ -1778,7 +1789,7 @@ function bindEditControls(r) {
     r.comments = r.comments || [];
     r.comments.push({ author: DB.me, text, at: Date.now() });
     const mentioned = mentionedMembers(text);
-    if (mentioned.length) pushNotif('mention', `${r.id} · ${mentioned.map(m => m.en).join(', ')}`, r.id);
+    if (mentioned.length) pushNotif('mention', `${r.id} · ${mentioned.map(m => capFirst(m.en)).join(', ')}`, r.id);
     save(); render();
   };
 
@@ -1816,10 +1827,11 @@ function bindEditControls(r) {
       r.statusHistory = r.statusHistory || [];
       r.statusHistory.push({ status: newStatus, at: Date.now() });
       r.pmStatus = newStatus;
-      pushNotif('status', `${r.id} → ${newStatus}`, r.id);
       if (newStatus === '개발 요청' || newStatus === '디자인 요청') {
         const pms = team().filter(m => m.role === 'PM').map(m => m.en).join(', ');
         pushNotif('route', `${r.id} ${newStatus} · 팀 큐${pms ? ` (PM ${pms})` : ''}`, r.id);
+      } else {
+        pushNotif('status', `${r.id} → ${newStatus}`, r.id);
       }
     }
     r.reviewed = isConfirmed(r);
@@ -1890,8 +1902,11 @@ function toggleNotifPanel() {
   const ns = (DB.notifs || []);
   const list = ns.length ? ns.map(n => `
     <div class="notif-item ${n.read ? '' : 'unread'}" data-nopen="${esc(n.vocId || '')}">
-      <div class="notif-kind k-${esc(n.kind)}"></div>
-      <div class="notif-body"><div class="notif-title">${esc(notifTitle(n.kind))}</div><div class="notif-text">${esc(n.text)}</div><div class="notif-time">${relTime(n.at)}</div></div>
+      <div class="notif-icon k-${esc(n.kind)}">${notifIcon(n.kind)}</div>
+      <div class="notif-body">
+        <div class="notif-top"><span class="notif-title">${esc(notifTitle(n.kind))}</span><span class="notif-time">${relTime(n.at)}</span></div>
+        <div class="notif-text">${esc(n.text)}</div>
+      </div>
     </div>`).join('') : '<div class="empty-mini" style="padding:16px">새 알림이 없습니다.</div>';
   const panel = document.createElement('div');
   panel.id = 'notif-panel'; panel.className = 'notif-panel';
