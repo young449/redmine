@@ -1411,9 +1411,11 @@ function renderDetailPage() {
   return `
   <div class="detail-form">
     ${statusBar(r)}
+    ${s.summary}
+    ${s.classify}
     <div class="detail-2col">
-      <div class="dcol">${s.summary}${s.orig}</div>
-      <div class="dcol">${s.classify}${s.pm}${s.checklist}</div>
+      <div class="dcol">${s.orig}</div>
+      <div class="dcol">${s.pm}${s.checklist}</div>
     </div>
   </div>
   <div class="save-bar detail-savebar">
