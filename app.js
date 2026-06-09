@@ -979,7 +979,7 @@ function renderBoard() {
   return `
   ${actionRow}
   ${filterRow}
-  <div class="result-count">${esc(WORKSPACE_LABEL[state.workspace])} · <b>${list.length}</b>건${anyFilter ? ' <span class="muted-s">(필터 적용됨)</span>' : ''}</div>
+  <div class="result-count">${esc(WORKSPACE_LABEL[state.workspace])} · <b>${list.length}</b>건${anyFilter ? ' <span class="muted-s">(필터 적용됨)</span> <button type="button" class="linkbtn" id="f-reset">필터 초기화</button>' : ''}</div>
   ${body}`;
 }
 
@@ -1359,7 +1359,7 @@ function detailSections(r) {
       <div class="orig-meta">
         <label class="meta-field"><span class="lab">모델</span><select id="m-model" class="model-sel">${modelOpts}</select></label>
         <label class="meta-field"><span class="lab">출처</span><select id="m-source">${SOURCES.map(sc => `<option ${r.source === sc ? 'selected' : ''}>${esc(sc)}</option>`).join('')}</select></label>
-        <label class="meta-field grow"><span class="lab">레드마인</span><input type="text" id="m-redmine" placeholder="티켓 번호" value="${esc(r.redmine || '')}"><a id="m-redmine-link" class="rm-link" target="_blank" rel="noopener" ${r.redmine ? `href="${redmineBase()}${encodeURIComponent(r.redmine)}"` : 'hidden'}>원문 열기 ↗</a></label>
+        <label class="meta-field grow"><span class="lab">레드마인</span><input type="text" id="m-redmine" placeholder="티켓 번호" value="${esc(r.redmine || '')}"><a id="m-redmine-link" class="rm-link" target="_blank" rel="noopener" title="레드마인 원문 열기" ${r.redmine ? `href="${redmineBase()}${encodeURIComponent(r.redmine)}"` : 'hidden'}>열기 ↗</a></label>
       </div>
       <textarea id="m-body" class="box orig edit grow-fill" style="min-height:160px">${esc(r.body)}</textarea>
     </div>`,
@@ -1405,7 +1405,7 @@ function statusBar(r) {
   const opts = STATUSES.map(s => `<option value="${esc(s)}" ${r.pmStatus === s ? 'selected' : ''}>${esc(s)}</option>`).join('');
   return `
   <div class="status-bar">
-    <span class="hint" style="color:var(--ai);margin:0;font-weight:700">${warnIcon()} 유형·영향범위를 사람이 확인·보정하면 'AI 분류'가 '분류 확정'으로 넘어갑니다.</span>
+    <span class="status-note">${warnIcon()} 유형·영향범위를 사람이 확인·보정하면 'AI 분류'가 '분류 확정'으로 넘어갑니다.</span>
     <span class="sbar-sp"></span>
     <span class="lab">상태 변경</span>
     <select id="m-status">${opts}</select>
@@ -1728,6 +1728,8 @@ function bindBoard() {
     sel.onchange = () => { state.filters[sel.dataset.filter] = sel.value; render(); });
   const sortSel = $('#f-sort');
   if (sortSel) sortSel.onchange = () => { state.sort = sortSel.value === 'asc' ? 'asc' : 'desc'; render(); };
+  const reset = $('#f-reset');
+  if (reset) reset.onclick = () => { state.filters = { group: '', impact: '', source: '', status: '', model: '', assignee: '', q: '' }; render(); };
   document.querySelectorAll('[data-boardview]').forEach(b =>
     b.onclick = () => { state.boardView = b.dataset.boardview === 'card' ? 'card' : 'table'; render(); });
   const q = $('#f-q');

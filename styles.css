@@ -457,6 +457,8 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .head-actions { display: flex; gap: 8px; flex-shrink: 0; }
 .result-count { font-size: 12.5px; color: var(--muted); margin: 0 4px 12px; }
 .result-count b { color: var(--ink); }
+.linkbtn { background: none; border: 0; padding: 0; margin-left: 6px; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--ink-soft); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.linkbtn:hover { color: var(--ink); }
 .muted-s { color: var(--faint); font-weight: 400; font-size: 11.5px; }
 
 /* ---------- 대시보드 패널 ---------- */
@@ -755,6 +757,8 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .status-bar .sbar-sp { flex: 1 1 auto; }
 .status-bar .lab { font-size: 13px; font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; }
 .status-bar .hint { font-size: 13px; }
+.status-bar .status-note { display: inline-flex; align-items: center; gap: 6px; margin: 0; font-size: 12px; font-weight: 600; color: var(--muted); background: var(--surface-2); border: 0.5px solid var(--line); border-radius: 99px; padding: 5px 12px; }
+.status-bar .status-note svg { color: var(--faint); flex: 0 0 auto; }
 .status-bar select { width: auto; min-width: 140px; }
 .status-badge { font-size: 13px; font-weight: 800; padding: 8px 16px; border-radius: 999px; display: inline-flex; align-items: center; gap: 8px; }
 .status-badge .bdot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: 0 0 auto; }
@@ -770,15 +774,15 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .model-row { display: flex; align-items: center; justify-content: flex-start; gap: 12px; margin: 0 0 12px; }
 .model-row .lab { margin: 0; font-size: 13px; font-weight: 700; color: var(--ink-soft); white-space: nowrap; }
 .model-row select.model-sel { width: auto; min-width: 150px; max-width: 240px; }
-.orig-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 0 0 12px; }
-.orig-meta .meta-field { display: flex; align-items: center; gap: 8px; margin: 0; }
-.orig-meta .meta-field.grow { flex: 1 1 200px; min-width: 200px; }
+.orig-meta { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px 10px; margin: 0 0 12px; }
+.orig-meta .meta-field { display: flex; align-items: center; gap: 6px; margin: 0; min-width: 0; }
+.orig-meta .meta-field.grow { flex: 1 1 70px; min-width: 70px; }
 .orig-meta .lab { margin: 0; font-size: 13px; font-weight: 700; color: var(--ink-soft); white-space: nowrap; }
-.orig-meta select { width: auto; min-width: 120px; }
-.orig-meta select.model-sel { min-width: 150px; max-width: 220px; }
-.orig-meta #m-source { min-width: 84px; }
-.orig-meta #m-redmine { width: auto; flex: 1 1 90px; min-width: 90px; }
-.orig-meta .rm-link { font-size: 12px; font-weight: 600; color: var(--brand); white-space: nowrap; text-decoration: none; }
+.orig-meta select { width: auto; min-width: 0; }
+.orig-meta select.model-sel { min-width: 96px; max-width: 150px; }
+.orig-meta #m-source { min-width: 58px; }
+.orig-meta #m-redmine { width: auto; flex: 1 1 50px; min-width: 44px; }
+.orig-meta .rm-link { flex: 0 0 auto; font-size: 12px; font-weight: 600; color: var(--brand); white-space: nowrap; text-decoration: none; }
 .orig-meta .rm-link:hover { text-decoration: underline; }
 .orig-meta .rm-link[hidden] { display: none; }
 #m-cmt-send, .detail-savebar #m-save, .detail-savebar #m-delete { flex: 0 0 auto; min-width: 80px; padding: 8px 16px; font-size: 13px; font-weight: 600; }
