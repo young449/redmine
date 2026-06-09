@@ -77,8 +77,20 @@ const DEFAULT_TEAM = [
   { id: 'etna',   en: 'Etna',   ko: '윤수정', role: 'UX' },
 ];
 // 컬러 아바타 팔레트 (무채색 UI 위 유일한 컬러 포인트)
-const AVATAR_COLORS = ['#c0392b', '#b03a6e', '#7159c1', '#2670c4', '#0e8a6e', '#c47f0a', '#5b6b7b', '#8e44ad'];
+const AVATAR_COLORS = ['#b03a6e', '#2670c4', '#7159c1', '#c0392b', '#0891b2', '#5b6b7b', '#8e44ad'];
+const AVATAR_OVERRIDE = { ellie: '#ea7317', app: '#15803d', hw: '#eab308' }; // 지정: Ellie 오렌지 · app 그린 · hw 노랑 (en 소문자 기준)
 const hashIdx = (s, n) => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h % n; };
+function avatarColor(m) {
+  const key = (m.en || '').toLowerCase();
+  if (AVATAR_OVERRIDE[key]) return AVATAR_OVERRIDE[key];
+  const t = team(); const i = t.findIndex(x => x.id === m.id);
+  return AVATAR_COLORS[(i >= 0 ? i : hashIdx(m.id, AVATAR_COLORS.length)) % AVATAR_COLORS.length];
+}
+function readableText(hex) {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.62 ? '#1a1d23' : '#fff';
+}
 const team = () => (DB && DB.team) || DEFAULT_TEAM;
 const member = id => team().find(m => m.id === id) || null;
 function avatarHTML(id, size) {
@@ -86,8 +98,8 @@ function avatarHTML(id, size) {
   const style = `width:${sz}px;height:${sz}px;font-size:${Math.round(sz * 0.42)}px`;
   const m = member(id);
   if (!m) return `<span class="avatar none" style="${style}" title="미배정">–</span>`;
-  const c = AVATAR_COLORS[hashIdx(m.id, AVATAR_COLORS.length)];
-  return `<span class="avatar" style="${style};background:${c}" title="${esc((m.en + ' ' + (m.ko || '')).trim())}">${esc(m.en[0])}</span>`;
+  const c = avatarColor(m);
+  return `<span class="avatar" style="${style};background:${c};color:${readableText(c)}" title="${esc((m.en + ' ' + (m.ko || '')).trim())}">${esc(m.en[0])}</span>`;
 }
 // 담당자 여러 명 → 아바타 겹쳐 표시 (최대 3 + 나머지 수)
 function avatarStack(ids, size) {
@@ -798,8 +810,9 @@ function renderDashboard() {
     </div>`;
   }).join('') + `</div>`;
 
-  // 최근 추가된 VOC (프로필 아바타 포함)
-  const recent = recs.slice().sort((a, b) => b.createdAt - a.createdAt).slice(0, 5);
+  // 최근 추가된 VOC — '최근' = 접수일 기준 3개월 이내 (그 안에서 최신순, 최대 5건)
+  const cut = new Date(); cut.setMonth(cut.getMonth() - 3); const recentCutoff = cut.getTime();
+  const recent = recs.filter(r => r.createdAt >= recentCutoff).sort((a, b) => b.createdAt - a.createdAt).slice(0, 5);
   const recentBody = recent.length ? `<div class="recent-list">${recent.map(r => `
     <div class="recent-item" data-open="${r.id}">
       <div class="ri-text">
@@ -807,7 +820,7 @@ function renderDashboard() {
         <div class="ri-sum">${esc(r.aiSummary)}</div>
       </div>
       ${avatarStack(r.assignees, 32)}
-    </div>`).join('')}</div>` : '<div class="empty-mini">아직 등록된 VOC가 없습니다.</div>';
+    </div>`).join('')}</div>` : '<div class="empty-mini">최근 3개월 내 접수된 VOC가 없습니다.</div>';
 
   return `
   <div class="page-head row" style="justify-content:flex-end">
@@ -833,7 +846,7 @@ function renderDashboard() {
       ${statusRows}
     </div>
     <div class="card panel">
-      <div class="panel-h">최근 추가된 VOC</div>
+      <div class="panel-h">최근 추가된 VOC <span class="info-ic" data-pop="최근 3개월 이내 접수 · 최신순" tabindex="0" role="button" aria-label="최근 추가 기준 안내">i</span></div>
       ${recentBody}
     </div>
   </div>`;
@@ -1350,7 +1363,7 @@ function detailSections(r) {
       <div class="sec-h">처리 전달</div>
       <div class="sub-h">전달 메모</div>
       <textarea id="m-memo" class="box" style="min-height:90px;width:100%;margin-bottom:14px" placeholder="처리 담당(개발·디자인 등)에게 전달할 내용을 적으세요.">${esc(r.pmMemo)}</textarea>
-      <div class="sub-h">담당자 <span class="info-ic" tabindex="0" role="button" aria-label="담당자 안내" data-tip="팀 큐 — 비워두면 처리팀이 직접 가져갑니다">i</span></div>
+      <div class="sub-h">담당자 <span class="info-ic" tabindex="0" role="button" aria-label="담당자 안내" data-pop="팀 큐 — 비워두면 처리팀이 직접 가져갑니다">i</span></div>
       <div class="assignee-pick" id="m-assignee">${team().map(m => `<button type="button" class="asg-chip ${(r.assignees || []).includes(m.id) ? 'on' : ''}" data-asg="${esc(m.id)}">${avatarHTML(m.id, 20)} ${esc(m.en)}</button>`).join('')}</div>
     </div>`,
     comments: `
@@ -1789,7 +1802,7 @@ function bindEditControls(r) {
     r.comments = r.comments || [];
     r.comments.push({ author: DB.me, text, at: Date.now() });
     const mentioned = mentionedMembers(text);
-    if (mentioned.length) pushNotif('mention', `${r.id} · ${mentioned.map(m => capFirst(m.en)).join(', ')}`, r.id);
+    if (mentioned.some(m => m.id === DB.me)) pushNotif('mention', `${r.id} · 댓글에서 멘션됨`, r.id);
     save(); render();
   };
 
@@ -1860,11 +1873,36 @@ function bindDetailPage(r) {
 }
 
 /* ---------- 알림 종 드롭다운 (정적 요소, 1회 바인딩) ---------- */
+let infoIcEl = null;
+function closeInfoPop() { const p = document.getElementById('info-pop'); if (p) p.remove(); infoIcEl = null; }
+function openInfoPop(ic) {
+  closeInfoPop();
+  const pop = document.createElement('div');
+  pop.id = 'info-pop'; pop.className = 'info-pop';
+  pop.innerHTML = `<button type="button" class="info-pop-x" aria-label="닫기">✕</button><div class="info-pop-body">${esc(ic.getAttribute('data-pop') || '')}</div><span class="info-pop-arrow"></span>`;
+  document.body.appendChild(pop);
+  const r = ic.getBoundingClientRect();
+  const w = pop.offsetWidth || 240;
+  let left = r.left + r.width / 2 - w / 2;
+  left = Math.max(10, Math.min(left, window.innerWidth - w - 10));
+  pop.style.top = (r.bottom + 9) + 'px';
+  pop.style.left = left + 'px';
+  pop.querySelector('.info-pop-arrow').style.left = (r.left + r.width / 2 - left) + 'px';
+  infoIcEl = ic;
+}
+
 function bindTopbar() {
   const bell = document.getElementById('bell');
   if (bell) bell.onclick = e => { e.stopPropagation(); toggleNotifPanel(); };
   const wsSel = document.getElementById('ws-select');
   if (wsSel) wsSel.onclick = e => { e.stopPropagation(); toggleWsMenu(); };
+  document.addEventListener('click', e => {
+    if (e.target.closest && e.target.closest('.info-pop-x')) { closeInfoPop(); return; }
+    const ic = e.target.closest ? e.target.closest('.info-ic[data-pop]') : null;
+    const pop = document.getElementById('info-pop');
+    if (ic) { (pop && infoIcEl === ic) ? closeInfoPop() : openInfoPop(ic); return; }
+    if (pop && !pop.contains(e.target)) closeInfoPop();
+  });
 }
 
 function toggleWsMenu() {
@@ -1905,7 +1943,7 @@ function toggleNotifPanel() {
       <div class="notif-icon k-${esc(n.kind)}">${notifIcon(n.kind)}</div>
       <div class="notif-body">
         <div class="notif-top"><span class="notif-title">${esc(notifTitle(n.kind))}</span><span class="notif-time">${relTime(n.at)}</span></div>
-        <div class="notif-text">${esc(n.text)}</div>
+        <div class="notif-text">${n.vocId && n.text.startsWith(n.vocId) ? `<span class="notif-code">${esc(n.vocId)}</span>${esc(n.text.slice(n.vocId.length))}` : esc(n.text)}</div>
       </div>
     </div>`).join('') : '<div class="empty-mini" style="padding:16px">새 알림이 없습니다.</div>';
   const panel = document.createElement('div');
