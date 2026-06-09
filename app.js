@@ -386,6 +386,7 @@ function ensureData() {
     if (!('assignee' in r)) { r.assignee = null; changed = true; }
     if (!Array.isArray(r.assignees)) { r.assignees = r.assignee ? [r.assignee] : []; changed = true; }
     if (!Array.isArray(r.comments)) { r.comments = []; changed = true; }
+    if (!Array.isArray(r.checklist)) { r.checklist = []; changed = true; }
     if (r.model === '공통 / 브랜드 이슈') { r.model = '공통'; changed = true; }
     if (!('reviewedAt' in r)) { r.reviewedAt = r.reviewed ? r.createdAt : null; changed = true; }
     if (r.pmStatus === '검토중') { r.pmStatus = r.reviewed ? '분류 확정' : 'AI 분류'; changed = true; }
@@ -446,6 +447,7 @@ function makeRecord(brand, body, model, source, redmine, ts, seq, opts) {
     assignee: opts.assignee || null,
     assignees: opts.assignee ? [opts.assignee] : [],
     comments: [],
+    checklist: [],
     pmStatus: status, pmMemo: opts.memo || '',
     statusHistory: history
   };
@@ -615,7 +617,7 @@ function updateWS() {
     brand.innerHTML = `<img id="appbar-logo" class="appbar-logo" alt="대시보드로 이동" title="대시보드">`;
     const abLogo = document.getElementById('appbar-logo');
     if (abLogo) {
-      abLogo.src = isAK ? 'images/logo/logo-ak.png' : 'images/logo/logo-activo-dark.png';
+      abLogo.src = isAK ? 'images/logo/ak.png' : 'images/logo/activo-dark.png';
       abLogo.onclick = () => { state.view = 'dashboard'; state.detailId = null; render(); };
     }
   }
@@ -816,7 +818,7 @@ function renderDashboard() {
   const recentBody = recent.length ? `<div class="recent-list">${recent.map(r => `
     <div class="recent-item" data-open="${r.id}">
       <div class="ri-text">
-        <div class="ri-top"><span class="recv-no">${esc(r.id)}</span>${primaryGroupChip(r)}<span class="status-tag ${statusClass(r.pmStatus)}">${esc(r.pmStatus)}</span></div>
+        <div class="ri-top"><span class="recv-no">${esc(r.id)}</span>${primaryGroupChip(r)}<span class="status-tag ${statusClass(r.pmStatus)}">${esc(r.pmStatus)}</span>${partialBadge(r)}</div>
         <div class="ri-sum">${esc(r.aiSummary)}</div>
       </div>
       ${avatarStack(r.assignees, 32)}
@@ -930,7 +932,7 @@ function renderVOCTable(list) {
       <td class="t-id">${esc(r.id)}</td>
       <td class="t-sum">${esc(r.aiSummary)}</td>
       <td>${groups}</td>
-      <td><span class="status-tag ${cls}">${esc(r.pmStatus)}</span></td>
+      <td><span class="status-tag ${cls}">${esc(r.pmStatus)}</span>${partialBadge(r)}</td>
       <td>${avatarStack(r.assignees, 24)}</td>
       <td class="t-date">${fmtDate(r.createdAt)}</td>
     </tr>`;
@@ -1290,7 +1292,7 @@ function renderVOCCard(r) {
   const pri = r.priority
     ? `<span class="pri ${r.priority}">${r.priority}</span>`
     : `<span class="pri none">우선순위 −</span>`;
-  const status = `<span class="status-tag ${r.pmStatus.replace(/\s/g, '')}">${esc(r.pmStatus)}</span>`;
+  const status = `<span class="status-tag ${r.pmStatus.replace(/\s/g, '')}">${esc(r.pmStatus)}</span>${partialBadge(r)}`;
 
   return `
   <div class="card voc" data-open="${r.id}">
@@ -1326,6 +1328,9 @@ function renderCommentText(text) {
 function mentionedMembers(text) {
   return team().filter(m => [m.en, m.ko].filter(Boolean).some(n => text.includes('@' + n)));
 }
+
+function checklistStat(r) { const l = r.checklist || []; const done = l.filter(x => x.done).length; return { done, total: l.length, partial: l.length > 0 && done > 0 && done < l.length }; }
+function partialBadge(r) { const c = checklistStat(r); return c.partial ? `<span class="partial-badge" title="처리 항목 ${c.done}/${c.total} 완료">부분 완료 ${c.done}/${c.total}</span>` : ''; }
 
 function detailSections(r) {
   const types = effTypes(r);
@@ -1366,6 +1371,17 @@ function detailSections(r) {
       <div class="sub-h">담당자 <span class="info-ic" tabindex="0" role="button" aria-label="담당자 안내" data-pop="팀 큐 — 비워두면 처리팀이 직접 가져갑니다">i</span></div>
       <div class="assignee-pick" id="m-assignee">${team().map(m => `<button type="button" class="asg-chip ${(r.assignees || []).includes(m.id) ? 'on' : ''}" data-asg="${esc(m.id)}">${avatarHTML(m.id, 20)} ${esc(m.en)}</button>`).join('')}</div>
     </div>`,
+    checklist: `
+    <div class="sec">
+      <div class="sec-h">처리 항목 ${(() => { const c = checklistStat(r); return c.total ? `<span class="muted-s">${c.done}/${c.total} 완료</span>` : ''; })()}</div>
+      <div class="checklist" id="m-checklist">${(r.checklist || []).length ? (r.checklist || []).map((it, ci) => `
+        <div class="ck-item ${it.done ? 'done' : ''}">
+          <button type="button" class="ck-box" data-ck-toggle="${ci}" aria-label="완료 토글">${it.done ? '✓' : ''}</button>
+          <span class="ck-text">${esc(it.text)}</span>
+          <button type="button" class="ck-del" data-ck-del="${ci}" aria-label="항목 삭제">✕</button>
+        </div>`).join('') : '<div class="empty-mini">처리 항목이 없습니다. 요청을 항목으로 나눠 추가하세요.</div>'}</div>
+      <div class="ck-add"><input type="text" id="m-ck-input" placeholder="처리 항목 추가" /><button type="button" class="btn sm" id="m-ck-add">추가</button></div>
+    </div>`,
     comments: `
     <div class="sec">
       <div class="sec-h">댓글 <span class="muted-s">${r.comments.length}</span></div>
@@ -1397,7 +1413,7 @@ function renderDetailPage() {
     ${statusBar(r)}
     <div class="detail-2col">
       <div class="dcol">${s.summary}${s.orig}</div>
-      <div class="dcol">${s.classify}${s.pm}</div>
+      <div class="dcol">${s.classify}${s.pm}${s.checklist}</div>
     </div>
   </div>
   <div class="save-bar detail-savebar">
@@ -1823,6 +1839,23 @@ function bindEditControls(r) {
     bodyEl.querySelector('[data-ccancel]').onclick = () => render();
   });
 
+  const ckAdd = () => {
+    const inp = $('#m-ck-input'); if (!inp) return;
+    const v = (inp.value || '').trim(); if (!v) return;
+    r.checklist = r.checklist || []; r.checklist.push({ text: v, done: false });
+    save(); render();
+  };
+  if ($('#m-ck-add')) $('#m-ck-add').onclick = ckAdd;
+  if ($('#m-ck-input')) $('#m-ck-input').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); ckAdd(); } });
+  document.querySelectorAll('[data-ck-toggle]').forEach(b => b.onclick = () => {
+    const i = +b.dataset.ckToggle;
+    if (r.checklist && r.checklist[i]) { r.checklist[i].done = !r.checklist[i].done; save(); render(); }
+  });
+  document.querySelectorAll('[data-ck-del]').forEach(b => b.onclick = () => {
+    const i = +b.dataset.ckDel;
+    if (r.checklist) { r.checklist.splice(i, 1); save(); render(); }
+  });
+
   $('#m-save').onclick = () => {
     if (touched) {
       r.types = editTypes.slice();
@@ -1874,21 +1907,33 @@ function bindDetailPage(r) {
 
 /* ---------- 알림 종 드롭다운 (정적 요소, 1회 바인딩) ---------- */
 let infoIcEl = null;
-function closeInfoPop() { const p = document.getElementById('info-pop'); if (p) p.remove(); infoIcEl = null; }
-function openInfoPop(ic) {
-  closeInfoPop();
-  const pop = document.createElement('div');
-  pop.id = 'info-pop'; pop.className = 'info-pop';
-  pop.innerHTML = `<button type="button" class="info-pop-x" aria-label="닫기">✕</button><div class="info-pop-body">${esc(ic.getAttribute('data-pop') || '')}</div><span class="info-pop-arrow"></span>`;
-  document.body.appendChild(pop);
+let infoReposition = null;
+function closeInfoPop() {
+  const p = document.getElementById('info-pop'); if (p) p.remove();
+  if (infoReposition) { window.removeEventListener('scroll', infoReposition, true); window.removeEventListener('resize', infoReposition); infoReposition = null; }
+  infoIcEl = null;
+}
+function positionInfoPop(pop, ic) {
   const r = ic.getBoundingClientRect();
   const w = pop.offsetWidth || 240;
   let left = r.left + r.width / 2 - w / 2;
   left = Math.max(10, Math.min(left, window.innerWidth - w - 10));
   pop.style.top = (r.bottom + 9) + 'px';
   pop.style.left = left + 'px';
-  pop.querySelector('.info-pop-arrow').style.left = (r.left + r.width / 2 - left) + 'px';
+  const arrow = pop.querySelector('.info-pop-arrow');
+  if (arrow) arrow.style.left = (r.left + r.width / 2 - left) + 'px';
+}
+function openInfoPop(ic) {
+  closeInfoPop();
+  const pop = document.createElement('div');
+  pop.id = 'info-pop'; pop.className = 'info-pop';
+  pop.innerHTML = `<div class="info-pop-body">${esc(ic.getAttribute('data-pop') || '')}</div><button type="button" class="info-pop-x" aria-label="닫기">✕</button><span class="info-pop-arrow"></span>`;
+  document.body.appendChild(pop);
+  positionInfoPop(pop, ic);
   infoIcEl = ic;
+  infoReposition = () => { const p = document.getElementById('info-pop'); if (p && document.body.contains(ic)) positionInfoPop(p, ic); else closeInfoPop(); };
+  window.addEventListener('scroll', infoReposition, true);
+  window.addEventListener('resize', infoReposition);
 }
 
 function bindTopbar() {
