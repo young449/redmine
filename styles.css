@@ -301,11 +301,12 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
 .voc-table tbody tr:last-child td { border-bottom: 0; }
 .voc-table .t-id { font-family: var(--mono); font-weight: 700; color: var(--ink); white-space: nowrap; }
 .voc-table .t-id .rev-dot { color: var(--human); font-weight: 800; }
-.voc-table .t-sum { display: flex; align-items: center; gap: 8px; color: var(--ink-soft); }
+.voc-table .t-sum { color: var(--ink-soft); overflow: hidden; }
+.voc-table .t-sum .t-sum-in { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .voc-table .t-sum .t-sum-txt { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .voc-table .t-sum .cmt-badge { flex: 0 0 auto; }
-.cmt-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; color: var(--muted); }
-.cmt-badge svg { opacity: .85; }
+.cmt-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; color: var(--ink-soft); }
+.cmt-badge svg { opacity: .9; }
 .voc-table .chip.grp { font-size: 10.5px; padding: 4px 8px; }
 .voc-table .t-date { font-family: var(--mono); font-size: 12px; color: var(--muted); white-space: nowrap; }
 .voc {

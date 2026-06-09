@@ -930,7 +930,7 @@ function renderVOCTable(list) {
     const groups = primaryGroupChip(r);
     return `<tr data-open="${r.id}">
       <td class="t-id">${esc(r.id)}</td>
-      <td class="t-sum"><span class="t-sum-txt">${esc(r.aiSummary)}</span>${commentBadge(r)}</td>
+      <td class="t-sum"><div class="t-sum-in">${commentBadge(r)}<span class="t-sum-txt">${esc(r.aiSummary)}</span></div></td>
       <td>${groups}</td>
       <td><span class="status-tag ${cls}">${esc(r.pmStatus)}</span>${partialBadge(r)}</td>
       <td>${avatarStack(r.assignees, 24)}</td>
