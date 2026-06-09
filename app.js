@@ -1388,7 +1388,7 @@ function detailSections(r) {
       <div class="sub-h">전달 메모</div>
       <textarea id="m-memo" class="box" style="width:100%" placeholder="처리 담당(개발·디자인 등)에게 전달할 내용을 적으세요.">${esc(r.pmMemo)}</textarea>`,
     assignee: `
-      <div class="sub-h">담당자 <span class="info-ic" tabindex="0" role="button" aria-label="담당자 안내" data-pop="이 VOC를 처리할 담당자를 지정해 주세요. 비워두면 미배정 상태로 남습니다.">i</span></div>
+      <div class="sub-h">담당자 <span class="info-ic" tabindex="0" role="button" aria-label="담당자 안내" data-pop="이 VOC를 처리할 담당자 지정 · 비우면 미배정">i</span></div>
       <div class="assignee-pick" id="m-assignee">${team().map(m => `<button type="button" class="asg-chip ${(r.assignees || []).includes(m.id) ? 'on' : ''}" data-asg="${esc(m.id)}">${avatarHTML(m.id, 20)} ${esc(m.en)}</button>`).join('')}</div>`,
     checklist: `
       <div class="sub-h">처리 항목 ${(() => { const c = checklistStat(r); return c.total ? `<span class="muted-s">${c.done}/${c.total} 완료</span>` : ''; })()}</div>
@@ -1978,7 +1978,7 @@ function openInfoPop(ic) {
     pop.innerHTML = `<div class="info-pop-head"><b>VOC 유형 안내</b><button type="button" class="info-pop-x" aria-label="닫기">✕</button></div><div class="ipt-list">${rows}</div>`;
   } else {
     pop.className = 'info-pop';
-    pop.innerHTML = `<div class="info-pop-body">${esc(ic.getAttribute('data-pop') || '')}</div><button type="button" class="info-pop-x" aria-label="닫기">✕</button><span class="info-pop-arrow"></span>`;
+    pop.innerHTML = `<div class="info-pop-body">${esc(ic.getAttribute('data-pop') || '')}</div><button type="button" class="info-pop-x" aria-label="닫기">✕</button>`;
   }
   document.body.appendChild(pop);
   positionInfoPop(pop, ic);

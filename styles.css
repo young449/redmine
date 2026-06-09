@@ -205,7 +205,7 @@ a:hover { text-decoration: underline; }
 
 .card {
   background: var(--surface); border: 1px solid var(--line);
-  border-radius: var(--radius); box-shadow: var(--shadow-sm);
+  border-radius: var(--radius);
 }
 
 .btn {
@@ -353,7 +353,7 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
   padding: var(--sp-16) var(--sp-20); cursor: pointer; transition: .15s;
   display: grid; grid-template-columns: 92px 1fr auto; gap: var(--sp-16); align-items: start;
 }
-.voc:hover { border-color: var(--brand); box-shadow: var(--shadow); }
+.voc:hover { border-color: var(--brand); }
 .voc .col-id { }
 .voc .recv-no { font-family: var(--mono); font-weight: 800; font-size: var(--fs-17); color: var(--ink); }
 .voc .col-id .status-tag { display: inline-block; margin-top: var(--sp-8); }
@@ -449,18 +449,14 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
 .ai-note-inline svg { width: 14px; height: 14px; flex: 0 0 auto; color: var(--notice); }
 .info-ic { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--muted); color: var(--muted); font-size: var(--fs-11); font-weight: 800; font-style: normal; text-transform: none; letter-spacing: 0; cursor: pointer; position: relative; vertical-align: middle; margin-left: var(--sp-4); }
 .info-ic:hover, .info-ic:focus { color: var(--ink-soft); border-color: var(--ink-soft); outline: none; }
-.info-pop { position: fixed; z-index: 300; max-width: 260px; background: var(--ink); color: #fff; border-radius: 10px; padding: var(--sp-8) var(--sp-10) var(--sp-8) var(--sp-12); box-shadow: 0 8px 28px rgba(0,0,0,.22); font-size: var(--fs-12); line-height: 1.45; display: flex; align-items: flex-start; gap: var(--sp-8); }
-.info-pop-body { white-space: normal; word-break: keep-all; }
-.info-pop-x { flex: 0 0 auto; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 0; color: #fff; opacity: .6; cursor: pointer; font-size: var(--fs-11); line-height: 1; border-radius: 5px; padding: 0; }
-.info-pop-x:hover { opacity: 1; background: rgba(255,255,255,.14); }
-.info-pop-arrow { position: absolute; bottom: 100%; width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 7px solid var(--ink); transform: translateX(-6px); }
-.info-pop.flip-up .info-pop-arrow { bottom: auto; top: 100%; border-bottom: 0; border-top: 7px solid var(--ink); }
-/* 흰 카드형 — VOC 유형 안내(8개 정의) */
-.info-pop.info-pop-rich { display: block; max-width: 340px; width: max-content; background: var(--surface); color: var(--ink); border: 1px solid var(--line); padding: var(--sp-12) var(--sp-14); box-shadow: 0 12px 32px rgba(0,0,0,.16); }
-.info-pop-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-16); margin-bottom: var(--sp-12); }
+.info-pop { position: fixed; z-index: 300; max-width: 300px; background: var(--surface); color: var(--ink-soft); border: 1px solid var(--line); border-radius: 10px; padding: var(--sp-12) var(--sp-14); box-shadow: 0 12px 32px rgba(0,0,0,.16); font-size: var(--fs-12); line-height: 1.5; }
+.info-pop-body { white-space: normal; word-break: keep-all; color: var(--ink-soft); padding-right: var(--sp-20); }
+.info-pop-x { position: absolute; top: var(--sp-10); right: var(--sp-10); width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 0; color: var(--muted); opacity: .8; cursor: pointer; font-size: var(--fs-11); line-height: 1; border-radius: 5px; padding: 0; }
+.info-pop-x:hover { opacity: 1; background: var(--line-2); color: var(--ink); }
+/* 카드형 안내(제목 + 목록) — VOC 유형 등. 색·테두리·그림자·패딩은 .info-pop 상속 */
+.info-pop.info-pop-rich { max-width: 340px; width: max-content; }
+.info-pop-head { padding-right: var(--sp-20); margin-bottom: var(--sp-12); }
 .info-pop-head b { font-size: var(--fs-13); font-weight: 800; color: var(--ink); }
-.info-pop-rich .info-pop-x { color: var(--muted); opacity: .8; }
-.info-pop-rich .info-pop-x:hover { opacity: 1; background: var(--line-2); color: var(--ink); }
 .ipt-list { display: flex; flex-direction: column; gap: var(--sp-10); max-height: 56vh; overflow-y: auto; }
 .ipt-row { display: flex; flex-direction: column; gap: 1px; }
 .ipt-term { font-size: var(--fs-12); font-weight: 800; color: var(--ink); }
@@ -816,7 +812,7 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .status-bar .status-note { display: inline-flex; align-items: center; gap: var(--sp-6); margin: 0; font-size: var(--fs-12); font-weight: 700; color: var(--notice-strong); background: var(--notice-bg); border: 1px solid var(--notice-line); border-radius: 99px; padding: var(--sp-6) var(--sp-12); }
 .status-bar .status-note svg { color: var(--notice); flex: 0 0 auto; }
 .status-bar select { width: auto; min-width: 140px; }
-.status-badge { font-size: var(--fs-13); font-weight: 800; padding: var(--sp-8) var(--sp-16); border-radius: 8px; display: inline-flex; align-items: center; }
+.status-badge { font-size: var(--fs-13); font-weight: 800; padding: var(--sp-6) var(--sp-12); border-radius: 8px; display: inline-flex; align-items: center; }
 .detail-2col { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-20); align-items: stretch; }
 .detail-2col .dcol { display: flex; flex-direction: column; gap: var(--sp-20); min-width: 0; }
 .detail-2col .dcol .sec.grow { flex: 1 1 auto; display: flex; flex-direction: column; }
