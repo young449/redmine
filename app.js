@@ -132,6 +132,21 @@ const LEGACY_KEYS = ['voc_console_v4', 'voc_console_v3', 'voc_console_v2', 'voc_
 const SEED_VERSION = 5;                    // 시드 데이터 버전 (올리면 records만 재시드, 팀·설정은 보존)
 const DRAFT_KEY = 'voc_cs_draft_v1';
 
+/* ---------- Supabase 연동 설정 ---------- */
+const SUPABASE_URL = 'https://pxjipszalfhnpcquxlai.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_FYLM13OB2gDIA76N7JZtzg_Ku2JLTay';
+// 라이브러리(CDN)가 없거나 설정이 비면 sb=null → 기존처럼 localStorage 전용으로 동작
+const sb = (typeof window !== 'undefined' && window.supabase && SUPABASE_URL)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+  : null;
+let SESSION = null;             // 현재 로그인 세션
+let syncEnabled = false;        // 원격 쓰기 동기화 on/off (이관 완료/원격 데이터 존재 시 on)
+let migrationPending = false;   // 원격 비어있음 → 로컬 이관 대기
+let appStarted = false;         // 본 화면 부트 1회 가드
+let _remoteRecIds = new Set();  // 원격 records id (삭제 동기화용)
+let _remoteTeamIds = new Set(); // 원격 team id
+const remoteOn = () => !!(sb && SESSION);
+
 /* ---------- 키워드 기반 휴리스틱 AI (대체 구현) ---------- */
 const TYPE_KEYWORDS = {
   '기능 요청':        ['추가', '기능', '됐으면', '있으면', '지원해', '넣어', '바라', '요청', '원해', '필요'],
@@ -198,7 +213,7 @@ function load() {
   try { return JSON.parse(localStorage.getItem(STORE_KEY)) || null; }
   catch { return null; }
 }
-function save() { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); }
+function save() { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); if (syncEnabled) scheduleSync(); }
 
 // 이전(레거시 포함) 저장 데이터에서 사용자 설정(팀·프로필·알림) 복구
 //  - 기본 팀과 다른(=사용자가 편집한) 팀을 우선 채택, 없으면 가장 최근 데이터
@@ -1287,12 +1302,13 @@ function renderSettings() {
     </div>
 
     <div class="card panel">
-      <div class="panel-h">구글 계정 연동 <span class="badge-soon" style="background:var(--line-2);color:var(--muted)">준비중</span></div>
-      <p style="margin:0 0 8px;color:var(--muted);font-size:var(--fs-13)">현재는 백엔드 없는 정적 사이트라 데이터가 브라우저에만 저장됩니다. 여러 명이 같은 VOC를 보고 서로에게 알림이 가려면 공용 백엔드(예: Firebase Auth + Firestore)가 필요합니다.</p>
-      <ul style="margin:0;padding-left:18px;color:var(--ink-soft);font-size:var(--fs-13);line-height:1.7">
-        <li>구글 로그인(GIS): 신원·프로필 사진만 — 정적 사이트에서도 가능 (OAuth 클라이언트 ID 필요)</li>
-        <li>공용 데이터 + 실시간 알림: Firebase 권장 (회사 Workspace 도메인 제한 가능)</li>
-      </ul>
+      <div class="panel-h">계정 · 데이터</div>
+      <p style="margin:0 0 10px;color:var(--muted);font-size:var(--fs-13)" id="acct-state">${esc(acctStatusText())}</p>
+      <div class="rm-row">
+        <button class="btn primary" id="btn-migrate">로컬 데이터 이관</button>
+        <button class="btn ghost" id="btn-logout">로그아웃</button>
+      </div>
+      <div class="hint" id="acct-msg">로컬 브라우저에 쌓인 기존 편집을 Supabase로 한 번 올립니다. 원격에 데이터가 없을 때 사용하세요.</div>
     </div>
   </div>`;
 }
@@ -1555,6 +1571,17 @@ function bindSettings() {
 
   const impTpl = $('#imp-tpl');
   if (impTpl) impTpl.onclick = () => downloadImportTemplate();
+
+  const migBtn = $('#btn-migrate');
+  if (migBtn) migBtn.onclick = () => migrateLocalToRemote(m => {
+    const el = $('#acct-msg'); if (el) el.textContent = m;
+    const st = $('#acct-state'); if (st) st.textContent = acctStatusText();
+  });
+  const logoutBtn = $('#btn-logout');
+  if (logoutBtn) logoutBtn.onclick = async () => {
+    if (sb) { try { await sb.auth.signOut(); } catch (e) {} }
+    location.reload();
+  };
 
   const impRun = $('#imp-run');
   if (impRun) impRun.onclick = () => {
@@ -2087,8 +2114,179 @@ function relTime(ts) {
 function loadDraft() { try { return JSON.parse(localStorage.getItem(DRAFT_KEY)) || {}; } catch { return {}; } }
 function clearDraft() { localStorage.removeItem(DRAFT_KEY); }
 
+/* ---------- Supabase 데이터 계층 ---------- */
+// 원격 행(snake_case) ↔ 인메모리 레코드(camelCase) 매핑. 렌더 코드는 기존 DB 형태 그대로 사용.
+function rowToRec(x) {
+  return {
+    id: x.id, bseq: x.bseq, seq: x.seq, brand: x.brand,
+    createdAt: x.created_at ? new Date(x.created_at).getTime() : Date.now(),
+    body: x.body, model: x.model || '공통', source: x.source || '국내', redmine: x.redmine || '',
+    aiSummary: x.ai_summary, aiTypes: x.ai_types || [], aiImpact: x.ai_impact, aiEmotion: x.ai_emotion,
+    types: x.types || null, impact: x.impact || null, emotion: x.emotion || null,
+    reviewed: !!x.reviewed, reviewedAt: x.reviewed_at ? new Date(x.reviewed_at).getTime() : null,
+    priority: x.priority || null,
+    assignee: (x.assignees && x.assignees[0]) || null,
+    assignees: x.assignees || [],
+    comments: x.comments || [], checklist: x.checklist || [],
+    pmStatus: x.pm_status || 'AI 분류', pmMemo: x.pm_memo || '',
+    statusHistory: x.status_history || []
+  };
+}
+function recToRow(r) {
+  return {
+    id: r.id, brand: r.brand, seq: r.seq, bseq: r.bseq,
+    created_at: new Date(r.createdAt || Date.now()).toISOString(),
+    body: r.body, model: r.model || '공통', source: r.source || '국내', redmine: r.redmine || '',
+    ai_summary: r.aiSummary || null, ai_types: r.aiTypes || [], ai_impact: r.aiImpact || null, ai_emotion: r.aiEmotion || null,
+    types: r.types || null, impact: r.impact || null, emotion: r.emotion || null,
+    reviewed: !!r.reviewed, reviewed_at: r.reviewedAt ? new Date(r.reviewedAt).toISOString() : null,
+    priority: r.priority || null, assignees: r.assignees || [],
+    pm_status: r.pmStatus || 'AI 분류', pm_memo: r.pmMemo || '',
+    status_history: r.statusHistory || [], comments: r.comments || [], checklist: r.checklist || []
+  };
+}
+
+async function loadRemote() {
+  const [rec, tm, st] = await Promise.all([
+    sb.from('records').select('*'),
+    sb.from('team').select('*').order('sort', { ascending: true }),
+    sb.from('settings').select('*').eq('id', 1).maybeSingle()
+  ]);
+  if (rec.error) throw rec.error;
+  if (tm.error) throw tm.error;
+  const records = (rec.data || []).map(rowToRec);
+  _remoteRecIds = new Set(records.map(r => r.id));
+  const teamArr = (tm.data || []).map(m => ({ id: m.id, en: m.en, ko: m.ko, role: m.role }));
+  _remoteTeamIds = new Set(teamArr.map(m => m.id));
+  return { records, team: teamArr, settings: (st && st.data) || null };
+}
+
+// 쓰기 동기화: 작은 데이터라 전체 상태를 디바운스로 밀어 올린다 (삭제는 차집합으로 제거).
+let _syncTimer = null, _syncing = false;
+function scheduleSync() {
+  if (!remoteOn()) return;
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(syncRemote, 350);
+}
+async function syncRemote() {
+  if (!remoteOn() || _syncing) return;
+  _syncing = true;
+  try {
+    const recs = DB.records || [];
+    const ids = new Set(recs.map(r => r.id));
+    const goneR = [..._remoteRecIds].filter(id => !ids.has(id));
+    if (goneR.length) await sb.from('records').delete().in('id', goneR);
+    if (recs.length) await sb.from('records').upsert(recs.map(recToRow));
+    _remoteRecIds = ids;
+
+    const tm = team();
+    const tids = new Set(tm.map(m => m.id));
+    const goneT = [..._remoteTeamIds].filter(id => !tids.has(id));
+    if (goneT.length) await sb.from('team').delete().in('id', goneT);
+    if (tm.length) await sb.from('team').upsert(tm.map((m, i) => ({ id: m.id, en: m.en, ko: m.ko, role: m.role, sort: i })));
+    _remoteTeamIds = tids;
+
+    await sb.from('settings').upsert({ id: 1, redmine_base: DB.redmineBase || REDMINE_BASE, seed_version: DB.seedVersion || SEED_VERSION });
+  } catch (e) { console.warn('[sync] 원격 동기화 실패', e); }
+  _syncing = false;
+}
+
+// 로컬 localStorage 데이터를 원격으로 1회 이관
+async function migrateLocalToRemote(report) {
+  report = report || (() => {});
+  if (!remoteOn()) { report('로그인 후 이관할 수 있습니다.'); return; }
+  let blob = null; try { blob = JSON.parse(localStorage.getItem(STORE_KEY)); } catch { blob = null; }
+  const recs = (blob && Array.isArray(blob.records) && blob.records.length) ? blob.records : (DB.records || []);
+  if (!recs.length) { report('이관할 로컬 데이터가 없습니다.'); return; }
+  report(`이관 중... (${recs.length}건)`);
+  try {
+    await sb.from('records').upsert(recs.map(recToRow));
+    _remoteRecIds = new Set(recs.map(r => r.id));
+    DB.records = recs.map(r => ({ ...r }));
+    migrationPending = false; syncEnabled = true;
+    ensureData();
+    report(`완료 — ${recs.length}건 이관됨.`);
+    render();
+  } catch (e) { report('오류: ' + (e.message || e)); }
+}
+
+function acctStatusText() {
+  if (!sb) return '로컬 전용 모드 (Supabase 미연결).';
+  if (!SESSION) return '로그인되지 않음.';
+  const email = (SESSION.user && SESSION.user.email) || '계정';
+  if (migrationPending) return `${email} · 원격 비어있음 — 아래 버튼으로 로컬 데이터를 이관하세요.`;
+  if (syncEnabled) return `${email} · 원격 동기화 사용 중.`;
+  return `${email} · 연결됨.`;
+}
+
+/* ---------- 로그인 화면 (이메일 매직링크) ---------- */
+function renderLogin() {
+  let el = document.getElementById('login-screen');
+  if (!el) { el = document.createElement('div'); el.id = 'login-screen'; document.body.appendChild(el); }
+  document.body.classList.add('auth-gate');
+  el.innerHTML = `
+    <div class="login-card">
+      <div class="login-brand">VOC Console</div>
+      <p class="login-sub">사내 이메일로 로그인 링크를 받습니다.</p>
+      <input type="email" id="login-email" placeholder="name@company.com" autocomplete="email">
+      <button class="btn primary" id="login-send">로그인 링크 보내기</button>
+      <div class="login-msg" id="login-msg"></div>
+    </div>`;
+  const sendEl = document.getElementById('login-send');
+  const emailEl = document.getElementById('login-email');
+  const msgEl = document.getElementById('login-msg');
+  const submit = async () => {
+    const email = (emailEl.value || '').trim();
+    if (!email) { emailEl.focus(); return; }
+    msgEl.textContent = '전송 중...';
+    const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.href.split('#')[0] } });
+    msgEl.textContent = error ? ('오류: ' + error.message) : '메일함에서 로그인 링크를 눌러주세요.';
+  };
+  sendEl.onclick = submit;
+  emailEl.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+}
+
 /* ---------- 부트 ---------- */
-window.addEventListener('hashchange', () => { readURL(); render(); });
-readURL();
-render();
-bindTopbar();
+function startApp() {
+  document.body.classList.remove('auth-gate');
+  const ls = document.getElementById('login-screen'); if (ls) ls.remove();
+  appStarted = true;
+  readURL();
+  render();
+  bindTopbar();
+}
+
+async function boot() {
+  if (!sb) { startApp(); return; }            // 라이브러리 없음 → 로컬 전용
+  let session = null;
+  try { const { data } = await sb.auth.getSession(); session = data ? data.session : null; } catch (e) { console.warn(e); }
+  SESSION = session;
+  if (!SESSION) { renderLogin(); return; }
+  try {
+    const rem = await loadRemote();
+    if (rem.records.length) {
+      DB.records = rem.records;
+      if (rem.team && rem.team.length) DB.team = rem.team;
+      if (rem.settings && rem.settings.redmine_base) DB.redmineBase = rem.settings.redmine_base;
+      ensureData();
+      syncEnabled = true;
+    } else {
+      migrationPending = true;               // 원격 비어있음 → 설정에서 이관 버튼 안내
+    }
+  } catch (e) {
+    console.warn('[boot] 원격 로드 실패, 로컬 데이터로 진행', e);
+  }
+  startApp();
+}
+
+window.addEventListener('hashchange', () => { if (appStarted) { readURL(); render(); } });
+
+if (sb) {
+  sb.auth.onAuthStateChange((_evt, session) => {
+    const wasIn = !!SESSION;
+    SESSION = session;
+    if (session && !appStarted) boot();        // 매직링크 복귀/최초 로그인 → 부트
+    else if (!session && wasIn) location.reload(); // 로그아웃
+  });
+}
+boot();

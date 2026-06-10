@@ -932,3 +932,27 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .rp-age-days.hot { background: var(--alert-bg); color: var(--alert); }
 
 .head-actions select { height: 38px; padding-top: 0; padding-bottom: 0; }
+
+/* ---------- 로그인 게이트 ---------- */
+body.auth-gate .app { display: none; }
+#login-screen {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--paper); padding: var(--sp-24);
+}
+#login-screen .login-card {
+  width: 100%; max-width: 360px;
+  background: var(--card, #fff); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: var(--sp-32) var(--sp-24);
+  display: flex; flex-direction: column; gap: var(--sp-12);
+}
+#login-screen .login-brand { font-size: var(--fs-22); font-weight: 800; letter-spacing: -0.03em; color: var(--ink); }
+#login-screen .login-sub { margin: 0; font-size: var(--fs-13); color: var(--muted); }
+#login-screen input {
+  width: 100%; box-sizing: border-box;
+  padding: var(--sp-12); border: 1px solid var(--line); border-radius: var(--radius-sm);
+  font-size: var(--fs-15); color: var(--ink); background: var(--paper);
+}
+#login-screen input:focus { outline: none; border-color: var(--brand); }
+#login-screen .btn.primary { width: 100%; justify-content: center; }
+#login-screen .login-msg { font-size: var(--fs-13); color: var(--ink-soft); min-height: 18px; }
