@@ -1305,10 +1305,12 @@ function renderSettings() {
       <div class="panel-h">계정 · 데이터</div>
       <p style="margin:0 0 10px;color:var(--muted);font-size:var(--fs-13)" id="acct-state">${esc(acctStatusText())}</p>
       <div class="rm-row">
-        <button class="btn primary" id="btn-migrate">로컬 데이터 이관</button>
+        ${migrationPending ? '<button class="btn primary" id="btn-migrate">로컬 데이터 이관</button>' : ''}
         <button class="btn ghost" id="btn-logout">로그아웃</button>
       </div>
-      <div class="hint" id="acct-msg">로컬 브라우저에 쌓인 기존 편집을 Supabase로 한 번 올립니다. 원격에 데이터가 없을 때 사용하세요.</div>
+      ${migrationPending
+        ? '<div class="hint" id="acct-msg">이 브라우저에 남아 있는 기존 데이터를 Supabase로 한 번 올립니다. (최초 1회)</div>'
+        : '<div class="hint" id="acct-msg">편집한 내용은 자동으로 Supabase에 저장됩니다.</div>'}
     </div>
   </div>`;
 }
@@ -2020,6 +2022,8 @@ function bindTopbar() {
   if (bell) bell.onclick = e => { e.stopPropagation(); toggleNotifPanel(); };
   const wsSel = document.getElementById('ws-select');
   if (wsSel) wsSel.onclick = e => { e.stopPropagation(); toggleWsMenu(); };
+  const meChip = document.getElementById('me-chip');
+  if (meChip && sb) meChip.onclick = e => { e.stopPropagation(); toggleMeMenu(); };
   document.addEventListener('click', e => {
     if (e.target.closest && e.target.closest('.info-pop-x')) { closeInfoPop(); return; }
     const ic = e.target.closest ? e.target.closest('.info-ic[data-pop], .info-ic[data-pop-types]') : null;
@@ -2027,6 +2031,30 @@ function bindTopbar() {
     if (ic) { (pop && infoIcEl === ic) ? closeInfoPop() : openInfoPop(ic); return; }
     if (pop && !pop.contains(e.target)) closeInfoPop();
   });
+}
+
+function toggleMeMenu() {
+  const ex = document.getElementById('me-menu');
+  if (ex) { ex.remove(); return; }
+  const chip = document.getElementById('me-chip');
+  if (!chip) return;
+  const email = (SESSION && SESSION.user && SESSION.user.email) || '';
+  const menu = document.createElement('div');
+  menu.id = 'me-menu'; menu.className = 'me-menu';
+  menu.innerHTML = `${email ? `<div class="mm-email">${esc(email)}</div>` : ''}<button type="button" class="mm-logout" id="mm-logout">로그아웃</button>`;
+  document.body.appendChild(menu);
+  const r = chip.getBoundingClientRect();
+  menu.style.top = (r.bottom + 6) + 'px';
+  menu.style.left = Math.max(10, r.right - menu.offsetWidth) + 'px'; // 칩이 우측이라 오른쪽 정렬
+  const lo = menu.querySelector('#mm-logout');
+  if (lo) lo.onclick = async () => {
+    menu.remove();
+    if (sb) { try { await sb.auth.signOut(); } catch (e) {} }
+    location.reload();
+  };
+  setTimeout(() => document.addEventListener('click', function od(ev) {
+    if (!menu.contains(ev.target) && ev.target !== chip && !chip.contains(ev.target)) { menu.remove(); document.removeEventListener('click', od); }
+  }), 0);
 }
 
 function toggleWsMenu() {
@@ -2215,7 +2243,7 @@ function acctStatusText() {
   if (!SESSION) return '로그인되지 않음.';
   const email = (SESSION.user && SESSION.user.email) || '계정';
   if (migrationPending) return `${email} · 원격 비어있음 — 아래 버튼으로 로컬 데이터를 이관하세요.`;
-  if (syncEnabled) return `${email} · 원격 동기화 사용 중.`;
+  if (syncEnabled) return `${email} · 변경사항이 Supabase에 자동 저장됩니다.`;
   return `${email} · 연결됨.`;
 }
 
