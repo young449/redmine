@@ -115,7 +115,7 @@ a:hover { text-decoration: underline; }
   width: 9px; height: 9px; border-radius: 50%; background: #e7e4dc;
   box-shadow: 0 0 0 4px rgba(255,255,255,.08);
 }
-.sidebar .brand-name { font-weight: 800; font-size: var(--fs-15); color: #fff; letter-spacing: -0.02em; }
+.sidebar .brand-name { font-family: 'Outfit', 'Pretendard', system-ui, sans-serif; font-weight: 600; font-size: var(--fs-17); color: #fff; letter-spacing: -0.02em; }
 
 /* 스페이스(워크스페이스) 셀렉터 */
 .ws-select {
@@ -982,5 +982,5 @@ body.auth-gate .app { display: none; }
 
 #login-screen .login-brand { display: flex; align-items: center; gap: var(--sp-8); }
 #login-screen .login-mark { display: inline-flex; flex: 0 0 auto; }
-#login-screen .login-word { font-size: var(--fs-22); font-weight: 800; letter-spacing: -0.03em; color: var(--ink); }
+#login-screen .login-word { font-family: 'Outfit', 'Pretendard', system-ui, sans-serif; font-size: var(--fs-22); font-weight: 600; letter-spacing: -0.03em; color: var(--ink); }
 #login-screen .login-word-sub { color: var(--muted); font-weight: 500; }
