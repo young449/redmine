@@ -975,3 +975,12 @@ body.auth-gate .app { display: none; }
   font-size: var(--fs-13); font-weight: 700; color: var(--ink);
 }
 .me-menu .mm-logout:hover { background: var(--line-2); }
+
+/* ---------- 브랜드 로고 ---------- */
+.brand-mark { display: inline-flex; align-items: center; flex: 0 0 auto; }
+.brand-sub { color: rgba(255,255,255,.5); font-weight: 500; }
+
+#login-screen .login-brand { display: flex; align-items: center; gap: var(--sp-8); }
+#login-screen .login-mark { display: inline-flex; flex: 0 0 auto; }
+#login-screen .login-word { font-size: var(--fs-22); font-weight: 800; letter-spacing: -0.03em; color: var(--ink); }
+#login-screen .login-word-sub { color: var(--muted); font-weight: 500; }
