@@ -2254,7 +2254,7 @@ function renderLogin() {
   document.body.classList.add('auth-gate');
   el.innerHTML = `
     <div class="login-card">
-      <div class="login-brand">VOC Console</div>
+      <div class="login-brand"><span class="login-mark"><svg viewBox="0 0 40 40" width="34" height="34" aria-hidden="true"><rect width="40" height="40" rx="11" fill="#1d2129"/><text x="20" y="29" text-anchor="middle" font-family="Pretendard, system-ui, -apple-system, 'Segoe UI', Arial, sans-serif" font-size="25" font-weight="800" fill="#ffffff">R</text></svg></span><span class="login-word">Redmine <span class="login-word-sub">console</span></span></div>
       <p class="login-sub">사내 이메일로 로그인 링크를 받습니다.</p>
       <input type="email" id="login-email" placeholder="name@company.com" autocomplete="email">
       <button class="btn primary" id="login-send">로그인 링크 보내기</button>
