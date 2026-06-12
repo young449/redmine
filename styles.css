@@ -73,6 +73,11 @@
   --notice-bg:     #FEEBF0; /* Crimson 50 */
   --notice-line:   #F4B6BF; /* Crimson 100 계열(라이트) */
 
+  /* 안내(설명형 도움말) = 중립 슬레이트. 배지/상태/경고와 색상으로 분리 */
+  --help:        #4a5878; /* 아이콘·액센트 바 */
+  --help-text:   #3c4250; /* 본문 텍스트(읽기용, 중립) */
+  --help-bg:     #f4f6fa; /* 아주 옅은 슬레이트 틴트 */
+
   --radius:     14px;
   --radius-sm:  9px;
   --shadow:     0 1px 2px rgba(26,29,35,.04), 0 8px 24px rgba(26,29,35,.06);
@@ -809,8 +814,17 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .status-bar .sbar-sp { flex: 1 1 auto; }
 .status-bar .lab { font-size: var(--fs-13); font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; }
 .status-bar .hint { font-size: var(--fs-13); }
-.status-bar .status-note { display: inline-flex; align-items: center; gap: var(--sp-6); margin: 0; font-size: var(--fs-12); font-weight: 700; color: var(--notice-strong); background: var(--notice-bg); border: 1px solid var(--notice-line); border-radius: 99px; padding: var(--sp-6) var(--sp-12); }
-.status-bar .status-note svg { color: var(--notice); flex: 0 0 auto; }
+.status-bar .status-note {
+  flex: 1 1 100%;                 /* 한 줄을 통째로 차지 → 배지가 아니라 '구역 안내'로 읽힘 */
+  display: flex; align-items: flex-start; gap: var(--sp-8);
+  margin: 0 0 var(--sp-4); padding: var(--sp-10) var(--sp-12);
+  font-size: var(--fs-13); font-weight: 500; line-height: 1.45;  /* 라벨용 800이 아닌 본문 굵기 */
+  color: var(--help-text);
+  background: var(--help-bg);
+  border: 0; border-left: 3px solid var(--help);  /* 좌측 액센트 = 콜아웃 형태(칩/배지엔 없는 모양) */
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;  /* 둥근 알약(99px) 금지 */
+}
+.status-bar .status-note svg { color: var(--help); flex: 0 0 auto; margin-top: 2px; }
 .status-bar select { width: auto; min-width: 140px; }
 .status-badge { font-size: var(--fs-13); font-weight: 800; padding: var(--sp-6) var(--sp-12); border-radius: 8px; display: inline-flex; align-items: center; }
 .detail-2col { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-20); align-items: stretch; }
