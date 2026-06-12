@@ -73,14 +73,10 @@
   --notice-bg:     #FEEBF0; /* Crimson 50 */
   --notice-line:   #F4B6BF; /* Crimson 100 계열(라이트) */
 
-  /* 안내(설명형 도움말) = 중립 슬레이트. 배지/상태/경고와 색상으로 분리 */
-  --help:        #4a5878; /* 아이콘·액센트 바 */
-  --help-text:   #3c4250; /* 본문 텍스트(읽기용, 중립) */
-  --help-bg:     #f4f6fa; /* 아주 옅은 슬레이트 틴트 */
-  /* 안내 — 주의 톤(amber). 같은 콜아웃 컴포넌트, 의미만 '확인 필요' */
-  --help-caution:      #B45309;
-  --help-caution-text: #7c4a10;
-  --help-caution-bg:   #fdf3e7;
+  /* 안내·가이드 = 툴팁('i') 가이드와 동일한 중립 회색 한 가지로 통일 */
+  --help:        #6b7280; /* 아이콘·액센트 바 — 툴팁 'i'(info-ic)와 같은 muted */
+  --help-text:   #3c4250; /* 본문 텍스트 (ink-soft) */
+  --help-bg:     #f3f4f6; /* 중립 회색 틴트 */
 
   --radius:     14px;
   --radius-sm:  9px;
@@ -815,8 +811,8 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .status-bar { display: flex; align-items: center; gap: var(--sp-12); flex-wrap: wrap; margin-bottom: var(--sp-4); }
 .status-bar .lab { font-size: var(--fs-13); font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; }
 .status-bar .hint { font-size: var(--fs-13); }
-/* 안내문구 공통 컴포넌트 — 모든 안내(설명형 콜아웃)는 .notice 하나로 통일.
-   기본 = info(슬레이트), .caution = 확인 필요(amber). 좌측 액센트 = 배지·칩과 구분되는 형태 */
+/* 안내문구 공통 컴포넌트 — 툴팁('i') 가이드와 한 식구. 모든 안내는 .notice 하나,
+   색·아이콘('i')·골격 전부 동일. 톤 변형 없음 = "같은 가이드"로 읽힘 */
 .notice {
   display: flex; align-items: flex-start; gap: var(--sp-8);
   margin: 0; padding: var(--sp-8) var(--sp-12);
@@ -826,10 +822,6 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;          /* 둥근 알약(99px) 금지 */
 }
 .notice svg { color: var(--help); flex: 0 0 auto; margin-top: 2px; }
-.notice.caution { color: var(--help-caution-text); background: var(--help-caution-bg); border-left-color: var(--help-caution); }
-.notice.caution svg { color: var(--help-caution); }
-/* 상태 바: 안내문구를 '상태 변경' 드롭다운과 한 줄에 (남는 폭을 채우고, 텍스트는 박스 안에서 줄바꿈) */
-.status-bar .notice { flex: 1 1 auto; min-width: 0; }
 .status-bar select { width: auto; min-width: 140px; }
 .status-badge { font-size: var(--fs-13); font-weight: 800; padding: var(--sp-6) var(--sp-12); border-radius: 8px; display: inline-flex; align-items: center; }
 .detail-2col { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-20); align-items: stretch; }
