@@ -73,11 +73,6 @@
   --notice-bg:     #FEEBF0; /* Crimson 50 */
   --notice-line:   #F4B6BF; /* Crimson 100 계열(라이트) */
 
-  /* 안내·가이드 = 툴팁('i') 가이드와 동일한 중립 회색 한 가지로 통일 */
-  --help:        #6b7280; /* 아이콘·액센트 바 — 툴팁 'i'(info-ic)와 같은 muted */
-  --help-text:   #3c4250; /* 본문 텍스트 (ink-soft) */
-  --help-bg:     #f3f4f6; /* 중립 회색 틴트 */
-
   --radius:     14px;
   --radius-sm:  9px;
   --shadow:     0 1px 2px rgba(26,29,35,.04), 0 8px 24px rgba(26,29,35,.06);
@@ -476,7 +471,9 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
 .box.orig { white-space: pre-wrap; font-size: var(--fs-13); line-height: 1.7; color: var(--ink-soft); }
 textarea.box.orig.edit { width: 100%; resize: vertical; font-family: var(--sans); color: var(--ink); }
 textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
-.box.ai { background: var(--ai-bg); border-color: var(--ai-line); font-size: var(--fs-13); line-height: 1.65; color: #6b4a18; }
+.box.ai { background: var(--surface); border-color: var(--line); }
+.box.ai .notice { padding-bottom: var(--sp-10); margin-bottom: var(--sp-10); border-bottom: 1px solid var(--line); }
+.ai-body { font-size: var(--fs-14); line-height: 1.65; color: var(--ink-soft); white-space: pre-wrap; }
 
 .edit-grid { display: grid; gap: var(--sp-16); }
 .multi { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--sp-8); }
@@ -811,22 +808,17 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .status-bar { display: flex; align-items: center; gap: var(--sp-12); flex-wrap: wrap; margin-bottom: var(--sp-4); }
 .status-bar .lab { font-size: var(--fs-13); font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; }
 .status-bar .hint { font-size: var(--fs-13); }
-/* 안내문구 공통 컴포넌트 — 툴팁('i') 가이드와 한 식구. 모든 안내는 .notice 하나,
-   색·아이콘('i')·골격 전부 동일. 톤 변형 없음 = "같은 가이드"로 읽힘 */
+/* 안내문구 공통 컴포넌트 — 조용한 캡션(muted 텍스트 + 'i'). 박스/배경/좌측바 없음 →
+   '주인공'인 요약·컨트롤보다 항상 한 단계 뒤로 물러난 보조 안내. 상태 바·AI 요약 공통 */
 .notice {
-  display: flex; align-items: flex-start; gap: var(--sp-8);
-  margin: 0; padding: var(--sp-8) var(--sp-12);
-  font-size: var(--fs-13); font-weight: 500; line-height: 1.45;  /* 라벨용 800이 아닌 본문 굵기 */
-  color: var(--help-text); background: var(--help-bg);
-  border: 0; border-left: 3px solid var(--help);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;          /* 둥근 알약(99px) 금지 */
+  display: flex; align-items: flex-start; gap: var(--sp-6);
+  margin: 0; font-size: var(--fs-12); font-weight: 400; line-height: 1.45;
+  color: var(--muted);
 }
-.notice svg { color: var(--help); flex: 0 0 auto; margin-top: 2px; }
+.notice svg { color: var(--faint); flex: 0 0 auto; margin-top: 2px; }
 /* 상태 바 안내문구를 '상태 변경'과 한 줄에 */
 .status-bar .notice { flex: 1 1 auto; min-width: 0; }
 .status-bar select { width: auto; min-width: 140px; }
-/* AI 요약 제목 옆 콜아웃: 제목 오른쪽 남는 폭을 채움 */
-.sec-h-ai .notice { flex: 1 1 auto; min-width: 0; font-weight: 400; text-transform: none; letter-spacing: 0; }
 .status-badge { font-size: var(--fs-13); font-weight: 800; padding: var(--sp-6) var(--sp-12); border-radius: 8px; display: inline-flex; align-items: center; }
 .detail-2col { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-20); align-items: stretch; }
 .detail-2col .dcol { display: flex; flex-direction: column; gap: var(--sp-20); min-width: 0; }

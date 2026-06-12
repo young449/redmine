@@ -1379,12 +1379,15 @@ function detailSections(r) {
   return {
     summary: `
     <div class="sec">
-      <div class="sec-h sec-h-ai">AI 요약 <span class="notice">${infoIcon()} <span>${esc(AI_NOTE)}</span></span></div>
+      <div class="sec-h sec-h-ai">AI 요약</div>
       <div class="ai-cls-row">
         <span class="ai-cls-lab">AI 카테고리</span>
         ${[...new Set((r.aiTypes || []).map(groupOfType))].map(g => `<span class="chip grp ${clsOfGroup(g)}">${esc(g)}</span>`).join('') || '<span class="muted-s">분류 없음</span>'}
       </div>
-      <div class="box ai">${esc(r.aiSummary)}</div>
+      <div class="box ai">
+        <div class="notice">${infoIcon()} <span>${esc(AI_NOTE)}</span></div>
+        <div class="ai-body">${esc(r.aiSummary)}</div>
+      </div>
     </div>`,
     orig: `
     <div class="sec grow">
