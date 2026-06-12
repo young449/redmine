@@ -449,7 +449,7 @@ textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
   text-transform: uppercase; letter-spacing: .05em; margin-bottom: var(--sp-8);
 }
 .sub-h { font-size: var(--fs-11); font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; margin-bottom: var(--sp-8); }
-.sec-h-ai { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--sp-4) var(--sp-12); }
+.sec-h-ai { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-4) var(--sp-12); }
 .info-ic { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--muted); color: var(--muted); font-size: var(--fs-11); font-weight: 800; font-style: normal; text-transform: none; letter-spacing: 0; cursor: pointer; position: relative; vertical-align: middle; margin-left: var(--sp-4); }
 .info-ic:hover, .info-ic:focus { color: var(--ink-soft); border-color: var(--ink-soft); outline: none; }
 .info-pop { position: fixed; z-index: 300; max-width: 300px; background: var(--surface); color: var(--ink-soft); border: 1px solid var(--line); border-radius: 10px; padding: var(--sp-12) var(--sp-14); box-shadow: 0 12px 32px rgba(0,0,0,.16); font-size: var(--fs-12); line-height: 1.5; }
@@ -822,7 +822,11 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;          /* 둥근 알약(99px) 금지 */
 }
 .notice svg { color: var(--help); flex: 0 0 auto; margin-top: 2px; }
+/* 상태 바 안내문구를 '상태 변경'과 한 줄에 */
+.status-bar .notice { flex: 1 1 auto; min-width: 0; }
 .status-bar select { width: auto; min-width: 140px; }
+/* AI 요약 제목 옆 콜아웃: 제목 오른쪽 남는 폭을 채움 */
+.sec-h-ai .notice { flex: 1 1 auto; min-width: 0; font-weight: 400; text-transform: none; letter-spacing: 0; }
 .status-badge { font-size: var(--fs-13); font-weight: 800; padding: var(--sp-6) var(--sp-12); border-radius: 8px; display: inline-flex; align-items: center; }
 .detail-2col { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-20); align-items: stretch; }
 .detail-2col .dcol { display: flex; flex-direction: column; gap: var(--sp-20); min-width: 0; }

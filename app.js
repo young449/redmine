@@ -1379,12 +1379,11 @@ function detailSections(r) {
   return {
     summary: `
     <div class="sec">
-      <div class="sec-h sec-h-ai">AI 요약</div>
+      <div class="sec-h sec-h-ai">AI 요약 <span class="notice">${infoIcon()} <span>${esc(AI_NOTE)}</span></span></div>
       <div class="ai-cls-row">
         <span class="ai-cls-lab">AI 카테고리</span>
         ${[...new Set((r.aiTypes || []).map(groupOfType))].map(g => `<span class="chip grp ${clsOfGroup(g)}">${esc(g)}</span>`).join('') || '<span class="muted-s">분류 없음</span>'}
       </div>
-      <div class="notice">${infoIcon()} <span>${esc(AI_NOTE)}</span></div>
       <div class="box ai">${esc(r.aiSummary)}</div>
     </div>`,
     orig: `
@@ -1435,7 +1434,8 @@ function statusBar(r) {
   const opts = STATUSES.map(s => `<option value="${esc(s)}" ${r.pmStatus === s ? 'selected' : ''}>${esc(s)}</option>`).join('');
   return `
   <div class="status-bar">
-    <span class="lab">상태 변경 <span class="info-ic" tabindex="0" role="button" aria-label="상태 전환 안내" data-pop="유형·영향범위를 사람이 확인·보정하면 'AI 분류'가 '분류 확정'으로 넘어갑니다.">i</span></span>
+    <span class="notice">${infoIcon()} <span>유형·영향범위를 사람이 확인·보정하면 'AI 분류'가 '분류 확정'으로 넘어갑니다.</span></span>
+    <span class="lab">상태 변경</span>
     <select id="m-status">${opts}</select>
   </div>`;
 }
