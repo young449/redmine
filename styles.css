@@ -820,26 +820,21 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .status-bar .notice { flex: 1 1 auto; min-width: 0; }
 .status-bar select { width: auto; min-width: 140px; }
 .status-badge { font-size: var(--fs-13); font-weight: 800; padding: var(--sp-6) var(--sp-12); border-radius: 8px; display: inline-flex; align-items: center; }
-.detail-2col { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-20); align-items: stretch; }
-.detail-2col .dcol { display: flex; flex-direction: column; gap: var(--sp-20); min-width: 0; }
-.detail-2col .dcol .sec.grow { flex: 1 1 auto; display: flex; flex-direction: column; }
-.detail-2col .dcol .sec.grow .grow-fill { flex: 1 1 auto; }
-.work-merge .work-merge-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-24); height: 380px; }
-.work-merge .wm-col { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
-.work-merge .wm-col:first-child { border-right: 1px solid var(--line-2); padding-right: var(--sp-24); }
-.work-merge .wm-col .assignee-pick { margin-bottom: var(--sp-16); }
-.work-merge #m-checklist { flex: 1 1 auto; overflow-y: auto; min-height: 0; margin: var(--sp-4) 0 var(--sp-10); }
-.work-merge .ck-add { flex: 0 0 auto; }
-.work-merge #m-memo { flex: 1 1 auto; height: 100%; resize: none; }
+.detail-grid-2x2 { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: var(--sp-20); align-items: stretch; }
+.detail-grid-2x2 > .sec { min-width: 0; display: flex; flex-direction: column; }
+.detail-grid-2x2 .grow-fill { flex: 1 1 auto; }
+.detail-grid-2x2 .sec .box.ai { flex: 1 1 auto; }
+.detail-grid-2x2 .work .assignee-pick { margin-bottom: var(--sp-16); }
+.detail-grid-2x2 .work #m-checklist { flex: 1 1 auto; overflow-y: auto; min-height: 0; margin: var(--sp-4) 0 var(--sp-10); }
+.detail-grid-2x2 .work .ck-add { flex: 0 0 auto; }
 @media (max-width: 900px) {
-  .work-merge .work-merge-grid { grid-template-columns: 1fr; gap: var(--sp-16); height: auto; }
-  .work-merge .wm-col:first-child { border-right: 0; padding-right: 0; padding-bottom: var(--sp-16); border-bottom: 1px solid var(--line-2); margin-bottom: var(--sp-4); }
-  .work-merge #m-checklist { max-height: 200px; }
-  .work-merge #m-memo { min-height: 160px; }
+  .detail-grid-2x2 { grid-template-columns: 1fr; grid-auto-rows: auto; }
+  .detail-grid-2x2 .work #m-checklist { max-height: 200px; }
 }
 .detail-sep { border: 0; border-top: 1px solid var(--line); margin: var(--sp-28) 0; }
-.detail-savebar { display: flex; gap: var(--sp-8); align-items: center; justify-content: flex-end; margin-top: var(--sp-16); padding: 0; border: 0; position: static; background: transparent; backdrop-filter: none; }
-.detail-savebar #m-delete { margin-left: 0; }
+.detail-actions-top { display: flex; gap: var(--sp-8); align-items: center; justify-content: flex-end; }
+.detail-actions-top .saved-msg { font-size: var(--fs-12); color: var(--human); font-weight: 700; }
+.detail-actions-top #m-delete { margin-left: 0; }
 .model-row { display: flex; align-items: center; justify-content: flex-start; gap: var(--sp-12); margin: 0 0 var(--sp-12); }
 .model-row .lab { margin: 0; font-size: var(--fs-13); font-weight: 700; color: var(--ink-soft); white-space: nowrap; }
 .model-row select.model-sel { width: auto; min-width: 150px; max-width: 240px; }
@@ -853,8 +848,7 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .orig-meta .rm-link { flex: 0 0 auto; font-size: var(--fs-12); font-weight: 600; color: var(--brand); white-space: nowrap; text-decoration: none; }
 .orig-meta .rm-link:hover { text-decoration: underline; }
 .orig-meta .rm-link[hidden] { display: none; }
-#m-cmt-send, .detail-savebar #m-save, .detail-savebar #m-delete { flex: 0 0 auto; min-width: 80px; padding: var(--sp-8) var(--sp-16); font-size: var(--fs-13); font-weight: 600; }
-@media (max-width: 900px) { .detail-2col { grid-template-columns: 1fr; } }
+#m-cmt-send, .detail-actions-top #m-save, .detail-actions-top #m-delete { flex: 0 0 auto; min-width: 80px; padding: var(--sp-8) var(--sp-16); font-size: var(--fs-13); font-weight: 600; }
 .box.orig.clamp { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
 .drawer.light { width: min(460px, 100%); }
 

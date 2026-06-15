@@ -536,7 +536,7 @@ const VIEWS = ['dashboard', 'board', 'report', 'settings', 'cs', 'detail'];
 const wsRecords = () => DB.records.filter(r => (r.brand || 'AK') === state.workspace);
 
 /* ---------- 알림 (로컬 시뮬레이션 — 멀티유저는 추후 백엔드) ---------- */
-const NOTIF_TITLES = { new: '새 VOC', mention: '댓글 멘션', status: '상태 변경', route: '처리 전달', assign: '담당 배정' };
+const NOTIF_TITLES = { new: '새 VOC', mention: '댓글 멘션', status: '상태 변경', route: '처리 전달', assign: '담당 배정', task: '처리 항목' };
 const notifTitle = k => NOTIF_TITLES[k] || '알림';
 const capFirst = s => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 function notifIcon(kind) {
@@ -545,7 +545,8 @@ function notifIcon(kind) {
     status:  '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>',
     route:   '<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>',
     assign:  '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/>',
-    mention: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>'
+    mention: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+    task:    '<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 14 2 2 4-4"/>'
   };
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${p[kind] || ''}</svg>`;
 }
@@ -1408,9 +1409,6 @@ function detailSections(r) {
         <div><div class="sub-h">우선순위 태깅</div><div class="pri-pick" id="m-pri">${priBtns}</div></div>
       </div>
     </div>`,
-    memo: `
-      <div class="sub-h">전달 메모</div>
-      <textarea id="m-memo" class="box" style="width:100%" placeholder="처리 담당(개발·디자인 등)에게 전달할 내용을 적으세요.">${esc(r.pmMemo)}</textarea>`,
     assignee: `
       <div class="sub-h">담당자 <span class="info-ic" tabindex="0" role="button" aria-label="담당자 안내" data-pop="이 VOC를 처리할 담당자 지정 · 비우면 미배정">i</span></div>
       <div class="assignee-pick" id="m-assignee">${team().map(m => `<button type="button" class="asg-chip ${(r.assignees || []).includes(m.id) ? 'on' : ''}" data-asg="${esc(m.id)}">${avatarHTML(m.id, 20)} ${esc(m.en)}</button>`).join('')}</div>`,
@@ -1450,23 +1448,22 @@ function renderDetailPage() {
   const s = detailSections(r);
   return `
   <div class="detail-form">
-    ${statusBar(r)}
-    <div class="detail-2col">
-      <div class="dcol">${s.summary}${s.classify}</div>
-      <div class="dcol">${s.orig}</div>
+    <div class="detail-actions-top">
+      <span class="saved-msg" id="saved-msg" style="display:none">✓ 저장됨</span>
+      <button class="btn primary" id="m-save" disabled>저장</button>
+      <button class="btn danger" id="m-delete">삭제</button>
     </div>
-    <div class="sec work-merge">
-      <div class="sec-h">처리 작업</div>
-      <div class="work-merge-grid">
-        <div class="wm-col wm-left">${s.assignee}${s.checklist}</div>
-        <div class="wm-col wm-right">${s.memo}</div>
+    ${statusBar(r)}
+    <div class="detail-grid-2x2">
+      ${s.summary}
+      ${s.classify}
+      ${s.orig}
+      <div class="sec work">
+        <div class="sec-h">처리 작업</div>
+        ${s.assignee}
+        ${s.checklist}
       </div>
     </div>
-  </div>
-  <div class="save-bar detail-savebar">
-    <span class="saved-msg" id="saved-msg" style="display:none">✓ 저장됨</span>
-    <button class="btn primary" id="m-save" disabled>저장</button>
-    <button class="btn danger" id="m-delete">삭제</button>
   </div>
   <hr class="detail-sep">
   <div class="detail-form">
@@ -1836,7 +1833,6 @@ function bindEditControls(r) {
       }
       markDirty();
     });
-  $('#m-memo').oninput = markDirty;
   const badge = $('#m-status-badge');
   const statusEl = $('#m-status');
   if (statusEl) statusEl.onchange = () => {
@@ -1916,8 +1912,9 @@ function bindEditControls(r) {
   const ckAdd = () => {
     const inp = $('#m-ck-input'); if (!inp) return;
     const v = (inp.value || '').trim(); if (!v) return;
-    r.checklist = r.checklist || []; r.checklist.push({ text: v, done: false });
+    r.checklist = r.checklist || []; r.checklist.push({ text: v, done: false, notified: false });
     save(); render();
+    const sb = $('#m-save'); if (sb) sb.disabled = false;
   };
   if ($('#m-ck-add')) $('#m-ck-add').onclick = ckAdd;
   if ($('#m-ck-input')) $('#m-ck-input').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); ckAdd(); } });
@@ -1938,7 +1935,6 @@ function bindEditControls(r) {
     }
     if (r._pendingPri !== undefined) r.priority = r._pendingPri;
     delete r._pendingPri;
-    r.pmMemo = $('#m-memo').value;
     const bodyEl = $('#m-body'); if (bodyEl) r.body = bodyEl.value.trim();
     const modelEl = $('#m-model'); if (modelEl) r.model = modelEl.value;
     const srcEl = $('#m-source'); if (srcEl) r.source = srcEl.value;
@@ -1961,6 +1957,12 @@ function bindEditControls(r) {
     r.assignees = editAssignees.slice();
     r.assignee = editAssignees[0] || null;
     if (added.includes(DB.me)) pushNotif('assign', `${r.id} · 나에게 배정`, r.id);
+    const newCk = (r.checklist || []).filter(it => !it.notified);
+    if ((r.assignees || []).length > 0 && newCk.length > 0) {
+      const names = (r.assignees || []).map(id => (member(id) || {}).en || id).join(', ');
+      pushNotif('task', `${r.id} · 처리 항목 ${newCk.length}건 배정 (${names})`, r.id);
+      newCk.forEach(it => { it.notified = true; });
+    }
     save(); render();
     const msg = $('#saved-msg');
     if (msg) { msg.style.display = 'inline'; setTimeout(() => { const m = $('#saved-msg'); if (m) m.style.display = 'none'; }, 1400); }
