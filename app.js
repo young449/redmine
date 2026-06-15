@@ -2261,33 +2261,6 @@ function acctStatusText() {
   return `${email} · 연결됨.`;
 }
 
-/* ---------- 로그인 화면 (이메일 매직링크) ---------- */
-function renderLogin() {
-  let el = document.getElementById('login-screen');
-  if (!el) { el = document.createElement('div'); el.id = 'login-screen'; document.body.appendChild(el); }
-  document.body.classList.add('auth-gate');
-  el.innerHTML = `
-    <div class="login-card">
-      <div class="login-brand"><span class="login-word">Redmine <span class="login-word-sub">console</span></span></div>
-      <p class="login-sub">사내 이메일로 로그인 링크를 받습니다.</p>
-      <input type="email" id="login-email" placeholder="name@company.com" autocomplete="email">
-      <button class="btn primary" id="login-send">로그인 링크 보내기</button>
-      <div class="login-msg" id="login-msg"></div>
-    </div>`;
-  const sendEl = document.getElementById('login-send');
-  const emailEl = document.getElementById('login-email');
-  const msgEl = document.getElementById('login-msg');
-  const submit = async () => {
-    const email = (emailEl.value || '').trim();
-    if (!email) { emailEl.focus(); return; }
-    msgEl.textContent = '전송 중...';
-    const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.href.split('#')[0] } });
-    msgEl.textContent = error ? ('오류: ' + error.message) : '메일함에서 로그인 링크를 눌러주세요.';
-  };
-  sendEl.onclick = submit;
-  emailEl.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
-}
-
 /* ---------- 부트 ---------- */
 function startApp() {
   document.body.classList.remove('auth-gate');
@@ -2303,20 +2276,21 @@ async function boot() {
   let session = null;
   try { const { data } = await sb.auth.getSession(); session = data ? data.session : null; } catch (e) { console.warn(e); }
   SESSION = session;
-  if (!SESSION) { renderLogin(); return; }
-  try {
-    const rem = await loadRemote();
-    if (rem.records.length) {
-      DB.records = rem.records;
-      if (rem.team && rem.team.length) DB.team = rem.team;
-      if (rem.settings && rem.settings.redmine_base) DB.redmineBase = rem.settings.redmine_base;
-      ensureData();
-      syncEnabled = true;
-    } else {
-      migrationPending = true;               // 원격 비어있음 → 설정에서 이관 버튼 안내
+  if (SESSION) {                               // 세션이 있으면 원격 동기화, 없으면 로컬 모드로 바로 진입
+    try {
+      const rem = await loadRemote();
+      if (rem.records.length) {
+        DB.records = rem.records;
+        if (rem.team && rem.team.length) DB.team = rem.team;
+        if (rem.settings && rem.settings.redmine_base) DB.redmineBase = rem.settings.redmine_base;
+        ensureData();
+        syncEnabled = true;
+      } else {
+        migrationPending = true;               // 원격 비어있음 → 설정에서 이관 버튼 안내
+      }
+    } catch (e) {
+      console.warn('[boot] 원격 로드 실패, 로컬 데이터로 진행', e);
     }
-  } catch (e) {
-    console.warn('[boot] 원격 로드 실패, 로컬 데이터로 진행', e);
   }
   startApp();
 }

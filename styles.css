@@ -601,6 +601,7 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .notif-icon.k-assign { background: var(--human-bg); color: var(--human); }
 .notif-icon.k-mention { background: #e9f1fa; color: #185fa5; }
 .notif-icon.k-route { background: #efedfb; color: #5a4bbf; }
+.notif-icon.k-task { background: #efedfb; color: #5a4bbf; }
 .notif-body { flex: 1; min-width: 0; }
 .notif-top { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-8); }
 .notif-item .notif-title { font-size: var(--fs-12); font-weight: 500; color: var(--muted); line-height: 1.3; }
