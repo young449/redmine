@@ -1398,7 +1398,7 @@ function detailSections(r) {
         <label class="meta-field"><span class="lab">출처</span><select id="m-source">${SOURCES.map(sc => `<option ${r.source === sc ? 'selected' : ''}>${esc(sc)}</option>`).join('')}</select></label>
         <label class="meta-field"><span class="lab">레드마인</span><input type="text" id="m-redmine" placeholder="티켓 번호" value="${esc(r.redmine || '')}"><a id="m-redmine-link" class="rm-link" target="_blank" rel="noopener" title="레드마인 원문 열기" ${r.redmine ? `href="${redmineBase()}${encodeURIComponent(r.redmine)}"` : 'hidden'}>열기 ↗</a></label>
       </div>
-      <textarea id="m-body" class="box orig edit grow-fill" style="min-height:200px">${esc(r.body)}</textarea>
+      <textarea id="m-body" class="box orig edit grow-fill" style="min-height:300px">${esc(r.body)}</textarea>
     </div>`,
     classify: `
     <div class="sec">
@@ -1435,13 +1435,16 @@ function statusBar(r) {
   const opts = STATUSES.map(s => `<option value="${esc(s)}" ${r.pmStatus === s ? 'selected' : ''}>${esc(s)}</option>`).join('');
   return `
   <div class="status-bar">
-    <span class="notice">${infoIcon()} <span>유형·영향범위를 사람이 확인·보정하면 'AI 분류'가 '분류 확정'으로 넘어갑니다.</span></span>
-    <span class="lab">상태 변경</span>
-    <select id="m-status">${opts}</select>
-    <span class="saved-msg" id="saved-msg" style="display:none">✓ 저장됨</span>
-    <button class="btn ghost" id="m-cancel" disabled>취소</button>
-    <button class="btn primary" id="m-save" disabled>저장</button>
-    <button class="btn danger" id="m-delete">삭제</button>
+    <div class="status-change">
+      <div class="sc-control"><span class="lab">상태 변경</span><select id="m-status">${opts}</select></div>
+      <span class="notice">${infoIcon()} <span>유형·영향범위를 사람이 확인·보정하면 'AI 분류'가 '분류 확정'으로 넘어갑니다.</span></span>
+    </div>
+    <div class="status-actions">
+      <span class="saved-msg" id="saved-msg" style="display:none">✓ 저장됨</span>
+      <button class="btn primary" id="m-save" disabled>저장</button>
+      <button class="btn ghost" id="m-cancel" disabled>취소</button>
+      <button class="btn danger" id="m-delete">삭제</button>
+    </div>
   </div>`;
 }
 

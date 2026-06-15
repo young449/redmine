@@ -805,7 +805,10 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .detail-form .chip { font-size: var(--fs-11); }
 
 /* 상단 상태 바 */
-.status-bar { display: flex; align-items: center; gap: var(--sp-12); flex-wrap: wrap; margin-bottom: var(--sp-4); }
+.status-bar { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-16); flex-wrap: wrap; margin-bottom: var(--sp-4); }
+.status-change { display: flex; flex-direction: column; gap: var(--sp-6); min-width: 0; }
+.status-change .sc-control { display: flex; align-items: center; gap: var(--sp-8); }
+.status-actions { display: flex; align-items: center; gap: var(--sp-8); flex: 0 0 auto; }
 .status-bar .lab { font-size: var(--fs-13); font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; }
 .status-bar .hint { font-size: var(--fs-13); }
 /* 안내문구 공통 컴포넌트 — 조용한 캡션(muted 텍스트 + 'i'). 박스/배경/좌측바 없음 →
@@ -817,11 +820,10 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 }
 .notice svg { color: var(--faint); flex: 0 0 auto; margin-top: 2px; }
 /* 상태 바 안내문구를 '상태 변경'과 한 줄에 */
-.status-bar .notice { flex: 1 1 auto; min-width: 0; }
 .status-bar select { width: auto; min-width: 140px; }
 .status-badge { font-size: var(--fs-13); font-weight: 800; padding: var(--sp-6) var(--sp-12); border-radius: 8px; display: inline-flex; align-items: center; }
 .detail-grid-2x2 { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: var(--sp-20); align-items: stretch; }
-.detail-grid-2x2 > .sec { min-width: 0; min-height: 300px; display: flex; flex-direction: column; }
+.detail-grid-2x2 > .sec { min-width: 0; min-height: 400px; display: flex; flex-direction: column; }
 .detail-grid-2x2 .grow-fill { flex: 1 1 auto; }
 .detail-grid-2x2 .sec .box.ai { flex: 1 1 auto; }
 .detail-grid-2x2 .work .assignee-pick { margin-bottom: var(--sp-16); }
@@ -833,7 +835,7 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 }
 .detail-sep { border: 0; border-top: 1px solid var(--line); margin: var(--sp-28) 0; }
 .status-bar .saved-msg { font-size: var(--fs-12); color: var(--human); font-weight: 700; }
-.status-bar #m-delete { margin-left: var(--sp-4); }
+.status-actions #m-delete { margin-left: var(--sp-12); }
 .model-row { display: flex; align-items: center; justify-content: flex-start; gap: var(--sp-12); margin: 0 0 var(--sp-12); }
 .model-row .lab { margin: 0; font-size: var(--fs-13); font-weight: 700; color: var(--ink-soft); white-space: nowrap; }
 .model-row select.model-sel { width: auto; min-width: 150px; max-width: 240px; }
