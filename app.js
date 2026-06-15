@@ -1443,7 +1443,6 @@ function statusBar(r) {
       <span class="saved-msg" id="saved-msg" style="display:none">✓ 저장됨</span>
       <button class="btn primary" id="m-save" disabled>저장</button>
       <button class="btn ghost" id="m-cancel" disabled>취소</button>
-      <button class="btn danger" id="m-delete">삭제</button>
     </div>
   </div>`;
 }
@@ -1470,6 +1469,9 @@ function renderDetailPage() {
   <hr class="detail-sep">
   <div class="detail-form">
     ${s.comments}
+  </div>
+  <div class="detail-danger">
+    <button type="button" class="del-link" id="m-delete">이 VOC 삭제</button>
   </div>`;
 }
 
