@@ -927,6 +927,8 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
   .voc .col-meta { flex-direction: row; flex-wrap: wrap; align-items: center; }
   .row-2 { grid-template-columns: 1fr; }
   .drawer { width: 100%; }
+  /* 리포트: 모바일에선 카테고리·차트를 세로로 쌓아 패널이 좁아지지 않게 */
+  .rp-grid { grid-template-columns: 1fr; }
   /* 보드: 모바일에선 카테고리·날짜 숨기고 요약 살리기 */
   .voc-table th:nth-child(3), .voc-table td:nth-child(3),
   .voc-table th:nth-child(6), .voc-table td:nth-child(6) { display: none; }
