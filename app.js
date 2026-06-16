@@ -2294,7 +2294,7 @@ function acctStatusText() {
 }
 
 /* ---------- 로그인 / 비밀번호 찾기 화면 ---------- */
-const LOGIN_DOMAINS = ['iriver.com', 'astellnkern.com', 'meewang.kr'];
+const LOGIN_DOMAINS = ['meewang.kr', 'astellnkern.com', 'iriver.com'];
 
 function loginShell(innerHTML) {
   let el = document.getElementById('login-screen');
