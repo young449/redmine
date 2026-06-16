@@ -2064,6 +2064,12 @@ function bindTopbar() {
   if (wsSel) wsSel.onclick = e => { e.stopPropagation(); toggleWsMenu(); };
   const meChip = document.getElementById('me-chip');
   if (meChip && sb) meChip.onclick = e => { e.stopPropagation(); toggleMeMenu(); };
+  const navToggle = document.getElementById('nav-toggle');
+  const navOverlay = document.getElementById('nav-overlay');
+  const closeNav = () => document.body.classList.remove('nav-open');
+  if (navToggle) navToggle.onclick = e => { e.stopPropagation(); document.body.classList.toggle('nav-open'); };
+  if (navOverlay) navOverlay.onclick = closeNav;
+  document.querySelectorAll('.nav-drawer button').forEach(b => b.addEventListener('click', closeNav));
   document.addEventListener('click', e => {
     if (e.target.closest && e.target.closest('.info-pop-x')) { closeInfoPop(); return; }
     const ic = e.target.closest ? e.target.closest('.info-ic[data-pop], .info-ic[data-pop-types]') : null;
