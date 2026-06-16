@@ -211,10 +211,6 @@ function heuristicSummary(body) {
 
 
 /* ---------- 저장소 ---------- */
-function load() {
-  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || null; }
-  catch { return null; }
-}
 function save() { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); if (syncEnabled) scheduleSync(); }
 
 // 이전(레거시 포함) 저장 데이터에서 사용자 설정(팀·프로필·알림) 복구
@@ -523,7 +519,6 @@ const state = {
   workspace: 'AK',            // 'AK' | 'Activo'
   view: 'dashboard',          // 'dashboard' | 'board' | 'report' | 'settings' | 'cs'
   reportPeriod: 'h1',    // 'month' | 'quarter' | 'year'
-  calTab: 'intake',           // 'intake' | 'gantt'
   dashYear: null,             // 월별 차트 연도 필터
   filters: { group: '', impact: '', source: '', status: '', model: '', assignee: '', q: '' },
   sort: 'desc',               // 날짜 정렬: 'desc' 최신순 | 'asc' 오래된순
@@ -540,7 +535,6 @@ const wsRecords = () => DB.records.filter(r => (r.brand || 'AK') === state.works
 /* ---------- 알림 (로컬 시뮬레이션 — 멀티유저는 추후 백엔드) ---------- */
 const NOTIF_TITLES = { new: '새 VOC', mention: '댓글 멘션', status: '상태 변경', route: '처리 전달', assign: '담당 배정', task: '처리 항목' };
 const notifTitle = k => NOTIF_TITLES[k] || '알림';
-const capFirst = s => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 function notifIcon(kind) {
   const p = {
     new:     '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
@@ -565,7 +559,6 @@ function readURL() {
   state.workspace = WORKSPACES.includes(ws) ? ws : 'AK';
   const v = h.get('view');
   state.view = VIEWS.includes(v) ? v : 'dashboard';
-  state.calTab = h.get('tab') === 'gantt' ? 'gantt' : 'intake';
   state.filters.group   = h.get('group') || '';
   state.filters.status  = h.get('status') || '';
   state.filters.impact  = h.get('impact') || '';
@@ -582,7 +575,6 @@ function writeURL() {
   const h = new URLSearchParams();
   h.set('ws', state.workspace);
   h.set('view', state.view);
-  if (state.view === 'calendar') h.set('tab', state.calTab);
   if (state.view === 'detail' && state.detailId) h.set('id', state.detailId);
   const f = state.filters;
   if (f.group) h.set('group', f.group);
@@ -1161,101 +1153,6 @@ function bindReport() {
     row.onclick = () => { state.detailId = row.dataset.open; state.view = 'detail'; render(); });
 }
 
-/* ===== 캘린더 (접수 히트맵 / 작업 기간 간트) ===== */
-function renderCalendar() {
-  const recs = wsRecords();
-  const tab = state.calTab === 'gantt' ? 'gantt' : 'intake';
-  const head = `
-  <div class="page-head row" style="justify-content:flex-start">
-    <div class="cal-tabs">
-      <button type="button" data-caltab="intake" class="${tab === 'intake' ? 'on' : ''}">접수 히트맵</button>
-      <button type="button" data-caltab="gantt" class="${tab === 'gantt' ? 'on' : ''}">작업 기간 (간트)</button>
-    </div>
-  </div>`;
-  return head + (tab === 'gantt' ? calGantt(recs) : calIntake(recs));
-}
-
-const DAY = 864e5;
-const dayKey = ts => { const d = new Date(ts); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
-
-function calIntake(recs) {
-  const WEEKS = 12;
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const startSun = new Date(today.getTime() - ((WEEKS - 1) * 7 + today.getDay()) * DAY);
-  const counts = {};
-  recs.forEach(r => { const k = dayKey(r.createdAt); counts[k] = (counts[k] || 0) + 1; });
-  const max = Math.max(1, ...Object.values(counts));
-  const level = n => n === 0 ? 0 : Math.min(4, Math.ceil((n / max) * 4));
-  const dow = ['일', '월', '화', '수', '목', '금', '토'];
-
-  let cols = '';
-  for (let w = 0; w < WEEKS; w++) {
-    let cells = '';
-    for (let dd = 0; dd < 7; dd++) {
-      const cur = new Date(startSun.getTime() + (w * 7 + dd) * DAY);
-      const future = cur > today;
-      const n = future ? -1 : (counts[dayKey(cur)] || 0);
-      const lv = future ? 'f' : level(n);
-      const lab = `${cur.getMonth() + 1}/${cur.getDate()}${future ? '' : ` · ${n}건`}`;
-      cells += `<div class="hm-cell l${lv}" title="${lab}"></div>`;
-    }
-    cols += `<div class="hm-col">${cells}</div>`;
-  }
-  const totalIn = recs.filter(r => r.createdAt >= startSun.getTime()).length;
-  return `
-  <div class="card panel">
-    <div class="panel-h">최근 ${WEEKS}주 접수량 <span class="muted-s">기간 내 ${totalIn}건 · 진할수록 많음</span></div>
-    <div class="heatmap">
-      <div class="hm-days">${dow.map(d => `<span>${d}</span>`).join('')}</div>
-      <div class="hm-grid">${cols}</div>
-    </div>
-    <div class="hm-legend">적음 <span class="hm-cell l0"></span><span class="hm-cell l1"></span><span class="hm-cell l2"></span><span class="hm-cell l3"></span><span class="hm-cell l4"></span> 많음</div>
-  </div>`;
-}
-
-function calGantt(recs) {
-  if (!recs.length) return '<div class="card empty"><div class="big">표시할 VOC가 없습니다</div></div>';
-  const lastEntered = (r, s) => { const h = (r.statusHistory || []).filter(x => x.status === s); return h.length ? h[h.length - 1].at : null; };
-  const now = Date.now();
-  const list = recs.slice().sort((a, b) => a.createdAt - b.createdAt);
-  const min = Math.min(...list.map(r => r.createdAt));
-  const max = now;
-  const span = Math.max(DAY, max - min);
-  const pct = t => ((t - min) / span) * 100;
-
-  const rows = list.map(r => {
-    const doneAt = lastEntered(r, '완료') || lastEntered(r, '반려');
-    const devAt = lastEntered(r, '개발 요청') || lastEntered(r, '디자인 요청');
-    const end = doneAt || now;
-    const left = pct(r.createdAt);
-    const width = Math.max(2, pct(end) - left);
-    const cls = r.pmStatus.replace(/\s/g, '');
-    const devMark = devAt ? `<span class="gmark" style="left:${pct(devAt)}%" title="요청 ${fmtDate(devAt)}"></span>` : '';
-    return `
-    <div class="gantt-row" data-open="${r.id}">
-      <div class="g-label">${avatarHTML(r.assignee, 22)}<span class="recv-no">${esc(r.id)}</span><span class="g-model">${esc(r.model)}</span></div>
-      <div class="g-track">
-        <div class="g-bar ${cls}" style="left:${left}%;width:${width}%"></div>
-        ${devMark}
-      </div>
-      <span class="status-tag ${cls}">${esc(r.pmStatus)}</span>
-    </div>`;
-  }).join('');
-
-  const months = [];
-  let cur = new Date(min); cur = new Date(cur.getFullYear(), cur.getMonth(), 1);
-  while (cur.getTime() <= max) {
-    months.push(`<span class="g-mtick" style="left:${Math.max(0, pct(cur.getTime()))}%">${cur.getMonth() + 1}월</span>`);
-    cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
-  }
-  return `
-  <div class="card panel">
-    <div class="panel-h">작업 기간 <span class="muted-s">접수 → 완료(또는 진행 중) · ◆ 개발 요청 시점</span></div>
-    <div class="gantt-axis">${months.join('')}</div>
-    <div class="gantt">${rows}</div>
-  </div>`;
-}
-
 /* ===== 셋팅 ===== */
 function renderSettings() {
   const rows = team().map(m => `
@@ -1325,37 +1222,6 @@ function renderSettings() {
         <button class="btn ghost" id="pw-save">비밀번호 변경</button>
         <div class="hint" id="pw-msg"></div>
       </div>` : ''}
-    </div>
-  </div>`;
-}
-
-function renderVOCCard(r) {
-  const types = effTypes(r);
-  const groupChips = primaryGroupChip(r);
-  const typeChips = types.map(t => `<span class="chip type">${esc(t)}</span>`).join('');
-  const pri = r.priority
-    ? `<span class="pri ${r.priority}">${r.priority}</span>`
-    : `<span class="pri none">우선순위 −</span>`;
-  const status = `<span class="status-tag ${r.pmStatus.replace(/\s/g, '')}">${esc(r.pmStatus)}</span>${partialBadge(r)}`;
-
-  return `
-  <div class="card voc" data-open="${r.id}">
-    <div class="col-id">
-      <div class="recv-no">${esc(r.id)}</div>
-      ${status}
-    </div>
-    <div class="col-body">
-      <div class="ai-summary">
-        <span class="ai-tag">${warnIcon()} AI 요약</span>
-        ${esc(r.aiSummary)}
-      </div>
-      <div class="chips">
-        ${groupChips}${typeChips}
-      </div>
-    </div>
-    <div class="col-meta">
-      ${pri}
-      <div class="assignee">${avatarStack(r.assignees, 24)}</div>
     </div>
   </div>`;
 }
@@ -1499,13 +1365,6 @@ function bind() {
   else if (state.view === 'report') bindReport();
   else if (state.view === 'settings') bindSettings();
   else bindDashboard();
-}
-
-function bindCalendar() {
-  document.querySelectorAll('[data-caltab]').forEach(b =>
-    b.onclick = () => { state.calTab = b.dataset.caltab; render(); });
-  document.querySelectorAll('[data-open]').forEach(c =>
-    c.onclick = () => { state.detailId = c.dataset.open; state.view = "detail"; render(); });
 }
 
 function bindSettings() {
@@ -2304,7 +2163,7 @@ function loginShell(innerHTML) {
   return el;
 }
 const domainOptions = () => LOGIN_DOMAINS.map(d => `<option value="${d}">@${d}</option>`).join('');
-const LOGIN_BRAND = `<div class="login-brand"><span class="login-word">Redmine <span class="login-word-sub">console</span></span></div>`;
+const LOGIN_BRAND = `<div class="login-brand"><span class="login-word">AK VOC <span class="login-word-sub">Console</span></span></div>`;
 
 function renderLogin() {
   loginShell(`
@@ -2333,6 +2192,7 @@ function renderLogin() {
     msgEl.textContent = '로그인 중...';
     const { error } = await sb.auth.signInWithPassword({ email, password: pw });
     if (error) { msgEl.textContent = '로그인 실패: ' + (error.message || '아이디·비밀번호·도메인을 확인하세요.'); sendEl.disabled = false; }
+    else { location.hash = 'ws=' + (localStorage.getItem(WS_KEY) || 'AK') + '&view=dashboard'; }  // 로그인 직후엔 항상 대시보드부터
     // 성공 시 onAuthStateChange가 boot()를 실행해 화면을 전환합니다.
   };
   sendEl.onclick = submit;
