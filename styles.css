@@ -683,7 +683,7 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
 .role-chip.Dev { background: #e7f5ec; color: #1f8a52; }
 .role-chip.CS  { background: #efeafc; color: #6b4bd6; }
 .add-member { display: flex; gap: var(--sp-8); margin-top: var(--sp-16); align-items: stretch; }
-.add-member select { flex: 0 0 120px; width: 120px; }
+.add-member select { flex: 0 0 84px; width: 84px; }
 .add-member input { flex: 1 1 0; min-width: 0; width: auto; }
 .add-member .btn { flex: 0 0 100px; }
 .rm-row { display: flex; gap: var(--sp-8); align-items: stretch; }
@@ -927,6 +927,10 @@ textarea.box.orig.edit:focus { outline: none; border-color: var(--ink-soft); }
   .voc .col-meta { flex-direction: row; flex-wrap: wrap; align-items: center; }
   .row-2 { grid-template-columns: 1fr; }
   .drawer { width: 100%; }
+  /* 보드: 모바일에선 카테고리·날짜 숨기고 요약 살리기 */
+  .voc-table th:nth-child(3), .voc-table td:nth-child(3),
+  .voc-table th:nth-child(6), .voc-table td:nth-child(6) { display: none; }
+  .voc-table colgroup col:nth-child(3), .voc-table colgroup col:nth-child(6) { width: 0 !important; }
 }
 
 /* ===== 리포트 ===== */
