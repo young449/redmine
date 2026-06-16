@@ -133,6 +133,8 @@ const SEED_VERSION = 5;                    // 시드 데이터 버전 (올리면
 const DRAFT_KEY = 'voc_cs_draft_v1';
 
 /* ---------- Supabase 연동 설정 ---------- */
+// 비밀번호 재설정 메일 링크로 들어왔는지, 해시가 지워지기 전에 미리 포착
+const RECOVERY_IN_URL = typeof window !== 'undefined' && /[#&]type=recovery/.test(window.location.hash || '');
 const SUPABASE_URL = 'https://pxjipszalfhnpcquxlai.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_FYLM13OB2gDIA76N7JZtzg_Ku2JLTay';
 // 라이브러리(CDN)가 없거나 설정이 비면 sb=null → 기존처럼 localStorage 전용으로 동작
@@ -2406,7 +2408,7 @@ function startApp() {
 
 async function boot() {
   if (!sb) { startApp(); return; }            // 라이브러리 없음 → 로컬 전용
-  if (/type=recovery/.test(location.hash)) { renderResetPassword(); return; }  // 비번 재설정 메일 링크 복귀
+  if (RECOVERY_IN_URL || /type=recovery/.test(location.hash)) { renderResetPassword(); return; }  // 비번 재설정 메일 링크 복귀
   let session = null;
   try { const { data } = await sb.auth.getSession(); session = data ? data.session : null; } catch (e) { console.warn(e); }
   SESSION = session;
