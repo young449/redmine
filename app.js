@@ -87,8 +87,8 @@ const DEFAULT_TEAM = [
   { id: 'luke',   en: 'Luke',   ko: '윤태준', role: 'Dev' },
   { id: 'etna',   en: 'Etna',   ko: '윤수정', role: 'UX' },
 ];
-// 컬러 아바타 팔레트 (무채색 UI 위 유일한 컬러 포인트)
-const AVATAR_COLORS = ['#b03a6e', '#2670c4', '#7159c1', '#c0392b', '#0891b2', '#5b6b7b', '#8e44ad'];
+// 컬러 아바타 팔레트 — Google 계정 아바타 컬러 기반 (무채색 UI 위 유일한 컬러 포인트)
+const AVATAR_COLORS = ['#0A5492', '#E4447A', '#6A9C3D', '#752499', '#0E919C', '#EE5222', '#5E6AB8', '#BB1B59', '#0B8676', '#A849BA', '#BC3710', '#366721', '#7D5BBA', '#064A3D'];
 const AVATAR_OVERRIDE = { ellie: '#ea7317', app: '#15803d', hw: '#eab308' }; // 지정: Ellie 오렌지 · app 그린 · hw 노랑 (en 소문자 기준)
 const hashIdx = (s, n) => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h % n; };
 function avatarColor(m) {
