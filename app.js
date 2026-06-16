@@ -1315,6 +1315,14 @@ function renderSettings() {
       ${migrationPending
         ? '<div class="hint" id="acct-msg">이 브라우저에 남아 있는 기존 데이터를 Supabase로 한 번 올립니다. (최초 1회)</div>'
         : '<div class="hint" id="acct-msg">편집한 내용은 자동으로 Supabase에 저장됩니다.</div>'}
+      ${(sb && SESSION) ? `
+      <div class="pw-change">
+        <div class="pw-change-h">비밀번호 변경</div>
+        <input type="password" id="pw-new" placeholder="새 비밀번호 (6자 이상)" autocomplete="new-password">
+        <input type="password" id="pw-new2" placeholder="새 비밀번호 확인" autocomplete="new-password">
+        <button class="btn ghost" id="pw-save">비밀번호 변경</button>
+        <div class="hint" id="pw-msg"></div>
+      </div>` : ''}
     </div>
   </div>`;
 }
@@ -1589,6 +1597,22 @@ function bindSettings() {
   if (logoutBtn) logoutBtn.onclick = async () => {
     if (sb) { try { await sb.auth.signOut(); } catch (e) {} }
     location.reload();
+  };
+
+  const pwSave = $('#pw-save');
+  if (pwSave) pwSave.onclick = async () => {
+    const a = $('#pw-new').value || '', b = $('#pw-new2').value || '';
+    const msg = $('#pw-msg');
+    const setMsg = t => { if (msg) msg.textContent = t; };
+    if (a.length < 6) { setMsg('비밀번호는 6자 이상이어야 합니다.'); return; }
+    if (a !== b) { setMsg('두 비밀번호가 일치하지 않습니다.'); return; }
+    pwSave.disabled = true; setMsg('변경 중...');
+    try {
+      const { error } = await sb.auth.updateUser({ password: a });
+      if (error) { setMsg('변경 실패: ' + error.message); }
+      else { setMsg('비밀번호가 변경되었습니다.'); $('#pw-new').value = ''; $('#pw-new2').value = ''; }
+    } catch (e) { setMsg('변경 중 오류가 발생했습니다.'); }
+    pwSave.disabled = false;
   };
 
   const impRun = $('#imp-run');
@@ -2261,6 +2285,51 @@ function acctStatusText() {
   return `${email} · 연결됨.`;
 }
 
+/* ---------- 로그인 화면 (아이디 + 비밀번호) ---------- */
+const LOGIN_DOMAINS = ['iriver.com', 'astellnkern.com', 'meewang.kr'];
+
+function renderLogin() {
+  let el = document.getElementById('login-screen');
+  if (!el) { el = document.createElement('div'); el.id = 'login-screen'; document.body.appendChild(el); }
+  document.body.classList.add('auth-gate');
+  const domOpts = LOGIN_DOMAINS.map(d => `<option value="${d}">@${d}</option>`).join('');
+  el.innerHTML = `
+    <div class="login-card">
+      <div class="login-brand"><span class="login-word">Redmine <span class="login-word-sub">console</span></span></div>
+      <p class="login-sub">사내 계정으로 로그인하세요.</p>
+      <div class="login-id-row">
+        <input type="text" id="login-id" placeholder="아이디" autocomplete="username" autocapitalize="off" spellcheck="false">
+        <select id="login-domain" aria-label="도메인">${domOpts}</select>
+      </div>
+      <input type="password" id="login-pw" placeholder="비밀번호" autocomplete="current-password">
+      <button class="btn primary" id="login-send">로그인</button>
+      <div class="login-msg" id="login-msg"></div>
+    </div>`;
+  const idEl = document.getElementById('login-id');
+  const domEl = document.getElementById('login-domain');
+  const pwEl = document.getElementById('login-pw');
+  const sendEl = document.getElementById('login-send');
+  const msgEl = document.getElementById('login-msg');
+  const submit = async () => {
+    const id = (idEl.value || '').trim().replace(/@.*$/, '');   // 실수로 전체 이메일을 쳐도 앞부분만 사용
+    const pw = pwEl.value || '';
+    if (!id) { idEl.focus(); return; }
+    if (!pw) { pwEl.focus(); return; }
+    const email = `${id}@${domEl.value}`;
+    sendEl.disabled = true;
+    msgEl.textContent = '로그인 중...';
+    const { error } = await sb.auth.signInWithPassword({ email, password: pw });
+    if (error) {
+      msgEl.textContent = '로그인 실패 — 아이디·비밀번호·도메인을 확인하세요.';
+      sendEl.disabled = false;
+    }
+    // 성공 시 onAuthStateChange가 boot()를 실행해 화면을 전환합니다.
+  };
+  sendEl.onclick = submit;
+  [idEl, pwEl].forEach(elm => elm.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); }));
+  idEl.focus();
+}
+
 /* ---------- 부트 ---------- */
 function startApp() {
   document.body.classList.remove('auth-gate');
@@ -2276,21 +2345,20 @@ async function boot() {
   let session = null;
   try { const { data } = await sb.auth.getSession(); session = data ? data.session : null; } catch (e) { console.warn(e); }
   SESSION = session;
-  if (SESSION) {                               // 세션이 있으면 원격 동기화, 없으면 로컬 모드로 바로 진입
-    try {
-      const rem = await loadRemote();
-      if (rem.records.length) {
-        DB.records = rem.records;
-        if (rem.team && rem.team.length) DB.team = rem.team;
-        if (rem.settings && rem.settings.redmine_base) DB.redmineBase = rem.settings.redmine_base;
-        ensureData();
-        syncEnabled = true;
-      } else {
-        migrationPending = true;               // 원격 비어있음 → 설정에서 이관 버튼 안내
-      }
-    } catch (e) {
-      console.warn('[boot] 원격 로드 실패, 로컬 데이터로 진행', e);
+  if (!SESSION) { renderLogin(); return; }      // 미인증 → 로그인 화면
+  try {
+    const rem = await loadRemote();
+    if (rem.records.length) {
+      DB.records = rem.records;
+      if (rem.team && rem.team.length) DB.team = rem.team;
+      if (rem.settings && rem.settings.redmine_base) DB.redmineBase = rem.settings.redmine_base;
+      ensureData();
+      syncEnabled = true;
+    } else {
+      migrationPending = true;                   // 원격 비어있음 → 설정에서 이관 버튼 안내
     }
+  } catch (e) {
+    console.warn('[boot] 원격 로드 실패, 로컬 데이터로 진행', e);
   }
   startApp();
 }
