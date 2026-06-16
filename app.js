@@ -2285,26 +2285,31 @@ function acctStatusText() {
   return `${email} · 연결됨.`;
 }
 
-/* ---------- 로그인 화면 (아이디 + 비밀번호) ---------- */
+/* ---------- 로그인 / 비밀번호 찾기 화면 ---------- */
 const LOGIN_DOMAINS = ['iriver.com', 'astellnkern.com', 'meewang.kr'];
 
-function renderLogin() {
+function loginShell(innerHTML) {
   let el = document.getElementById('login-screen');
   if (!el) { el = document.createElement('div'); el.id = 'login-screen'; document.body.appendChild(el); }
-  document.body.classList.add('auth-gate');
-  const domOpts = LOGIN_DOMAINS.map(d => `<option value="${d}">@${d}</option>`).join('');
-  el.innerHTML = `
-    <div class="login-card">
-      <div class="login-brand"><span class="login-word">Redmine <span class="login-word-sub">console</span></span></div>
-      <p class="login-sub">사내 계정으로 로그인하세요.</p>
-      <div class="login-id-row">
-        <input type="text" id="login-id" placeholder="아이디" autocomplete="username" autocapitalize="off" spellcheck="false">
-        <select id="login-domain" aria-label="도메인">${domOpts}</select>
-      </div>
-      <input type="password" id="login-pw" placeholder="비밀번호" autocomplete="current-password">
-      <button class="btn primary" id="login-send">로그인</button>
-      <div class="login-msg" id="login-msg"></div>
-    </div>`;
+  document.body.classList.add('auth-gate');           // boot가 앱을 먼저 띄웠어도 가립니다
+  el.innerHTML = `<div class="login-card">${innerHTML}</div>`;
+  return el;
+}
+const domainOptions = () => LOGIN_DOMAINS.map(d => `<option value="${d}">@${d}</option>`).join('');
+const LOGIN_BRAND = `<div class="login-brand"><span class="login-word">Redmine <span class="login-word-sub">console</span></span></div>`;
+
+function renderLogin() {
+  loginShell(`
+    ${LOGIN_BRAND}
+    <p class="login-sub">사내 계정으로 로그인하세요.</p>
+    <div class="login-id-row">
+      <input type="text" id="login-id" placeholder="아이디" autocomplete="username" autocapitalize="off" spellcheck="false">
+      <select id="login-domain" aria-label="도메인">${domainOptions()}</select>
+    </div>
+    <input type="password" id="login-pw" placeholder="비밀번호" autocomplete="current-password">
+    <button class="btn primary" id="login-send">로그인</button>
+    <div class="login-msg" id="login-msg"></div>
+    <button type="button" class="login-link" id="to-reset">비밀번호를 잊으셨나요?</button>`);
   const idEl = document.getElementById('login-id');
   const domEl = document.getElementById('login-domain');
   const pwEl = document.getElementById('login-pw');
@@ -2319,15 +2324,74 @@ function renderLogin() {
     sendEl.disabled = true;
     msgEl.textContent = '로그인 중...';
     const { error } = await sb.auth.signInWithPassword({ email, password: pw });
-    if (error) {
-      msgEl.textContent = '로그인 실패 — 아이디·비밀번호·도메인을 확인하세요.';
-      sendEl.disabled = false;
-    }
+    if (error) { msgEl.textContent = '로그인 실패: ' + (error.message || '아이디·비밀번호·도메인을 확인하세요.'); sendEl.disabled = false; }
     // 성공 시 onAuthStateChange가 boot()를 실행해 화면을 전환합니다.
   };
   sendEl.onclick = submit;
   [idEl, pwEl].forEach(elm => elm.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); }));
+  document.getElementById('to-reset').onclick = renderResetRequest;
   idEl.focus();
+}
+
+// 비밀번호 찾기 — 재설정 메일 발송
+function renderResetRequest() {
+  loginShell(`
+    ${LOGIN_BRAND}
+    <p class="login-sub">아이디로 비밀번호 재설정 메일을 보냅니다.</p>
+    <div class="login-id-row">
+      <input type="text" id="reset-id" placeholder="아이디" autocomplete="username" autocapitalize="off" spellcheck="false">
+      <select id="reset-domain" aria-label="도메인">${domainOptions()}</select>
+    </div>
+    <button class="btn primary" id="reset-send">재설정 메일 보내기</button>
+    <div class="login-msg" id="reset-msg"></div>
+    <button type="button" class="login-link" id="to-login">로그인으로 돌아가기</button>`);
+  const idEl = document.getElementById('reset-id');
+  const domEl = document.getElementById('reset-domain');
+  const sendEl = document.getElementById('reset-send');
+  const msgEl = document.getElementById('reset-msg');
+  const submit = async () => {
+    const id = (idEl.value || '').trim().replace(/@.*$/, '');
+    if (!id) { idEl.focus(); return; }
+    const email = `${id}@${domEl.value}`;
+    sendEl.disabled = true;
+    msgEl.textContent = '메일 보내는 중...';
+    const redirectTo = location.href.split('#')[0];   // 메일 링크가 돌아올 주소(해시 제거)
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo });
+    if (error) { msgEl.textContent = '전송 실패: ' + error.message; sendEl.disabled = false; }
+    else { msgEl.textContent = '메일을 보냈습니다. 메일함의 링크를 눌러 비밀번호를 변경하세요.'; }
+  };
+  sendEl.onclick = submit;
+  idEl.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+  document.getElementById('to-login').onclick = renderLogin;
+  idEl.focus();
+}
+
+// 재설정 메일 링크로 복귀(복구 세션) → 새 비밀번호 설정
+function renderResetPassword() {
+  loginShell(`
+    ${LOGIN_BRAND}
+    <p class="login-sub">새 비밀번호를 설정하세요.</p>
+    <input type="password" id="rp-new" placeholder="새 비밀번호 (6자 이상)" autocomplete="new-password">
+    <input type="password" id="rp-new2" placeholder="새 비밀번호 확인" autocomplete="new-password">
+    <button class="btn primary" id="rp-save">비밀번호 변경</button>
+    <div class="login-msg" id="rp-msg"></div>`);
+  const aEl = document.getElementById('rp-new');
+  const bEl = document.getElementById('rp-new2');
+  const saveEl = document.getElementById('rp-save');
+  const msgEl = document.getElementById('rp-msg');
+  const submit = async () => {
+    const a = aEl.value || '', b = bEl.value || '';
+    if (a.length < 6) { msgEl.textContent = '비밀번호는 6자 이상이어야 합니다.'; return; }
+    if (a !== b) { msgEl.textContent = '두 비밀번호가 일치하지 않습니다.'; return; }
+    saveEl.disabled = true; msgEl.textContent = '변경 중...';
+    const { error } = await sb.auth.updateUser({ password: a });
+    if (error) { msgEl.textContent = '변경 실패: ' + error.message; saveEl.disabled = false; return; }
+    msgEl.textContent = '변경되었습니다. 잠시 후 이동합니다...';
+    setTimeout(() => location.replace(location.origin + location.pathname), 900);  // 해시 제거 후 재진입
+  };
+  saveEl.onclick = submit;
+  [aEl, bEl].forEach(elm => elm.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); }));
+  aEl.focus();
 }
 
 /* ---------- 부트 ---------- */
@@ -2342,6 +2406,7 @@ function startApp() {
 
 async function boot() {
   if (!sb) { startApp(); return; }            // 라이브러리 없음 → 로컬 전용
+  if (/type=recovery/.test(location.hash)) { renderResetPassword(); return; }  // 비번 재설정 메일 링크 복귀
   let session = null;
   try { const { data } = await sb.auth.getSession(); session = data ? data.session : null; } catch (e) { console.warn(e); }
   SESSION = session;
@@ -2366,10 +2431,11 @@ async function boot() {
 window.addEventListener('hashchange', () => { if (appStarted) { readURL(); render(); } });
 
 if (sb) {
-  sb.auth.onAuthStateChange((_evt, session) => {
+  sb.auth.onAuthStateChange((evt, session) => {
     const wasIn = !!SESSION;
     SESSION = session;
-    if (session && !appStarted) boot();        // 매직링크 복귀/최초 로그인 → 부트
+    if (evt === 'PASSWORD_RECOVERY') { renderResetPassword(); return; }  // 재설정 메일 링크 복귀
+    if (session && !appStarted) boot();        // 최초 로그인 → 부트
     else if (!session && wasIn) location.reload(); // 로그아웃
   });
 }

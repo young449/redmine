@@ -974,6 +974,8 @@ body.auth-gate .app { display: none; }
 .pw-change #pw-save { align-self: flex-start; }
 #login-screen .btn.primary { width: 100%; justify-content: center; height: 48px; }
 #login-screen .login-msg { font-size: var(--fs-13); color: var(--ink-soft); min-height: 18px; }
+#login-screen .login-link { background: none; border: 0; padding: var(--sp-4); margin: 0 auto; font-size: var(--fs-13); color: var(--muted); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+#login-screen .login-link:hover, #login-screen .login-link:focus { color: var(--brand); outline: none; }
 
 /* ---------- 프로필 드롭다운 ---------- */
 .me-chip { cursor: pointer; }
